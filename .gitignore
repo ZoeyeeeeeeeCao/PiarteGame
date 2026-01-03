@@ -12,6 +12,9 @@
 [Uu]ser[Ss]ettings/
 PiarteGame/Assets/OnlineAssets/
 PiarteGame/Assets/OnlineAssets.meta
+PiarteGame/Assets/GameAssets/
+PiarteGame/Assets/GameAssets.meta
+
 
 *.log
 
