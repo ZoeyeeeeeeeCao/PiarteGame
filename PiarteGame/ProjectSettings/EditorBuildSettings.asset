@@ -5,9 +5,18 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/SampleScene.unity
     guid: 99c9720ab356a0642a771bea13969a05
+  - enabled: 1
+    path: Assets/Scenes/AidynScene.unity
+    guid: de1bc501f3afb6f4c96c95279466c3b9
+  - enabled: 1
+    path: Assets/Scenes/NelsenScene.unity
+    guid: b57f2fe7a60fbbd479ccea8e9c8bdf9c
+  - enabled: 1
+    path: Assets/Scenes/Howard's Scene.unity
+    guid: f10743cb80bafd44a959559ee0d3b545
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0
