@@ -58,7 +58,7 @@ public class EnemyStateManager : MonoBehaviour
     {
         if (currentState != null)
         {
-            currentState.OnCollisionEnter(this, collision);
+           // currentState.OnCollisionEnter(this, collision);
         }
     }
 }
