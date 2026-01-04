@@ -1043,7 +1043,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5806227023290176503}
-  - component: {fileID: 4389455935538752390}
   m_Layer: 0
   m_Name: calf_l
   m_TagString: Untagged
@@ -1067,29 +1066,6 @@ Transform:
   - {fileID: 785072916291989801}
   m_Father: {fileID: 2660352792125649755}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!136 &4389455935538752390
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1509843700231878646}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.13
-  m_Height: 0.52
-  m_Direction: 0
-  m_Center: {x: 0.2, y: 0.02, z: 0}
 --- !u!1 &1781731722672925688
 GameObject:
   m_ObjectHideFlags: 0
@@ -3002,7 +2978,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7148967587341583754}
-  - component: {fileID: 236235104281894586}
   m_Layer: 0
   m_Name: calf_r
   m_TagString: Untagged
@@ -3026,29 +3001,6 @@ Transform:
   - {fileID: 7922560753365586637}
   m_Father: {fileID: 1847013756463945465}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!136 &236235104281894586
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3538713956325080476}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.13
-  m_Height: 0.52
-  m_Direction: 0
-  m_Center: {x: -0.2, y: -0.02, z: 0}
 --- !u!1 &3719352540726356817
 GameObject:
   m_ObjectHideFlags: 0
@@ -3252,7 +3204,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1847013756463945465}
-  - component: {fileID: 7081127798645113964}
   m_Layer: 0
   m_Name: thigh_r
   m_TagString: Untagged
@@ -3276,29 +3227,6 @@ Transform:
   - {fileID: 7148967587341583754}
   m_Father: {fileID: 8689102710377086073}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!136 &7081127798645113964
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3815388895457217041}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.14
-  m_Height: 0.56
-  m_Direction: 0
-  m_Center: {x: -0.2, y: 0.01, z: -0.01}
 --- !u!1 &3894841326238054103
 GameObject:
   m_ObjectHideFlags: 0
@@ -9193,11 +9121,11 @@ Cloth:
   - maxDistance: 0.4
     collisionSphereDistance: 3.4028235e+38
   m_CapsuleColliders:
-  - {fileID: 4389455935538752390}
-  - {fileID: 236235104281894586}
+  - {fileID: 0}
+  - {fileID: 0}
   - {fileID: 3243253440769328010}
-  - {fileID: 309575785589928480}
-  - {fileID: 7081127798645113964}
+  - {fileID: 0}
+  - {fileID: 0}
   m_SphereColliders: []
   m_SelfCollisionDistance: 0
   m_SelfCollisionStiffness: 0.2
@@ -9515,7 +9443,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2660352792125649755}
-  - component: {fileID: 309575785589928480}
   m_Layer: 0
   m_Name: thigh_l
   m_TagString: Untagged
@@ -9539,29 +9466,6 @@ Transform:
   - {fileID: 5806227023290176503}
   m_Father: {fileID: 8689102710377086073}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!136 &309575785589928480
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5825235885824318741}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.14
-  m_Height: 0.56
-  m_Direction: 0
-  m_Center: {x: 0.2, y: -0.01, z: 0.01}
 --- !u!1 &5929928157733248528
 GameObject:
   m_ObjectHideFlags: 0
@@ -9641,7 +9545,12 @@ Animator:
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
   m_AnimatePhysics: 0
-  m_WarningMessage: 
+  m_WarningMessage: "\nBinding warning: Some generic clip(s) animate transforms that
+    are already bound by a Humanoid avatar. These transforms can only be changed
+    by Humanoid clips.\n\tTransform 'index_03_l'\n\tTransform 'lowerarm_l'\n\tTransform
+    'pinky_03_l'\n\tTransform 'pinky_03_r'\n\tTransform 'ring_02_l'\n\tTransform
+    'hand_l'\n\tTransform 'index_03_r'\n\tTransform 'ring_03_r'\n\tTransform 'upperarm_r'\n\tTransform
+    'upperarm_l'\n\tand more ...\n\tFrom animation clip 'Take 001'"
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
