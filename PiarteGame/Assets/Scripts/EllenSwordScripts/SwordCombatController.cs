@@ -5,10 +5,10 @@ using System.Collections.Generic;
 public class SwordCombatController : MonoBehaviour
 {
     [Header("Sword References")]
-    [SerializeField] private GameObject prefabSword; // The sword prefab that moves to hand (NO SkinnedMeshRenderer)
-    [SerializeField] private SkinnedMeshRenderer bakedSwordRenderer; // The baked sword with SkinnedMeshRenderer (stuck to pelvis)
-    [SerializeField] private Transform handSocket; // Right hand bone
-    [SerializeField] private Transform beltSocket; // Hip/belt position
+    [SerializeField] private GameObject prefabSword;
+    [SerializeField] private SkinnedMeshRenderer bakedSwordRenderer;
+    [SerializeField] private Transform handSocket;
+    [SerializeField] private Transform beltSocket;
     [SerializeField] private WeaponTrailEffect weaponTrail;
 
     [Header("Sword Transform Adjustments")]
@@ -19,63 +19,107 @@ public class SwordCombatController : MonoBehaviour
 
     [Header("Animator")]
     [SerializeField] private Animator animator;
+    [SerializeField] private int swordMaskLayerIndex = 1; // Index of the Sword Mask layer
+
+    [Header("Movement Integration")]
+    [SerializeField] private MonoBehaviour movementController; // Your movement script
+    [SerializeField] private float layerTransitionSpeed = 0.2f; // Smooth layer weight transitions
 
     [Header("Combat Settings")]
-    [SerializeField] private float comboResetTime = 1f;
     [SerializeField] private float attackCooldown = 0.5f;
     [SerializeField] private int hardAttackRequirement = 10;
     [SerializeField] private LayerMask enemyLayer;
     [SerializeField] private float attackRange = 2f;
     [SerializeField] private Transform attackPoint;
 
+    [Header("Attack Animation Names")]
+    [SerializeField] private string[] easyAttackAnimations = new string[] { "EasyAttack1", "EasyAttack2", "EasyAttack3" };
+    [SerializeField] private string[] normalAttackAnimations = new string[] { "NormalAttack1", "NormalAttack2", "NormalAttack3" };
+    [SerializeField] private string hardAttackAnimation = "HardAttack";
+
+    [Header("Attack Damage")]
+    [SerializeField] private int easyAttackDamage = 10;
+    [SerializeField] private int normalAttackDamage = 20;
+    [SerializeField] private int hardAttackDamage = 50;
+
+    [Header("Attack Durations")]
+    [SerializeField] private float easyAttackDuration = 0.4f;
+    [SerializeField] private float normalAttackDuration = 0.6f;
+    [SerializeField] private float hardAttackDuration = 1.5f;
+
     [Header("Camera Shake for Hard Attack")]
     [SerializeField] private bool useHardAttackCinematic = true;
     [SerializeField] private float cinematicDuration = 2f;
-
-    [Header("VFX")]
-    [SerializeField] private GameObject normalAttackVFX;
-    [SerializeField] private GameObject mediumAttackVFX;
-    [SerializeField] private GameObject hardAttackVFX;
 
     // State tracking
     private bool isSwordDrawn = false;
     private bool isAttacking = false;
     private bool canAttack = true;
-    private float lastAttackTime = 0f;
+    private bool isDrawingOrSheathing = false;
 
-    // Combo tracking
-    private List<AttackInput> currentCombo = new List<AttackInput>();
-    private float lastComboInputTime = 0f;
-    private int totalAttackCount = 0;
+    // Attack tracking
+    private int attackCounter = 0;
 
     // Animation hashes
     private int drawSwordHash;
     private int sheathSwordHash;
-    private int normalAttack1Hash;
-    private int normalAttack2Hash;
-    private int mediumAttack1Hash;
-    private int mediumAttack2Hash;
-    private int mediumAttack3Hash;
-    private int hardAttackHash;
     private int isDrawnHash;
-    private int attackTriggerHash;
+    private int[] easyAttackHashes;
+    private int[] normalAttackHashes;
+    private int hardAttackHash;
 
-    private enum AttackInput
-    {
-        Left,
-        Right
-    }
-
-    private enum AttackType
-    {
-        Normal,
-        Medium,
-        Hard
-    }
+    // Movement control interface
+    private IMovementController movementInterface;
 
     private void Start()
     {
         InitializeAnimationHashes();
+        InitializeMovementController();
+        InitializeSwordState();
+    }
+
+    private void InitializeAnimationHashes()
+    {
+        drawSwordHash = Animator.StringToHash("DrawSword");
+        sheathSwordHash = Animator.StringToHash("SheathSword");
+        isDrawnHash = Animator.StringToHash("IsDrawn");
+
+        easyAttackHashes = new int[easyAttackAnimations.Length];
+        for (int i = 0; i < easyAttackAnimations.Length; i++)
+        {
+            easyAttackHashes[i] = Animator.StringToHash(easyAttackAnimations[i]);
+        }
+
+        normalAttackHashes = new int[normalAttackAnimations.Length];
+        for (int i = 0; i < normalAttackAnimations.Length; i++)
+        {
+            normalAttackHashes[i] = Animator.StringToHash(normalAttackAnimations[i]);
+        }
+
+        hardAttackHash = Animator.StringToHash(hardAttackAnimation);
+    }
+
+    private void InitializeMovementController()
+    {
+        if (movementController != null)
+        {
+            movementInterface = movementController as IMovementController;
+            if (movementInterface == null)
+            {
+                Debug.LogWarning("Movement controller doesn't implement IMovementController interface. Movement blocking during attacks won't work.");
+            }
+        }
+    }
+
+    private void InitializeSwordState()
+    {
+        // Disable sword mask layer initially (sword not drawn)
+        if (animator != null)
+        {
+            animator.SetLayerWeight(swordMaskLayerIndex, 0f);
+            animator.SetBool(isDrawnHash, false);
+            Debug.Log($"Sword Mask Layer initialized with weight: {animator.GetLayerWeight(swordMaskLayerIndex)}");
+        }
 
         // Position the prefab sword at belt initially
         if (prefabSword != null && beltSocket != null)
@@ -83,27 +127,12 @@ public class SwordCombatController : MonoBehaviour
             AttachSwordToBelt();
         }
 
-        // Check if prefab sword has SkinnedMeshRenderer (it shouldn't!)
-        if (prefabSword != null)
-        {
-            SkinnedMeshRenderer prefabSkinned = prefabSword.GetComponentInChildren<SkinnedMeshRenderer>();
-            if (prefabSkinned != null)
-            {
-                Debug.LogError("WARNING: Prefab sword has a SkinnedMeshRenderer! This will cause issues. Please use a MeshRenderer instead or remove the SkinnedMeshRenderer component!");
-            }
-            else
-            {
-                Debug.Log("Prefab sword correctly has NO SkinnedMeshRenderer - using MeshRenderer");
-            }
-        }
-
-        // Show baked sword (with SkinnedMeshRenderer - stuck to pelvis)
+        // Show baked sword, hide prefab sword
         if (bakedSwordRenderer != null)
         {
             bakedSwordRenderer.enabled = true;
         }
 
-        // Hide prefab sword
         if (prefabSword != null)
         {
             prefabSword.SetActive(false);
@@ -115,47 +144,48 @@ public class SwordCombatController : MonoBehaviour
             weaponTrail.enabled = false;
         }
 
-        Debug.Log("Sword initialized - Baked sword visible, prefab hidden");
-    }
-
-    private void InitializeAnimationHashes()
-    {
-        drawSwordHash = Animator.StringToHash("DrawSword");
-        sheathSwordHash = Animator.StringToHash("SheathSword");
-        normalAttack1Hash = Animator.StringToHash("NormalAttack1");
-        normalAttack2Hash = Animator.StringToHash("NormalAttack2");
-        mediumAttack1Hash = Animator.StringToHash("MediumAttack1");
-        mediumAttack2Hash = Animator.StringToHash("MediumAttack2");
-        mediumAttack3Hash = Animator.StringToHash("MediumAttack3");
-        hardAttackHash = Animator.StringToHash("HardAttack");
-        isDrawnHash = Animator.StringToHash("IsDrawn");
-        attackTriggerHash = Animator.StringToHash("Attack");
+        Debug.Log("Sword Combat Controller initialized");
     }
 
     private void Update()
     {
         HandleInput();
-        CheckComboReset();
     }
 
     private void HandleInput()
     {
         // Toggle sword draw/sheath (E key)
-        if (Input.GetKeyDown(KeyCode.E) && !isAttacking)
+        if (Input.GetKeyDown(KeyCode.E) && !isAttacking && !isDrawingOrSheathing)
         {
             ToggleSword();
         }
 
         // Attack inputs (only when sword is drawn)
-        if (isSwordDrawn && canAttack && !isAttacking)
+        if (isSwordDrawn && canAttack && !isAttacking && !isDrawingOrSheathing)
         {
-            if (Input.GetMouseButtonDown(0)) // Left click
+            // Left Mouse Button - Easy Attack
+            if (Input.GetMouseButtonDown(0))
             {
-                AddComboInput(AttackInput.Left);
+                PerformEasyAttack();
             }
-            else if (Input.GetMouseButtonDown(1)) // Right click
+            // Right Mouse Button - Normal Attack
+            else if (Input.GetMouseButtonDown(1))
             {
-                AddComboInput(AttackInput.Right);
+                PerformNormalAttack();
+            }
+            // Hard Attack - Both buttons or H key
+            else if ((Input.GetMouseButton(0) && Input.GetMouseButtonDown(1)) ||
+                     (Input.GetMouseButton(1) && Input.GetMouseButtonDown(0)) ||
+                     Input.GetKeyDown(KeyCode.H))
+            {
+                if (attackCounter >= hardAttackRequirement)
+                {
+                    PerformHardAttack();
+                }
+                else
+                {
+                    Debug.Log($"Hard attack locked! Need {hardAttackRequirement - attackCounter} more attacks");
+                }
             }
         }
     }
@@ -174,130 +204,307 @@ public class SwordCombatController : MonoBehaviour
         }
     }
 
+    // ========================================
+    // DRAW SWORD - Can be done while moving
+    // ========================================
     private IEnumerator DrawSword()
     {
-        Debug.Log("=== DRAW SWORD START ===");
-        Debug.Log($"Prefab Sword null? {prefabSword == null}");
-        Debug.Log($"Baked Sword Renderer null? {bakedSwordRenderer == null}");
-        Debug.Log($"Hand Socket null? {handSocket == null}");
+        isDrawingOrSheathing = true;
 
+        // IMMEDIATELY enable sword mask layer
+        // This allows upper body to draw while legs continue locomotion
+        StartCoroutine(TransitionLayerWeight(swordMaskLayerIndex, 1f, layerTransitionSpeed));
+
+        // Trigger draw animation on BOTH layers
         animator.SetTrigger(drawSwordHash);
         animator.SetBool(isDrawnHash, true);
 
-        // Get the animation length dynamically
-        AnimatorClipInfo[] clipInfo = animator.GetCurrentAnimatorClipInfo(0);
-        float animLength = clipInfo.Length > 0 ? clipInfo[0].clip.length : 1f;
+        // Get animation length
+        float animLength = GetAnimationLength("DrawSword");
 
-        // Move sword to hand at 20% of animation (earlier timing)
+        // Wait for hand to reach sword position (20% into animation)
         yield return new WaitForSeconds(animLength * 0.2f);
 
-        Debug.Log("--- 20% animation point reached ---");
-
-        // Hide baked sword (SkinnedMeshRenderer)
+        // Switch from baked to prefab sword
         if (bakedSwordRenderer != null)
         {
-            Debug.Log($"Disabling baked sword renderer (was: {bakedSwordRenderer.enabled})");
             bakedSwordRenderer.enabled = false;
-            Debug.Log($"Baked sword renderer now: {bakedSwordRenderer.enabled}");
-        }
-        else
-        {
-            Debug.LogWarning("Baked sword renderer is NULL!");
         }
 
-        // Show prefab sword and move to hand
         if (prefabSword != null)
         {
-            Debug.Log($"Activating prefab sword (was: {prefabSword.activeSelf})");
             prefabSword.SetActive(true);
-            Debug.Log($"Prefab sword now active: {prefabSword.activeSelf}");
-        }
-        else
-        {
-            Debug.LogWarning("Prefab sword is NULL!");
         }
 
         AttachSwordToHand();
 
-        Debug.Log("=== Sword drawn - Baked disabled, prefab enabled in hand ===");
-
-        // Wait for rest of animation
+        // Wait for rest of draw animation
         yield return new WaitForSeconds(animLength * 0.8f);
 
         isSwordDrawn = true;
+        isDrawingOrSheathing = false;
 
-        // Enable trail
+        // Enable weapon trail
         if (weaponTrail != null)
         {
             weaponTrail.enabled = true;
         }
+
+        Debug.Log("Sword drawn - ready for combat");
     }
 
+    // ========================================
+    // SHEATH SWORD - Can be done while moving
+    // ========================================
     private IEnumerator SheathSword()
     {
+        isDrawingOrSheathing = true;
+
+        // Layer weight stays at 1 during sheath
+        // This allows upper body to sheath while legs continue locomotion
+
+        // Trigger sheath animation on BOTH layers
         animator.SetTrigger(sheathSwordHash);
         animator.SetBool(isDrawnHash, false);
 
-        // Disable trail
+        // Disable weapon trail
         if (weaponTrail != null)
         {
             weaponTrail.enabled = false;
         }
 
-        // Get the animation length dynamically
-        AnimatorClipInfo[] clipInfo = animator.GetCurrentAnimatorClipInfo(0);
-        float animLength = clipInfo.Length > 0 ? clipInfo[0].clip.length : 1f;
+        // Get animation length
+        float animLength = GetAnimationLength("SheathSword");
 
-        // Move sword to belt at 80% of animation (much later)
+        // Wait until sword reaches belt (80% into animation)
         yield return new WaitForSeconds(animLength * 0.8f);
 
-        // Move it back to belt position
         AttachSwordToBelt();
 
-        // Wait a tiny bit more before swapping (5% more)
         yield return new WaitForSeconds(animLength * 0.05f);
 
-        // Hide prefab sword
+        // Switch from prefab to baked sword
         if (prefabSword != null)
         {
             prefabSword.SetActive(false);
         }
 
-        // Show baked sword (SkinnedMeshRenderer)
         if (bakedSwordRenderer != null)
         {
             bakedSwordRenderer.enabled = true;
         }
 
-        Debug.Log("Sword sheathed - Prefab disabled, baked enabled at belt");
-
-        // Wait for rest of animation
         yield return new WaitForSeconds(animLength * 0.15f);
 
         isSwordDrawn = false;
+        attackCounter = 0;
 
-        // Reset combo when sheathing
-        ResetCombo();
+        // NOW disable sword mask layer after sheath completes
+        StartCoroutine(TransitionLayerWeight(swordMaskLayerIndex, 0f, layerTransitionSpeed));
+
+        isDrawingOrSheathing = false;
+
+        Debug.Log("Sword sheathed");
+    }
+
+    // ========================================
+    // ATTACKS - Full body, stops movement
+    // ========================================
+    private void PerformEasyAttack()
+    {
+        int randomIndex = Random.Range(0, easyAttackHashes.Length);
+        int attackHash = easyAttackHashes[randomIndex];
+
+        Debug.Log($"Performing Easy Attack: {easyAttackAnimations[randomIndex]}");
+
+        StartCoroutine(ExecuteAttack(attackHash, easyAttackDamage, easyAttackDuration));
+        attackCounter++;
+    }
+
+    private void PerformNormalAttack()
+    {
+        int randomIndex = Random.Range(0, normalAttackHashes.Length);
+        int attackHash = normalAttackHashes[randomIndex];
+
+        Debug.Log($"Performing Normal Attack: {normalAttackAnimations[randomIndex]}");
+
+        StartCoroutine(ExecuteAttack(attackHash, normalAttackDamage, normalAttackDuration));
+        attackCounter++;
+    }
+
+    private void PerformHardAttack()
+    {
+        Debug.Log("Performing Hard Attack!");
+
+        StartCoroutine(ExecuteHardAttack());
+        attackCounter = 0;
+    }
+
+    private IEnumerator ExecuteAttack(int animationHash, int damage, float duration)
+    {
+        isAttacking = true;
+        canAttack = false;
+
+        // STOP MOVEMENT - Dynasty Warriors style
+        if (movementInterface != null)
+        {
+            movementInterface.SetMovementEnabled(false);
+        }
+
+        // DISABLE sword mask layer for full body attack
+        animator.SetLayerWeight(swordMaskLayerIndex, 0f);
+        Debug.Log($"Attack Started - Layer weight: {animator.GetLayerWeight(swordMaskLayerIndex)}");
+
+        // Trigger attack animation
+        animator.SetTrigger(animationHash);
+
+        // Wait for attack to execute (damage frame at 50% of animation)
+        yield return new WaitForSeconds(duration * 0.5f);
+
+        // Deal damage at the peak of the swing
+        DealDamageToEnemies(damage);
+
+        // Weapon trail effect
+        if (weaponTrail != null)
+        {
+            weaponTrail.StartTrail();
+            yield return new WaitForSeconds(0.3f);
+            weaponTrail.StopTrail();
+        }
+
+        // Wait for rest of animation
+        yield return new WaitForSeconds(duration * 0.5f);
+
+        // Cooldown before next attack
+        yield return new WaitForSeconds(attackCooldown);
+
+        // RE-ENABLE sword mask layer if sword is still drawn
+        if (isSwordDrawn)
+        {
+            StartCoroutine(TransitionLayerWeight(swordMaskLayerIndex, 1f, 0.15f));
+        }
+
+        // RE-ENABLE MOVEMENT
+        if (movementInterface != null)
+        {
+            movementInterface.SetMovementEnabled(true);
+        }
+
+        isAttacking = false;
+        canAttack = true;
+
+        Debug.Log($"Attack counter: {attackCounter}/{hardAttackRequirement}");
+    }
+
+    private IEnumerator ExecuteHardAttack()
+    {
+        isAttacking = true;
+        canAttack = false;
+
+        // STOP MOVEMENT
+        if (movementInterface != null)
+        {
+            movementInterface.SetMovementEnabled(false);
+        }
+
+        // DISABLE sword mask layer for full body attack
+        animator.SetLayerWeight(swordMaskLayerIndex, 0f);
+        Debug.Log($"Hard Attack Started - Layer weight: {animator.GetLayerWeight(swordMaskLayerIndex)}");
+
+        // Cinematic effect
+        if (useHardAttackCinematic)
+        {
+            StartCoroutine(HardAttackCinematic());
+        }
+
+        // Trigger hard attack animation
+        animator.SetTrigger(hardAttackHash);
+
+        // Wait for attack to execute
+        yield return new WaitForSeconds(hardAttackDuration * 0.5f);
+
+        // Deal massive damage
+        DealDamageToEnemies(hardAttackDamage);
+
+        // Extended weapon trail
+        if (weaponTrail != null)
+        {
+            weaponTrail.StartTrail();
+            yield return new WaitForSeconds(0.5f);
+            weaponTrail.StopTrail();
+        }
+
+        // Wait for rest of animation
+        yield return new WaitForSeconds(hardAttackDuration * 0.5f);
+
+        // Cooldown
+        yield return new WaitForSeconds(attackCooldown);
+
+        // RE-ENABLE sword mask layer if sword is still drawn
+        if (isSwordDrawn)
+        {
+            StartCoroutine(TransitionLayerWeight(swordMaskLayerIndex, 1f, 0.15f));
+        }
+
+        // RE-ENABLE MOVEMENT
+        if (movementInterface != null)
+        {
+            movementInterface.SetMovementEnabled(true);
+        }
+
+        isAttacking = false;
+        canAttack = true;
+
+        Debug.Log("Hard attack complete - Attack counter reset to 0");
+    }
+
+    private IEnumerator HardAttackCinematic()
+    {
+        Debug.Log("Hard Attack Cinematic Effect!");
+        // TODO: Add camera shake, slow motion, screen effects here
+        // Example:
+        // Time.timeScale = 0.3f; // Slow motion
+        // CameraShake.Shake(0.5f, 0.3f);
+        yield return new WaitForSeconds(cinematicDuration);
+        // Time.timeScale = 1f;
+    }
+
+    // ========================================
+    // HELPER METHODS
+    // ========================================
+    private IEnumerator TransitionLayerWeight(int layerIndex, float targetWeight, float duration)
+    {
+        float startWeight = animator.GetLayerWeight(layerIndex);
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float newWeight = Mathf.Lerp(startWeight, targetWeight, elapsed / duration);
+            animator.SetLayerWeight(layerIndex, newWeight);
+            yield return null;
+        }
+
+        animator.SetLayerWeight(layerIndex, targetWeight);
+    }
+
+    private float GetAnimationLength(string animationName)
+    {
+        AnimatorClipInfo[] clipInfo = animator.GetCurrentAnimatorClipInfo(0);
+        if (clipInfo.Length > 0)
+        {
+            return clipInfo[0].clip.length;
+        }
+        return 1f; // Default fallback
     }
 
     private void AttachSwordToHand()
     {
         if (prefabSword != null && handSocket != null)
         {
-            Debug.Log($"Attaching prefab to hand socket: {handSocket.name}");
-            Debug.Log($"Prefab position BEFORE: {prefabSword.transform.position}");
-
             prefabSword.transform.SetParent(handSocket);
             prefabSword.transform.localPosition = handPositionOffset;
             prefabSword.transform.localRotation = Quaternion.Euler(handRotationOffset);
-
-            Debug.Log($"Prefab position AFTER: {prefabSword.transform.position}");
-            Debug.Log($"Prefab local position: {prefabSword.transform.localPosition}");
-            Debug.Log($"Hand offset used - Pos: {handPositionOffset}, Rot: {handRotationOffset}");
-        }
-        else
-        {
-            Debug.LogWarning($"Cannot attach sword! PrefabSword null: {prefabSword == null}, HandSocket null: {handSocket == null}");
         }
     }
 
@@ -308,143 +515,13 @@ public class SwordCombatController : MonoBehaviour
             prefabSword.transform.SetParent(beltSocket);
             prefabSword.transform.localPosition = beltPositionOffset;
             prefabSword.transform.localRotation = Quaternion.Euler(beltRotationOffset);
-
-            Debug.Log($"Prefab sword attached to belt - Pos: {beltPositionOffset}, Rot: {beltRotationOffset}");
         }
-    }
-
-    private void AddComboInput(AttackInput input)
-    {
-        currentCombo.Add(input);
-        lastComboInputTime = Time.time;
-        totalAttackCount++;
-
-        EvaluateCombo();
-    }
-
-    private void EvaluateCombo()
-    {
-        int comboLength = currentCombo.Count;
-
-        // Check for hard attack (4-5 hits)
-        if (comboLength >= 4 && totalAttackCount >= hardAttackRequirement)
-        {
-            PerformAttack(AttackType.Hard);
-        }
-        // Check for medium attack (3 hits)
-        else if (comboLength == 3)
-        {
-            PerformAttack(AttackType.Medium);
-        }
-        // Check for normal attack (1-2 hits)
-        else if (comboLength >= 1 && comboLength <= 2)
-        {
-            if (comboLength == 2 || Time.time - lastComboInputTime > 0.3f)
-            {
-                PerformAttack(AttackType.Normal);
-            }
-        }
-    }
-
-    private void PerformAttack(AttackType attackType)
-    {
-        StartCoroutine(ExecuteAttack(attackType));
-    }
-
-    private IEnumerator ExecuteAttack(AttackType attackType)
-    {
-        isAttacking = true;
-        canAttack = false;
-
-        int damage = 0;
-        string animationName = "";
-        GameObject vfx = null;
-
-        switch (attackType)
-        {
-            case AttackType.Normal:
-                damage = 10;
-                animationName = (currentCombo.Count == 1) ? "NormalAttack1" : "NormalAttack2";
-                animator.SetTrigger(animationName);
-                vfx = normalAttackVFX;
-                yield return new WaitForSeconds(0.5f);
-                break;
-
-            case AttackType.Medium:
-                damage = 25;
-                int mediumVariant = GetMediumAttackVariant();
-                animationName = $"MediumAttack{mediumVariant}";
-                animator.SetTrigger(animationName);
-                vfx = mediumAttackVFX;
-                yield return new WaitForSeconds(0.8f);
-                break;
-
-            case AttackType.Hard:
-                damage = 40;
-
-                if (useHardAttackCinematic)
-                {
-                    StartCoroutine(HardAttackCinematic());
-                }
-
-                animator.SetTrigger(hardAttackHash);
-                vfx = hardAttackVFX;
-                yield return new WaitForSeconds(1.5f);
-
-                totalAttackCount = 0;
-                break;
-        }
-
-        DealDamageToEnemies(damage);
-
-        if (vfx != null && attackPoint != null)
-        {
-            Instantiate(vfx, attackPoint.position, attackPoint.rotation);
-        }
-
-        if (weaponTrail != null)
-        {
-            weaponTrail.StartTrail();
-            yield return new WaitForSeconds(0.3f);
-            weaponTrail.StopTrail();
-        }
-
-        ResetCombo();
-
-        yield return new WaitForSeconds(attackCooldown);
-
-        isAttacking = false;
-        canAttack = true;
-    }
-
-    private int GetMediumAttackVariant()
-    {
-        if (currentCombo[0] == AttackInput.Left &&
-            currentCombo[1] == AttackInput.Left &&
-            currentCombo[2] == AttackInput.Left)
-        {
-            return 1;
-        }
-        else if (currentCombo[0] == AttackInput.Right &&
-                 currentCombo[1] == AttackInput.Right &&
-                 currentCombo[2] == AttackInput.Right)
-        {
-            return 2;
-        }
-        else
-        {
-            return 3;
-        }
-    }
-
-    private IEnumerator HardAttackCinematic()
-    {
-        Debug.Log("Hard Attack Cinematic Effect!");
-        yield return new WaitForSeconds(cinematicDuration);
     }
 
     private void DealDamageToEnemies(int damage)
     {
+        if (attackPoint == null) return;
+
         Collider[] hitEnemies = Physics.OverlapSphere(attackPoint.position, attackRange, enemyLayer);
 
         foreach (Collider enemy in hitEnemies)
@@ -458,20 +535,6 @@ public class SwordCombatController : MonoBehaviour
         }
     }
 
-    private void CheckComboReset()
-    {
-        if (currentCombo.Count > 0 && Time.time - lastComboInputTime > comboResetTime)
-        {
-            ResetCombo();
-        }
-    }
-
-    private void ResetCombo()
-    {
-        currentCombo.Clear();
-        lastComboInputTime = 0f;
-    }
-
     private void OnDrawGizmosSelected()
     {
         if (attackPoint != null)
@@ -481,30 +544,36 @@ public class SwordCombatController : MonoBehaviour
         }
     }
 
+    // ========================================
+    // ANIMATION EVENTS (called from animations)
+    // ========================================
     public void OnDrawSwordAttach()
     {
         AttachSwordToHand();
-        Debug.Log("Animation event: Sword attached to hand");
     }
 
     public void OnSheathSwordAttach()
     {
         AttachSwordToBelt();
-        Debug.Log("Animation event: Sword attached to belt");
-    }
-
-    public void OnDrawSwordComplete()
-    {
-        Debug.Log("Draw sword animation complete");
-    }
-
-    public void OnSheathSwordComplete()
-    {
-        Debug.Log("Sheath sword animation complete");
     }
 
     public void OnAttackHit()
     {
-        Debug.Log("Attack hit frame");
+        Debug.Log("Attack hit frame - called from animation event");
     }
+
+    // ========================================
+    // PUBLIC GETTERS
+    // ========================================
+    public bool IsSwordDrawn => isSwordDrawn;
+    public bool IsAttacking => isAttacking;
+    public bool CanAttack => canAttack;
+}
+
+// ========================================
+// INTERFACE for movement controllers
+// ========================================
+public interface IMovementController
+{
+    void SetMovementEnabled(bool enabled);
 }
