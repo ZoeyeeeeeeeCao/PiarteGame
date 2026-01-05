@@ -119,6 +119,37 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &70230585
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 70230586}
+  m_Layer: 0
+  m_Name: SwordTip
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &70230586
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 70230585}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.000029534103, y: 0.9717919, z: -0.23583888, w: -0.0006779433}
+  m_LocalPosition: {x: -0.003, y: 0.877, z: 0.005}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1683216683}
+  m_LocalEulerAnglesHint: {x: 27.282, y: -179.914, z: 0.024}
 --- !u!1 &110116322
 GameObject:
   m_ObjectHideFlags: 0
@@ -246,22 +277,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enableGizmos: 1
-  rootMotion: 0
   debugMode: 0
-  useEvents: 0
   trailName: Trail 1
-  lineTipTransform: {fileID: 1451139499}
-  lineBottomTransform: {fileID: 110116323}
-  enableTrail: 0
-  trailMaterial: {fileID: 0}
-  trailColor: {r: 1, g: 1, b: 1, a: 1}
-  fadeInDuration: 0.2
-  fadeOutDuration: 0.05
-  trailLifetime: 0.35
-  minVertexDistance: 0.1
-  maxTrailPoints: 50
-  playbackSpeed: 1
-  rangeOffset: 0.2
+  lineTipTransform: {fileID: 70230586}
+  lineBottomTransform: {fileID: 1470268640}
+  particleEffectPrefab: {fileID: 8597731318025692521, guid: ae6bdf3417a5d6047a559654858dac31, type: 3}
+  particleSpawnCount: 1
+  particleScale: 3
+  enableTrail: 1
 --- !u!1 &724595998
 GameObject:
   m_ObjectHideFlags: 0
@@ -500,13 +523,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1398571218}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.02989788, y: 0.97133195, z: -0.23570612, w: -0.007940552}
-  m_LocalPosition: {x: 0.085, y: 0.21, z: 0.022}
+  m_LocalRotation: {x: 0.07935865, y: 0.9685463, z: -0.23510705, w: 0.018576197}
+  m_LocalPosition: {x: 0.002, y: 0.198, z: 0.016}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5284166614841290495}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 27.282, y: -179.914, z: 9.389}
 --- !u!1 &1451139498
 GameObject:
   m_ObjectHideFlags: 0
@@ -538,6 +561,37 @@ Transform:
   m_Children: []
   m_Father: {fileID: 662703781}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1470268639
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1470268640}
+  m_Layer: 0
+  m_Name: SwordBase
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1470268640
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1470268639}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.000029534103, y: 0.9717919, z: -0.23583888, w: -0.0006779433}
+  m_LocalPosition: {x: -0.01, y: 0.182, z: 0.04}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1683216683}
+  m_LocalEulerAnglesHint: {x: 27.282, y: -179.914, z: 0.024}
 --- !u!1 &1603538796
 GameObject:
   m_ObjectHideFlags: 0
@@ -562,13 +616,123 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1603538796}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.02989788, y: 0.97133195, z: -0.23570612, w: -0.007940552}
-  m_LocalPosition: {x: 0.053, y: 0.92, z: 0.001}
+  m_LocalRotation: {x: 0.07935865, y: 0.9685463, z: -0.23510705, w: 0.018576197}
+  m_LocalPosition: {x: -0.006, y: 0.927, z: -0.002}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5284166614841290495}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 27.282, y: -179.914, z: 9.389}
+--- !u!1 &1683216682
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1683216683}
+  - component: {fileID: 1683216686}
+  - component: {fileID: 1683216685}
+  - component: {fileID: 1683216684}
+  m_Layer: 0
+  m_Name: Pirate_Sword (2)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1683216683
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1683216682}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.42258513, y: 0.7092089, z: 0.28593287, w: 0.4865048}
+  m_LocalPosition: {x: 2.7, y: 1.961, z: -2.381}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 70230586}
+  - {fileID: 1470268640}
+  m_Father: {fileID: 3446518794042067639}
+  m_LocalEulerAnglesHint: {x: 0.321, y: -248.70801, z: 61.358}
+--- !u!23 &1683216684
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1683216682}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 58155e7370df36a4bb5d6667cc79647b, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &1683216685
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1683216682}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: adcafb5bed26b4b4db68323fff9c065c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  enableGizmos: 1
+  debugMode: 0
+  trailName: Trail 1
+  lineTipTransform: {fileID: 70230586}
+  lineBottomTransform: {fileID: 1470268640}
+  particleEffectPrefab: {fileID: 8597731318025692521, guid: ae6bdf3417a5d6047a559654858dac31, type: 3}
+  particleSpawnCount: 1
+  particleScale: 3
+  enableTrail: 1
+--- !u!33 &1683216686
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1683216682}
+  m_Mesh: {fileID: -4733498025297769295, guid: b860ac2e712877f47b921beecf3e5745, type: 3}
 --- !u!1 &1705223077
 GameObject:
   m_ObjectHideFlags: 0
@@ -691,22 +855,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enableGizmos: 1
-  rootMotion: 0
   debugMode: 0
-  useEvents: 0
   trailName: Trail 1
   lineTipTransform: {fileID: 1603538797}
   lineBottomTransform: {fileID: 1398571219}
-  enableTrail: 0
-  trailMaterial: {fileID: 0}
-  trailColor: {r: 1, g: 1, b: 1, a: 1}
-  fadeInDuration: 0.2
-  fadeOutDuration: 0.05
-  trailLifetime: 0.35
-  minVertexDistance: 0.1
-  maxTrailPoints: 50
-  playbackSpeed: 1
-  rangeOffset: 0.2
+  particleEffectPrefab: {fileID: 8597731318025692521, guid: ae6bdf3417a5d6047a559654858dac31, type: 3}
+  particleSpawnCount: 1
+  particleScale: 4
+  enableTrail: 1
 --- !u!1001 &1970960671
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -8207,6 +8363,7 @@ Transform:
   - {fileID: 2446220027714622857}
   - {fileID: 5612361928135894506}
   - {fileID: 817007626056114666}
+  - {fileID: 1683216683}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &3460292246428541726

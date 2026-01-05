@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: M_VFX_URP_Trail_Dark_01
+  m_Name: M_VFX_URP_Trail_Ice_01
   m_Shader: {fileID: 4800000, guid: f94f00b9ec6b04346a617d373aa6281c, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -28,7 +28,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _Color:
-        m_Texture: {fileID: 2800000, guid: aec738f429fa4ab4a8b574c7c804886c, type: 3}
+        m_Texture: {fileID: 2800000, guid: fa6235bc65ac4064f8d49fcc0c8ff503, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _CutoutMask:
@@ -64,7 +64,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _Mask:
-        m_Texture: {fileID: 2800000, guid: 922632811e88c394691f089f0d61eabb, type: 3}
+        m_Texture: {fileID: 2800000, guid: 06ae8cc8bd06ae2488f1c9c630a3ebfe, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MetallicGlossMap:
@@ -103,21 +103,21 @@ Material:
     - _BumpScale: 1
     - _CameraOffset: 0
     - _ColorSmoothstep: 0
-    - _ColorSmoothstepSmoothness: 0.3
+    - _ColorSmoothstepSmoothness: 1
     - _Cull: 2
     - _Cutoff: 0.5
     - _DepthFade: 0
     - _DetailNormalMapScale: 1
-    - _DistortionAmount: 0.3
+    - _DistortionAmount: 0.2
     - _DistortionMaskIntensity: 1
     - _Distortion_Amount: 0
     - _Dst: 10
     - _DstBlend: 0
-    - _EmissiveIntensity: 5
+    - _EmissiveIntensity: 3
     - _ErosionMultiply: 1
     - _ErosionPower: 1
     - _ErosionSmoothstep: 0
-    - _ErosionSmoothstepSmoothness: 0.1
+    - _ErosionSmoothstepSmoothness: 0.3
     - _Erosion_Intensity: 1
     - _Erosion_Intensity1: -0.5
     - _Erosion_Multiply: 1
@@ -133,7 +133,7 @@ Material:
     - _MaskMultiply: 1
     - _MaskPower: 1
     - _MaskSmoothstep: 0
-    - _MaskSmoothstepSmoothness: 0.2
+    - _MaskSmoothstepSmoothness: 0.69
     - _Mask_Multiply: 1
     - _Mask_Power: 1
     - _Metallic: 0
@@ -156,17 +156,17 @@ Material:
     - __dirty: 0
     m_Colors:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
-    - _Color01: {r: 1, g: 1, b: 1, a: 0}
-    - _Color02: {r: 0.1981132, g: 0.13176396, b: 0.17350514, a: 0}
-    - _ColorPanSpeed: {r: -1.15, g: -0.113, b: 0, a: 0}
-    - _ColorUVScale: {r: 0.115, g: 1, b: 0, a: 0}
+    - _Color01: {r: 0.7019608, g: 0.85098046, b: 1, a: 0}
+    - _Color02: {r: 0.20000002, g: 0.86666673, b: 1, a: 0}
+    - _ColorPanSpeed: {r: -0.733, g: 0.113, b: 0, a: 0}
+    - _ColorUVScale: {r: 0.5, g: 1, b: 0, a: 0}
     - _Color_01: {r: 0.5323144, g: 0.3, b: 1, a: 0}
     - _Color_02: {r: 1, g: 0.3, b: 0.5903932, a: 0}
     - _Color_Scale: {r: 0.5, g: 1, b: 0, a: 0}
     - _Color_Speed: {r: 0.2, g: 0.1, b: 0, a: 0}
     - _CutoutMaskOffset: {r: 0, g: 0, b: 0, a: 0}
-    - _DistortionPanSpeed: {r: -1.15, g: -0.05, b: 0, a: 0}
-    - _DistortionUVScale: {r: 0.1, g: 0.5, b: 0, a: 0}
+    - _DistortionPanSpeed: {r: -1, g: 0.05, b: 0, a: 0}
+    - _DistortionUVScale: {r: 0.1, g: 0.3, b: 0, a: 0}
     - _Distortion_Scale: {r: 0.5, g: 0.5, b: 0, a: 0}
     - _Distortion_Speed: {r: 0, g: 0, b: 0, a: 0}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}

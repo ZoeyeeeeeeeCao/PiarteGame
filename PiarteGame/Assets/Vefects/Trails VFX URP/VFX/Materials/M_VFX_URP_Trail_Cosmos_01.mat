@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: M_VFX_URP_Trail_Dark_01
+  m_Name: M_VFX_URP_Trail_Cosmos_01
   m_Shader: {fileID: 4800000, guid: f94f00b9ec6b04346a617d373aa6281c, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -64,7 +64,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _Mask:
-        m_Texture: {fileID: 2800000, guid: 922632811e88c394691f089f0d61eabb, type: 3}
+        m_Texture: {fileID: 2800000, guid: 808d46c12c9252f498ac7166c5e53282, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MetallicGlossMap:
@@ -157,7 +157,7 @@ Material:
     m_Colors:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _Color01: {r: 1, g: 1, b: 1, a: 0}
-    - _Color02: {r: 0.1981132, g: 0.13176396, b: 0.17350514, a: 0}
+    - _Color02: {r: 0.3773585, g: 0.3773585, b: 0.3773585, a: 0}
     - _ColorPanSpeed: {r: -1.15, g: -0.113, b: 0, a: 0}
     - _ColorUVScale: {r: 0.115, g: 1, b: 0, a: 0}
     - _Color_01: {r: 0.5323144, g: 0.3, b: 1, a: 0}

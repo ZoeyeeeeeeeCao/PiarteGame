@@ -5,85 +5,32 @@ public class WeaponTrailEffect : MonoBehaviour
 {
     [Header("Setup - General")]
     [SerializeField] private bool enableGizmos = true;
-    [SerializeField] private bool rootMotion = false;
     [SerializeField] private bool debugMode = false;
-    [SerializeField] private bool useEvents = false;
     [SerializeField] private string trailName = "Trail 1";
 
     [Header("Trail Transform Settings")]
     [SerializeField] private Transform lineTipTransform;
     [SerializeField] private Transform lineBottomTransform;
 
+    [Header("Particle Prefab Settings")]
+    [SerializeField] private GameObject particleEffectPrefab;
+    [SerializeField] private int particleSpawnCount = 3; // Number of particle systems along the blade
+    [SerializeField] private float particleScale = 1f; // Overall scale multiplier
+
     [Header("Trail Settings")]
     [SerializeField] private bool enableTrail = false;
-    [SerializeField] private Material trailMaterial;
-    [SerializeField] private Color trailColor = Color.white;
-    [SerializeField][Range(0f, 1f)] private float fadeInDuration = 0.2f;
-    [SerializeField][Range(0f, 2f)] private float fadeOutDuration = 0.05f;
-    [SerializeField][Range(0.05f, 2f)] private float trailLifetime = 0.35f;
-    [SerializeField][Range(0.01f, 0.5f)] private float minVertexDistance = 0.1f;
-    [SerializeField] private int maxTrailPoints = 50;
 
-    [Header("Playback Settings")]
-    [SerializeField][Range(0.1f, 5f)] private float playbackSpeed = 1f;
-    [SerializeField][Range(0f, 1f)] private float rangeOffset = 0.2f;
-
-    // Trail mesh data
-    private Mesh trailMesh;
-    private GameObject trailObject;
-    private MeshRenderer meshRenderer;
-    private MeshFilter meshFilter;
-
-    private List<TrailPoint> trailPoints = new List<TrailPoint>();
+    // Trail state
     private bool isTrailActive = false;
-    private float timeSinceLastPoint = 0f;
-
-    private class TrailPoint
-    {
-        public Vector3 tipPosition;
-        public Vector3 bottomPosition;
-        public float timestamp;
-        public float normalizedTime;
-
-        public TrailPoint(Vector3 tip, Vector3 bottom, float time)
-        {
-            tipPosition = tip;
-            bottomPosition = bottom;
-            timestamp = time;
-            normalizedTime = 0f;
-        }
-    }
+    private List<GameObject> activeParticleEffects = new List<GameObject>();
+    private List<ParticleSystem> particleSystems = new List<ParticleSystem>();
 
     private void Start()
     {
-        InitializeTrail();
-    }
-
-    private void InitializeTrail()
-    {
-        // Create trail object
-        trailObject = new GameObject(trailName + " Mesh");
-        trailObject.transform.SetParent(transform);
-        trailObject.transform.localPosition = Vector3.zero;
-        trailObject.transform.localRotation = Quaternion.identity;
-
-        // Add mesh components
-        meshFilter = trailObject.AddComponent<MeshFilter>();
-        meshRenderer = trailObject.AddComponent<MeshRenderer>();
-
-        // Create mesh
-        trailMesh = new Mesh();
-        trailMesh.name = trailName + " Mesh";
-        meshFilter.mesh = trailMesh;
-
-        // Set material
-        if (trailMaterial != null)
+        if (particleEffectPrefab == null)
         {
-            meshRenderer.material = trailMaterial;
-            meshRenderer.material.color = trailColor;
+            Debug.LogWarning("Particle Effect Prefab is not assigned! Please assign a particle system prefab.");
         }
-
-        trailObject.SetActive(false);
     }
 
     private void Update()
@@ -97,146 +44,135 @@ public class WeaponTrailEffect : MonoBehaviour
             StopTrail();
         }
 
-        if (isTrailActive)
+        if (isTrailActive && activeParticleEffects.Count > 0)
         {
-            UpdateTrail();
+            UpdateTrailPositions();
         }
     }
 
     public void StartTrail()
     {
+        if (particleEffectPrefab == null)
+        {
+            Debug.LogWarning("Cannot start trail - Particle Effect Prefab is not assigned!");
+            return;
+        }
+
+        if (lineTipTransform == null || lineBottomTransform == null)
+        {
+            Debug.LogWarning("Trail transforms not assigned!");
+            return;
+        }
+
         isTrailActive = true;
-        trailPoints.Clear();
-        trailObject.SetActive(true);
-        timeSinceLastPoint = 0f;
+
+        // Spawn multiple particle effects along the blade
+        if (activeParticleEffects.Count == 0)
+        {
+            for (int i = 0; i < particleSpawnCount; i++)
+            {
+                // Calculate position along the blade (0 = bottom, 1 = tip)
+                float t = particleSpawnCount > 1 ? (float)i / (particleSpawnCount - 1) : 0.5f;
+                Vector3 spawnPos = Vector3.Lerp(lineBottomTransform.position, lineTipTransform.position, t);
+
+                GameObject particleEffect = Instantiate(particleEffectPrefab, spawnPos, Quaternion.identity, transform);
+                particleEffect.name = $"{trailName} Effect {i + 1}";
+                particleEffect.transform.localScale = Vector3.one * particleScale;
+
+                ParticleSystem ps = particleEffect.GetComponent<ParticleSystem>();
+                if (ps != null)
+                {
+                    ps.Play();
+                    particleSystems.Add(ps);
+                }
+
+                activeParticleEffects.Add(particleEffect);
+            }
+        }
+
+        if (debugMode)
+        {
+            Debug.Log($"Trail started - {particleSpawnCount} particle effects spawned");
+        }
     }
 
     public void StopTrail()
     {
         isTrailActive = false;
+
+        // Stop all particle systems
+        foreach (var ps in particleSystems)
+        {
+            if (ps != null)
+            {
+                ps.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+            }
+        }
+
+        // Destroy all effects after particles fade out
+        if (particleSystems.Count > 0 && particleSystems[0] != null)
+        {
+            float lifetime = particleSystems[0].main.startLifetime.constantMax + particleSystems[0].main.duration;
+            foreach (var effect in activeParticleEffects)
+            {
+                if (effect != null)
+                {
+                    Destroy(effect, lifetime);
+                }
+            }
+        }
+        else
+        {
+            // Fallback if we can't get lifetime
+            foreach (var effect in activeParticleEffects)
+            {
+                if (effect != null)
+                {
+                    Destroy(effect, 2f);
+                }
+            }
+        }
+
+        activeParticleEffects.Clear();
+        particleSystems.Clear();
+
+        if (debugMode)
+        {
+            Debug.Log("Trail stopped");
+        }
     }
 
-    private void UpdateTrail()
+    private void UpdateTrailPositions()
     {
         if (lineTipTransform == null || lineBottomTransform == null)
             return;
 
-        timeSinceLastPoint += Time.deltaTime * playbackSpeed;
+        Vector3 tipPos = lineTipTransform.position;
+        Vector3 bottomPos = lineBottomTransform.position;
+        Vector3 direction = tipPos - bottomPos;
 
-        // Add new point if distance threshold is met
-        if (timeSinceLastPoint >= minVertexDistance / 10f)
+        // Update each particle effect position along the blade
+        for (int i = 0; i < activeParticleEffects.Count; i++)
         {
-            Vector3 tipPos = lineTipTransform.position;
-            Vector3 bottomPos = lineBottomTransform.position;
-
-            if (trailPoints.Count == 0 ||
-                Vector3.Distance(tipPos, trailPoints[trailPoints.Count - 1].tipPosition) > minVertexDistance)
+            if (activeParticleEffects[i] != null)
             {
-                TrailPoint newPoint = new TrailPoint(tipPos, bottomPos, Time.time);
-                trailPoints.Add(newPoint);
+                float t = particleSpawnCount > 1 ? (float)i / (particleSpawnCount - 1) : 0.5f;
+                Vector3 targetPos = Vector3.Lerp(bottomPos, tipPos, t);
 
-                if (trailPoints.Count > maxTrailPoints)
+                activeParticleEffects[i].transform.position = targetPos;
+
+                // Orient particle effect along the blade direction
+                if (direction.magnitude > 0.001f)
                 {
-                    trailPoints.RemoveAt(0);
+                    activeParticleEffects[i].transform.rotation = Quaternion.LookRotation(direction);
                 }
-
-                timeSinceLastPoint = 0f;
             }
         }
 
-        // Remove old points based on lifetime
-        for (int i = trailPoints.Count - 1; i >= 0; i--)
+        if (debugMode)
         {
-            float age = Time.time - trailPoints[i].timestamp;
-            if (age > trailLifetime)
-            {
-                trailPoints.RemoveAt(i);
-            }
+            Debug.DrawLine(bottomPos, tipPos, Color.cyan);
         }
-
-        // Update mesh
-        UpdateTrailMesh();
-
-        // Clear trail if no points remain
-        if (trailPoints.Count == 0)
-        {
-            trailObject.SetActive(false);
-        }
-    }
-
-    private void UpdateTrailMesh()
-    {
-        if (trailPoints.Count < 2)
-        {
-            trailMesh.Clear();
-            return;
-        }
-
-        int pointCount = trailPoints.Count;
-        Vector3[] vertices = new Vector3[pointCount * 2];
-        Vector2[] uvs = new Vector2[pointCount * 2];
-        Color[] colors = new Color[pointCount * 2];
-        int[] triangles = new int[(pointCount - 1) * 6];
-
-        // Build mesh data
-        for (int i = 0; i < pointCount; i++)
-        {
-            TrailPoint point = trailPoints[i];
-            float age = Time.time - point.timestamp;
-            float normalizedAge = age / trailLifetime;
-
-            // Calculate alpha based on fade in/out
-            float alpha = 1f;
-            if (age < fadeInDuration)
-            {
-                alpha = age / fadeInDuration;
-            }
-            else if (normalizedAge > (1f - fadeOutDuration / trailLifetime))
-            {
-                alpha = (1f - normalizedAge) / (fadeOutDuration / trailLifetime);
-            }
-
-            alpha = Mathf.Clamp01(alpha);
-
-            // Set vertices
-            vertices[i * 2] = transform.InverseTransformPoint(point.bottomPosition);
-            vertices[i * 2 + 1] = transform.InverseTransformPoint(point.tipPosition);
-
-            // Set UVs
-            float uvX = (float)i / (pointCount - 1);
-            uvs[i * 2] = new Vector2(uvX, 0);
-            uvs[i * 2 + 1] = new Vector2(uvX, 1);
-
-            // Set colors with alpha
-            Color vertexColor = trailColor;
-            vertexColor.a *= alpha;
-            colors[i * 2] = vertexColor;
-            colors[i * 2 + 1] = vertexColor;
-        }
-
-        // Build triangles
-        for (int i = 0; i < pointCount - 1; i++)
-        {
-            int baseIndex = i * 6;
-            int vertIndex = i * 2;
-
-            triangles[baseIndex] = vertIndex;
-            triangles[baseIndex + 1] = vertIndex + 1;
-            triangles[baseIndex + 2] = vertIndex + 2;
-
-            triangles[baseIndex + 3] = vertIndex + 1;
-            triangles[baseIndex + 4] = vertIndex + 3;
-            triangles[baseIndex + 5] = vertIndex + 2;
-        }
-
-        // Apply to mesh
-        trailMesh.Clear();
-        trailMesh.vertices = vertices;
-        trailMesh.uv = uvs;
-        trailMesh.colors = colors;
-        trailMesh.triangles = triangles;
-        trailMesh.RecalculateNormals();
-        trailMesh.RecalculateBounds();
     }
 
     private void OnDrawGizmos()
@@ -265,25 +201,60 @@ public class WeaponTrailEffect : MonoBehaviour
         {
             Gizmos.color = Color.yellow;
             Gizmos.DrawLine(lineTipTransform.position, lineBottomTransform.position);
-        }
 
-        // Draw trail points
-        if (Application.isPlaying && debugMode)
-        {
-            Gizmos.color = Color.green;
-            for (int i = 0; i < trailPoints.Count - 1; i++)
+            // Draw spawn points preview
+            for (int i = 0; i < particleSpawnCount; i++)
             {
-                Gizmos.DrawLine(trailPoints[i].tipPosition, trailPoints[i + 1].tipPosition);
-                Gizmos.DrawLine(trailPoints[i].bottomPosition, trailPoints[i + 1].bottomPosition);
+                float t = particleSpawnCount > 1 ? (float)i / (particleSpawnCount - 1) : 0.5f;
+                Vector3 spawnPos = Vector3.Lerp(lineBottomTransform.position, lineTipTransform.position, t);
+
+                Gizmos.color = Color.green;
+                Gizmos.DrawWireSphere(spawnPos, 0.03f);
+            }
+        }
+    }
+
+    // Public methods for manual control
+    public void SetTrailEnabled(bool enabled)
+    {
+        enableTrail = enabled;
+    }
+
+    public void SetParticleCount(int count)
+    {
+        if (count > 0)
+        {
+            particleSpawnCount = count;
+            if (isTrailActive)
+            {
+                StopTrail();
+                StartTrail();
+            }
+        }
+    }
+
+    public void SetParticleScale(float scale)
+    {
+        particleScale = scale;
+        foreach (var effect in activeParticleEffects)
+        {
+            if (effect != null)
+            {
+                effect.transform.localScale = Vector3.one * particleScale;
             }
         }
     }
 
     private void OnDestroy()
     {
-        if (trailMesh != null)
+        foreach (var effect in activeParticleEffects)
         {
-            Destroy(trailMesh);
+            if (effect != null)
+            {
+                Destroy(effect);
+            }
         }
+        activeParticleEffects.Clear();
+        particleSystems.Clear();
     }
 }
