@@ -14,7 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   itemId: sphere
   displayName: sphere
-  category: 0
+  category: 1
   description: girls i m the queen of the world
   stackable: 1
   maxStack: 99
+  isConsumable: 0
+  healAmount: 0
