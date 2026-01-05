@@ -222,8 +222,8 @@ public class SwordCombatController : MonoBehaviour
         // Get animation length
         float animLength = GetAnimationLength("DrawSword");
 
-        // Wait for hand to reach sword position (20% into animation)
-        yield return new WaitForSeconds(animLength * 0.2f);
+        // Wait for hand to reach sword position (25% into animation)
+        yield return new WaitForSeconds(animLength * 0.25f);
 
         // Switch from baked to prefab sword
         if (bakedSwordRenderer != null)
@@ -239,7 +239,7 @@ public class SwordCombatController : MonoBehaviour
         AttachSwordToHand();
 
         // Wait for rest of draw animation
-        yield return new WaitForSeconds(animLength * 0.8f);
+        yield return new WaitForSeconds(animLength * 0.75f);
 
         isSwordDrawn = true;
         isDrawingOrSheathing = false;
@@ -276,8 +276,8 @@ public class SwordCombatController : MonoBehaviour
         // Get animation length
         float animLength = GetAnimationLength("SheathSword");
 
-        // Wait until sword reaches belt (80% into animation)
-        yield return new WaitForSeconds(animLength * 0.8f);
+        // Wait until sword reaches belt (75% into animation)
+        yield return new WaitForSeconds(animLength * 0.75f);
 
         AttachSwordToBelt();
 
@@ -294,7 +294,7 @@ public class SwordCombatController : MonoBehaviour
             bakedSwordRenderer.enabled = true;
         }
 
-        yield return new WaitForSeconds(animLength * 0.15f);
+        yield return new WaitForSeconds(animLength * 0.20f);
 
         isSwordDrawn = false;
         attackCounter = 0;
@@ -490,12 +490,17 @@ public class SwordCombatController : MonoBehaviour
 
     private float GetAnimationLength(string animationName)
     {
-        AnimatorClipInfo[] clipInfo = animator.GetCurrentAnimatorClipInfo(0);
-        if (clipInfo.Length > 0)
+        // FIX: Search all clips in the controller instead of checking "current" state.
+        // This ensures that even if a transition is happening, we get the correct duration.
+        if (animator != null && animator.runtimeAnimatorController != null)
         {
-            return clipInfo[0].clip.length;
+            foreach (AnimationClip clip in animator.runtimeAnimatorController.animationClips)
+            {
+                if (clip.name == animationName) return clip.length;
+            }
         }
-        return 1f; // Default fallback
+
+        return 1f; // Default fallback if not found
     }
 
     private void AttachSwordToHand()

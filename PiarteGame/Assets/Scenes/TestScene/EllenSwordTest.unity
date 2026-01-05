@@ -284,7 +284,7 @@ MonoBehaviour:
   particleEffectPrefab: {fileID: 8597731318025692521, guid: ae6bdf3417a5d6047a559654858dac31, type: 3}
   particleSpawnCount: 1
   particleScale: 3
-  enableTrail: 1
+  enableTrail: 0
 --- !u!1 &724595998
 GameObject:
   m_ObjectHideFlags: 0
@@ -724,7 +724,7 @@ MonoBehaviour:
   particleEffectPrefab: {fileID: 8597731318025692521, guid: ae6bdf3417a5d6047a559654858dac31, type: 3}
   particleSpawnCount: 1
   particleScale: 3
-  enableTrail: 1
+  enableTrail: 0
 --- !u!33 &1683216686
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -854,15 +854,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: adcafb5bed26b4b4db68323fff9c065c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  enableGizmos: 1
+  enableGizmos: 0
   debugMode: 0
-  trailName: Trail 1
+  trailName: Dark
   lineTipTransform: {fileID: 1603538797}
   lineBottomTransform: {fileID: 1398571219}
   particleEffectPrefab: {fileID: 8597731318025692521, guid: ae6bdf3417a5d6047a559654858dac31, type: 3}
   particleSpawnCount: 1
   particleScale: 4
-  enableTrail: 1
+  enableTrail: 0
 --- !u!1001 &1970960671
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -13552,7 +13552,9 @@ MonoBehaviour:
   beltPositionOffset: {x: 0, y: 0, z: 0}
   beltRotationOffset: {x: 0, y: 0, z: 0}
   animator: {fileID: 4850819467256269292}
-  comboResetTime: 1
+  swordMaskLayerIndex: 1
+  movementController: {fileID: 0}
+  layerTransitionSpeed: 0.2
   attackCooldown: 0.5
   hardAttackRequirement: 10
   enemyLayer:
@@ -13560,11 +13562,23 @@ MonoBehaviour:
     m_Bits: 0
   attackRange: 2
   attackPoint: {fileID: 1242519810}
+  easyAttackAnimations:
+  - EasyAttack1
+  - EasyAttack2
+  - EasyAttack3
+  normalAttackAnimations:
+  - NormalAttack1
+  - NormalAttack2
+  - NormalAttack3
+  hardAttackAnimation: HardAttack
+  easyAttackDamage: 10
+  normalAttackDamage: 20
+  hardAttackDamage: 50
+  easyAttackDuration: 0.4
+  normalAttackDuration: 0.6
+  hardAttackDuration: 1.5
   useHardAttackCinematic: 1
   cinematicDuration: 2
-  normalAttackVFX: {fileID: 0}
-  mediumAttackVFX: {fileID: 0}
-  hardAttackVFX: {fileID: 0}
 --- !u!4 &9103105612884322521
 Transform:
   m_ObjectHideFlags: 0
