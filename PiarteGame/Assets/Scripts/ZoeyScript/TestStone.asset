@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   itemId: Stone
   displayName: Stone
-  category: 1
+  category: 0
   description: What ever i m the queen of the world
   stackable: 1
   maxStack: 99

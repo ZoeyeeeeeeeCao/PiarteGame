@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+锘縰sing System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -11,20 +11,24 @@ public class InventoryMenuUI : MonoBehaviour
     [Header("Data")]
     public ItemDatabase database;
 
-    [Header("Columns (Clickable Tabs)")]
+    [Header("Column Buttons")]
     public Button herbsButton;
     public Button stonesButton;
-    public Button mapsButton; // 如果你暂时不要Maps，可以不拖，不会报错
+    public Button mapsButton; // 鍙�夛紝涓嶇敤鍙互涓嶆嫋
+
+    [Header("Column Highlight")]
+    public Color normalColor = new Color(1f, 1f, 1f, 0.25f);
+    public Color selectedColor = new Color(1f, 1f, 1f, 0.6f);
 
     [Header("List")]
-    public Transform contentRoot;          // ScrollView/Viewport/Content
+    public Transform contentRoot;
     public InventoryRowButton rowPrefab;
 
-    [Header("Detail")]
+    [Header("Detail Panel")]
     public InventoryDetailPanel detailPanel;
 
-    private PickUpItemCategory currentCategory = PickUpItemCategory.Herbs;
-    private readonly List<GameObject> spawnedRows = new();
+    PickUpItemCategory currentCategory = PickUpItemCategory.Herbs;
+    readonly List<GameObject> spawnedRows = new();
 
     void OnEnable()
     {
@@ -41,40 +45,49 @@ public class InventoryMenuUI : MonoBehaviour
         if (windowRoot) windowRoot.SetActive(false);
         if (detailPanel) detailPanel.Hide();
 
+        // Column button bindings
         if (herbsButton)
-        {
-            herbsButton.onClick.RemoveAllListeners();
             herbsButton.onClick.AddListener(() => SetCategory(PickUpItemCategory.Herbs));
-        }
 
         if (stonesButton)
-        {
-            stonesButton.onClick.RemoveAllListeners();
             stonesButton.onClick.AddListener(() => SetCategory(PickUpItemCategory.Stones));
-        }
 
         if (mapsButton)
-        {
-            mapsButton.onClick.RemoveAllListeners();
             mapsButton.onClick.AddListener(() => SetCategory(PickUpItemCategory.Maps));
-        }
 
-        Refresh();
+        UpdateColumnHighlight();
     }
 
     void Update()
     {
         if (Input.GetKeyDown(toggleKey))
         {
-            bool next = !(windowRoot && windowRoot.activeSelf);
-            if (windowRoot) windowRoot.SetActive(next);
-
-            if (next)
-            {
-                Refresh();
-                if (detailPanel) detailPanel.Hide();
-            }
+            if (windowRoot && windowRoot.activeSelf)
+                CloseUI();
+            else
+                OpenUI();
         }
+    }
+
+    void OpenUI()
+    {
+        if (windowRoot) windowRoot.SetActive(true);
+
+        Time.timeScale = 0f;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+
+        Refresh();
+        if (detailPanel) detailPanel.Hide();
+    }
+
+    void CloseUI()
+    {
+        if (windowRoot) windowRoot.SetActive(false);
+
+        Time.timeScale = 1f;
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 
     void SetCategory(PickUpItemCategory cat)
@@ -82,19 +95,36 @@ public class InventoryMenuUI : MonoBehaviour
         currentCategory = cat;
         Refresh();
         if (detailPanel) detailPanel.Hide();
-        // 这里之后你想做“高亮当前column”，我也可以帮你补
+        UpdateColumnHighlight();
+    }
+
+    void UpdateColumnHighlight()
+    {
+        if (herbsButton)
+            SetButtonColor(herbsButton, currentCategory == PickUpItemCategory.Herbs);
+
+        if (stonesButton)
+            SetButtonColor(stonesButton, currentCategory == PickUpItemCategory.Stones);
+
+        if (mapsButton)
+            SetButtonColor(mapsButton, currentCategory == PickUpItemCategory.Maps);
+    }
+
+    void SetButtonColor(Button btn, bool selected)
+    {
+        var img = btn.GetComponent<Image>();
+        if (!img) return;
+        img.color = selected ? selectedColor : normalColor;
     }
 
     public void Refresh()
     {
         if (!database || !contentRoot || !rowPrefab) return;
 
-        // clear
-        for (int i = 0; i < spawnedRows.Count; i++)
-            if (spawnedRows[i]) Destroy(spawnedRows[i]);
+        foreach (var go in spawnedRows)
+            if (go) Destroy(go);
         spawnedRows.Clear();
 
-        // build list (only owned)
         foreach (var item in database.items)
         {
             if (!item) continue;
@@ -105,7 +135,6 @@ public class InventoryMenuUI : MonoBehaviour
 
             var row = Instantiate(rowPrefab, contentRoot);
             row.Bind(item, count, OnRowClicked);
-
             spawnedRows.Add(row.gameObject);
         }
     }
@@ -115,4 +144,3 @@ public class InventoryMenuUI : MonoBehaviour
         if (detailPanel) detailPanel.Show(item);
     }
 }
-
