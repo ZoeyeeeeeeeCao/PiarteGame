@@ -19,4 +19,9 @@ public class ItemData : ScriptableObject
     [Header("Stacking (optional)")]
     public bool stackable = true;
     public int maxStack = 99;
+
+    [Header("Consumable Effects")]
+    public bool isConsumable;
+    public float healAmount;
+
 }
