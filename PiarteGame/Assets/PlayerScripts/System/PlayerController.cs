@@ -81,6 +81,10 @@ namespace FS_ThirdPerson
         public bool IsItemEquipped => equippableItemController.EquippedItem != null;
         public EquippableSystemBase CurrentEquippedSystem { get; private set; }
 
+        // Combat lock reference
+        private SwordCombatController combatController;
+        public bool IsInCombatAttack => combatController != null && combatController.IsAttacking;
+
         void HandleCurrentEquippedItemUpdate(params SystemState[] systemState)
         {
             if (systemState.Length == 0 || (CurrentEquippedSystem != null && systemState.Contains(CurrentEquippedSystem.State)))
@@ -102,6 +106,9 @@ namespace FS_ThirdPerson
             equippableItemController = GetComponent<ItemEquipper>();
             cameraGameObject = Camera.main.gameObject;
             animator = player.Animator;
+
+            // Get combat controller reference for movement locking
+            combatController = GetComponent<SwordCombatController>();
 
             EquippableSystems = managedScripts.Where(x => x is EquippableSystemBase).Cast<EquippableSystemBase>().ToList();
             CoreSystems = managedScripts.Where(x => !(x is EquippableSystemBase)).ToList();
@@ -141,6 +148,18 @@ namespace FS_ThirdPerson
         private void FixedUpdate()
         {
             if (player.PreventAllSystems || Time.timeScale <= 0) return;
+
+            // COMBAT LOCK: If attacking, block all locomotion systems
+            if (IsInCombatAttack)
+            {
+                // Only allow combat controller to update
+                if (combatController != null)
+                {
+                    // Combat controller handles its own updates
+                }
+                return;
+            }
+
             var focusedScript = FocusedScript;
 
             if (focusedScript)
@@ -166,6 +185,18 @@ namespace FS_ThirdPerson
         private void Update()
         {
             if (player.PreventAllSystems) return;
+
+            // COMBAT LOCK: If attacking, block all locomotion systems
+            if (IsInCombatAttack)
+            {
+                // Only allow combat controller to update
+                if (combatController != null)
+                {
+                    // Combat controller handles its own updates via its own Update()
+                }
+                return;
+            }
+
             var focusedScript = FocusedScript;
 
             if (focusedScript)
@@ -182,7 +213,7 @@ namespace FS_ThirdPerson
                     if (script.enabled && script is not EquippableSystemBase)
                         script.HandleUpdate();
                 }
-                if(FocusedScript == null)
+                if (FocusedScript == null)
                     CurrentEquippedSystem?.HandleUpdate();
             }
         }
@@ -191,6 +222,15 @@ namespace FS_ThirdPerson
         {
             if (player.UseRootMotion)
             {
+                // COMBAT LOCK: Allow root motion during attacks
+                if (IsInCombatAttack)
+                {
+                    if (animator.deltaPosition != Vector3.zero)
+                        transform.position += animator.deltaPosition;
+                    transform.rotation *= animator.deltaRotation;
+                    return;
+                }
+
                 var focusedScript = FocusedScript;
                 if (focusedScript)
                 {
@@ -236,8 +276,8 @@ namespace FS_ThirdPerson
         public void ResetState()
         {
             //CurrentSystemState = equippableItemController.CurrentEquippableItemRight != null || equippableItemController.CurrentEquippableItemLeft != null ? PreviousSystemState : DefaultSystemState;
-            PreviousSystemState = CurrentSystemState; 
-            CurrentSystemState = DefaultSystemState; 
+            PreviousSystemState = CurrentSystemState;
+            CurrentSystemState = DefaultSystemState;
 
             //if (CurrentSystemState != DefaultSystemState)
             //    managedScripts.FirstOrDefault(s => s.State == CurrentSystemState)?.FocusScript();

@@ -12,136 +12,162 @@ public class WeaponTrailEffect : MonoBehaviour
     [SerializeField] private Transform lineTipTransform;
     [SerializeField] private Transform lineBottomTransform;
 
-    [Header("Particle Prefab Settings")]
-    [SerializeField] private GameObject particleEffectPrefab;
-    [SerializeField] private int particleSpawnCount = 3; // Number of particle systems along the blade
-    [SerializeField] private float particleScale = 1f; // Overall scale multiplier
+    [Header("Trail Renderer Prefab Settings")]
+    [SerializeField] private GameObject trailRendererPrefab;
+    [SerializeField] private int trailSpawnCount = 3; // Number of trail points along the blade
+    [SerializeField] private float trailScale = 1f;
 
-    [Header("Trail Settings")]
-    [SerializeField] private bool enableTrail = false;
-
-    // Trail state
+    // Trail state - REACTIVE ONLY
     private bool isTrailActive = false;
-    private List<GameObject> activeParticleEffects = new List<GameObject>();
-    private List<ParticleSystem> particleSystems = new List<ParticleSystem>();
+    private List<GameObject> activeTrailObjects = new List<GameObject>();
+    private List<TrailRenderer> trailRenderers = new List<TrailRenderer>();
 
     private void Start()
     {
-        if (particleEffectPrefab == null)
+        if (trailRendererPrefab == null)
         {
-            Debug.LogWarning("Particle Effect Prefab is not assigned! Please assign a particle system prefab.");
-        }
-    }
-
-    private void Update()
-    {
-        if (enableTrail && !isTrailActive)
-        {
-            StartTrail();
-        }
-        else if (!enableTrail && isTrailActive)
-        {
-            StopTrail();
-        }
-
-        if (isTrailActive && activeParticleEffects.Count > 0)
-        {
-            UpdateTrailPositions();
-        }
-    }
-
-    public void StartTrail()
-    {
-        if (particleEffectPrefab == null)
-        {
-            Debug.LogWarning("Cannot start trail - Particle Effect Prefab is not assigned!");
-            return;
+            Debug.LogWarning("Trail Renderer Prefab is not assigned!");
         }
 
         if (lineTipTransform == null || lineBottomTransform == null)
         {
             Debug.LogWarning("Trail transforms not assigned!");
+        }
+    }
+
+    // CRITICAL: Update only handles position tracking, NOT trail activation
+    private void Update()
+    {
+        // Only update positions if trail is active
+        if (isTrailActive && activeTrailObjects.Count > 0)
+        {
+            UpdateTrailPositions();
+        }
+    }
+
+    // REACTIVE: Only starts when explicitly called by combat controller
+    public void StartTrail()
+    {
+        Debug.Log(">>> StartTrail() called!");
+
+        // Validation checks
+        if (trailRendererPrefab == null)
+        {
+            Debug.LogError(">>> FAILED: Trail Renderer Prefab is not assigned!");
+            return;
+        }
+        else
+        {
+            Debug.Log($">>> Trail prefab is assigned: {trailRendererPrefab.name}");
+        }
+
+        if (lineTipTransform == null || lineBottomTransform == null)
+        {
+            Debug.LogError($">>> FAILED: Transforms not assigned! Tip={lineTipTransform}, Bottom={lineBottomTransform}");
+            return;
+        }
+        else
+        {
+            Debug.Log($">>> Transforms OK: Tip={lineTipTransform.name}, Bottom={lineBottomTransform.name}");
+        }
+
+        // Prevent double-start
+        if (isTrailActive)
+        {
+            Debug.Log(">>> Trail already active, skipping StartTrail");
             return;
         }
 
         isTrailActive = true;
+        Debug.Log($">>> Setting isTrailActive = true. Starting to spawn {trailSpawnCount} trail renderers...");
 
-        // Spawn multiple particle effects along the blade
-        if (activeParticleEffects.Count == 0)
+        // Spawn trail renderer objects along the blade
+        for (int i = 0; i < trailSpawnCount; i++)
         {
-            for (int i = 0; i < particleSpawnCount; i++)
+            float t = trailSpawnCount > 1 ? (float)i / (trailSpawnCount - 1) : 0.5f;
+            Vector3 spawnPos = Vector3.Lerp(lineBottomTransform.position, lineTipTransform.position, t);
+
+            Debug.Log($">>> Spawning trail renderer {i + 1} at position: {spawnPos}");
+
+            GameObject trailObject = Instantiate(trailRendererPrefab, spawnPos, Quaternion.identity, transform);
+            trailObject.name = $"{trailName} Effect {i + 1}";
+            trailObject.transform.localScale = Vector3.one * trailScale;
+
+            Debug.Log($">>> Trail GameObject created: {trailObject.name}");
+
+            // Find TrailRenderer component (could be on root or child)
+            TrailRenderer tr = trailObject.GetComponent<TrailRenderer>();
+            if (tr == null)
             {
-                // Calculate position along the blade (0 = bottom, 1 = tip)
-                float t = particleSpawnCount > 1 ? (float)i / (particleSpawnCount - 1) : 0.5f;
-                Vector3 spawnPos = Vector3.Lerp(lineBottomTransform.position, lineTipTransform.position, t);
-
-                GameObject particleEffect = Instantiate(particleEffectPrefab, spawnPos, Quaternion.identity, transform);
-                particleEffect.name = $"{trailName} Effect {i + 1}";
-                particleEffect.transform.localScale = Vector3.one * particleScale;
-
-                ParticleSystem ps = particleEffect.GetComponent<ParticleSystem>();
-                if (ps != null)
-                {
-                    ps.Play();
-                    particleSystems.Add(ps);
-                }
-
-                activeParticleEffects.Add(particleEffect);
+                tr = trailObject.GetComponentInChildren<TrailRenderer>();
             }
+
+            if (tr != null)
+            {
+                Debug.Log($">>> TrailRenderer found on {tr.gameObject.name}, enabling and clearing");
+                tr.enabled = true;
+                tr.Clear(); // Clear any old trail data
+                trailRenderers.Add(tr);
+            }
+            else
+            {
+                Debug.LogError($">>> NO TrailRenderer component found on {trailObject.name} or its children!");
+            }
+
+            activeTrailObjects.Add(trailObject);
         }
 
-        if (debugMode)
-        {
-            Debug.Log($"Trail started - {particleSpawnCount} particle effects spawned");
-        }
+        Debug.Log($">>> [WeaponTrail] Trail STARTED - {activeTrailObjects.Count} objects spawned, {trailRenderers.Count} trail renderers active");
     }
 
+    // REACTIVE: Only stops when explicitly called by combat controller
     public void StopTrail()
     {
+        Debug.Log(">>> StopTrail() called!");
+
+        // Prevent double-stop
+        if (!isTrailActive)
+        {
+            Debug.Log(">>> Trail already inactive, skipping StopTrail");
+            return;
+        }
+
         isTrailActive = false;
 
-        // Stop all particle systems
-        foreach (var ps in particleSystems)
+        // Disable all trail renderers (they'll naturally fade based on their time settings)
+        foreach (var tr in trailRenderers)
         {
-            if (ps != null)
+            if (tr != null)
             {
-                ps.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+                tr.enabled = false;
+                Debug.Log($">>> Disabled TrailRenderer on {tr.gameObject.name}");
             }
         }
 
-        // Destroy all effects after particles fade out
-        if (particleSystems.Count > 0 && particleSystems[0] != null)
+        // Calculate proper lifetime for destruction
+        float destroyDelay = 2f; // Default fallback
+        if (trailRenderers.Count > 0 && trailRenderers[0] != null)
         {
-            float lifetime = particleSystems[0].main.startLifetime.constantMax + particleSystems[0].main.duration;
-            foreach (var effect in activeParticleEffects)
-            {
-                if (effect != null)
-                {
-                    Destroy(effect, lifetime);
-                }
-            }
+            destroyDelay = trailRenderers[0].time + 0.5f; // Trail time + buffer
         }
-        else
+
+        // Destroy all trail objects after trails naturally fade
+        foreach (var trailObj in activeTrailObjects)
         {
-            // Fallback if we can't get lifetime
-            foreach (var effect in activeParticleEffects)
+            if (trailObj != null)
             {
-                if (effect != null)
-                {
-                    Destroy(effect, 2f);
-                }
+                Destroy(trailObj, destroyDelay);
             }
         }
 
-        activeParticleEffects.Clear();
-        particleSystems.Clear();
+        Debug.Log($">>> [WeaponTrail] Trail STOPPED - trails will fade in {destroyDelay}s");
 
-        if (debugMode)
-        {
-            Debug.Log("Trail stopped");
-        }
+        // Clear references immediately
+        activeTrailObjects.Clear();
+        trailRenderers.Clear();
     }
 
+    // Position tracking - follows blade transforms
     private void UpdateTrailPositions()
     {
         if (lineTipTransform == null || lineBottomTransform == null)
@@ -151,20 +177,20 @@ public class WeaponTrailEffect : MonoBehaviour
         Vector3 bottomPos = lineBottomTransform.position;
         Vector3 direction = tipPos - bottomPos;
 
-        // Update each particle effect position along the blade
-        for (int i = 0; i < activeParticleEffects.Count; i++)
+        // Update each trail object position along the blade
+        for (int i = 0; i < activeTrailObjects.Count; i++)
         {
-            if (activeParticleEffects[i] != null)
+            if (activeTrailObjects[i] != null)
             {
-                float t = particleSpawnCount > 1 ? (float)i / (particleSpawnCount - 1) : 0.5f;
+                float t = trailSpawnCount > 1 ? (float)i / (trailSpawnCount - 1) : 0.5f;
                 Vector3 targetPos = Vector3.Lerp(bottomPos, tipPos, t);
 
-                activeParticleEffects[i].transform.position = targetPos;
+                activeTrailObjects[i].transform.position = targetPos;
 
-                // Orient particle effect along the blade direction
+                // Orient trail object along the blade direction
                 if (direction.magnitude > 0.001f)
                 {
-                    activeParticleEffects[i].transform.rotation = Quaternion.LookRotation(direction);
+                    activeTrailObjects[i].transform.rotation = Quaternion.LookRotation(direction);
                 }
             }
         }
@@ -203,9 +229,9 @@ public class WeaponTrailEffect : MonoBehaviour
             Gizmos.DrawLine(lineTipTransform.position, lineBottomTransform.position);
 
             // Draw spawn points preview
-            for (int i = 0; i < particleSpawnCount; i++)
+            for (int i = 0; i < trailSpawnCount; i++)
             {
-                float t = particleSpawnCount > 1 ? (float)i / (particleSpawnCount - 1) : 0.5f;
+                float t = trailSpawnCount > 1 ? (float)i / (trailSpawnCount - 1) : 0.5f;
                 Vector3 spawnPos = Vector3.Lerp(lineBottomTransform.position, lineTipTransform.position, t);
 
                 Gizmos.color = Color.green;
@@ -214,17 +240,12 @@ public class WeaponTrailEffect : MonoBehaviour
         }
     }
 
-    // Public methods for manual control
-    public void SetTrailEnabled(bool enabled)
-    {
-        enableTrail = enabled;
-    }
-
-    public void SetParticleCount(int count)
+    // Utility methods
+    public void SetTrailCount(int count)
     {
         if (count > 0)
         {
-            particleSpawnCount = count;
+            trailSpawnCount = count;
             if (isTrailActive)
             {
                 StopTrail();
@@ -233,28 +254,32 @@ public class WeaponTrailEffect : MonoBehaviour
         }
     }
 
-    public void SetParticleScale(float scale)
+    public void SetTrailScale(float scale)
     {
-        particleScale = scale;
-        foreach (var effect in activeParticleEffects)
+        trailScale = scale;
+        foreach (var trailObj in activeTrailObjects)
         {
-            if (effect != null)
+            if (trailObj != null)
             {
-                effect.transform.localScale = Vector3.one * particleScale;
+                trailObj.transform.localScale = Vector3.one * trailScale;
             }
         }
     }
 
+    // Public getter for trail state
+    public bool IsTrailActive => isTrailActive;
+
+    // Cleanup on destroy
     private void OnDestroy()
     {
-        foreach (var effect in activeParticleEffects)
+        foreach (var trailObj in activeTrailObjects)
         {
-            if (effect != null)
+            if (trailObj != null)
             {
-                Destroy(effect);
+                Destroy(trailObj);
             }
         }
-        activeParticleEffects.Clear();
-        particleSystems.Clear();
+        activeTrailObjects.Clear();
+        trailRenderers.Clear();
     }
 }
