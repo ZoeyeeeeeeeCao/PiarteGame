@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 68cbc7065f772994ba308a80c5ac5478, type: 3}
+  m_Name: Note_0.1
+  m_EditorClassIdentifier: 
+  itemId: note_0.1
+  displayName: Havenport News
+  category: 1
+  description: "Travel warning\n\nBLACKWAKE ATOLL \u2014 SAIL AT YOUR OWN PERIL\n\nArmed
+    pirates control the shoreline.\nThe gates open only for supply carts.\nForeign
+    crews are met with steel, not words.\nMultiple vessels confirmed lost.\nNo survivors
+    reported."
+  stackable: 0
+  maxStack: 99
+  isConsumable: 0
+  healAmount: 0
+  inspectPrefab: {fileID: 919132149155446097, guid: b495698cb75df304fa750544d05a6078, type: 3}

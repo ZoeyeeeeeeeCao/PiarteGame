@@ -10,25 +10,29 @@ public class InventoryDetailPanel : MonoBehaviour
 
     [Header("Inspect Integration")]
     public InspectManager inspectManager;
+
+    [Tooltip("Drag the RawImage RectTransform that displays InspectRT here.")]
+    public RectTransform inspectDragArea;
+
+    // Keeping these fields so your script name/structure doesn’t “break”
+    // You can leave them unassigned or delete the UI objects.
     public Button inspectButton;
     public Button closeInspectButton; // optional
-    public RectTransform inspectDragArea; // drag your RawImage rect here
 
     ItemData currentItem;
 
     void Awake()
     {
-        if (inspectButton)
-        {
-            inspectButton.onClick.RemoveAllListeners();
-            inspectButton.onClick.AddListener(OnInspectClicked);
-        }
-
+        // We no longer use inspectButton (auto-inspect on Show)
+        // But we can still allow a close button if you want.
         if (closeInspectButton)
         {
             closeInspectButton.onClick.RemoveAllListeners();
             closeInspectButton.onClick.AddListener(CloseInspect);
         }
+
+        if (inspectButton)
+            inspectButton.gameObject.SetActive(false);
     }
 
     public void Hide()
@@ -36,7 +40,6 @@ public class InventoryDetailPanel : MonoBehaviour
         if (!root) root = gameObject;
         root.SetActive(false);
 
-        // optional but recommended: stop inspecting when panel hides
         CloseInspect();
     }
 
@@ -50,21 +53,22 @@ public class InventoryDetailPanel : MonoBehaviour
         if (titleText) titleText.text = item ? item.displayName : "";
         if (descText) descText.text = item ? item.description : "";
 
-        bool canInspect = (item != null && item.inspectPrefab != null && inspectManager != null);
-        if (inspectButton) inspectButton.gameObject.SetActive(canInspect);
-    }
+        // Auto inspect immediately
+        if (inspectManager == null)
+            return;
 
-    void OnInspectClicked()
-    {
-        if (currentItem == null || inspectManager == null) return;
-        if (currentItem.inspectPrefab == null) return;
-
-        inspectManager.Show(currentItem.inspectPrefab);
-
-        // Restrict rotation to the RawImage preview area (optional)
-        if (inspectDragArea != null && inspectManager.CurrentRotator != null)
+        if (item != null && item.inspectPrefab != null)
         {
-            inspectManager.CurrentRotator.dragArea = inspectDragArea;
+            inspectManager.Show(item.inspectPrefab);
+
+            // Restrict rotation to the preview area
+            if (inspectDragArea != null && inspectManager.CurrentRotator != null)
+                inspectManager.CurrentRotator.dragArea = inspectDragArea;
+        }
+        else
+        {
+            // No prefab: clear the inspect view
+            inspectManager.Hide();
         }
     }
 

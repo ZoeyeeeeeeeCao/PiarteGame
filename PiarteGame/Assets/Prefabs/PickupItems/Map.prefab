@@ -121,6 +121,7 @@ GameObject:
   - component: {fileID: 357700887243195527}
   - component: {fileID: 4102377448234218122}
   - component: {fileID: 8804205360697322718}
+  - component: {fileID: 3397674251177370884}
   m_Layer: 5
   m_Name: HintUICanvsa (1)
   m_TagString: Untagged
@@ -211,6 +212,23 @@ MonoBehaviour:
   m_BlockingMask:
     serializedVersion: 2
     m_Bits: 4294967295
+--- !u!114 &3397674251177370884
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6823573111434696585}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 39133dfec3b8b7541b3d3962d539004a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  target: {fileID: 0}
+  yawOnly: 1
+  flipForward: 0
+  smooth: 1
+  smoothSpeed: 12
 --- !u!1 &6856508694746255040
 GameObject:
   m_ObjectHideFlags: 0
