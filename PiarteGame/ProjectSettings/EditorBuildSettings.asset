@@ -8,18 +8,21 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/Scenes/SampleScene.unity
     guid: 99c9720ab356a0642a771bea13969a05
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/AidynScene.unity
     guid: de1bc501f3afb6f4c96c95279466c3b9
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/NelsenScene.unity
     guid: b57f2fe7a60fbbd479ccea8e9c8bdf9c
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/Howard's Scene.unity
     guid: f10743cb80bafd44a959559ee0d3b545
   - enabled: 1
-    path: Assets/Scenes/Level 1 Interior.unity
-    guid: d07eb1c63b81f554ea420773ba55fe4d
+    path: Assets/Scenes/TestScene/ZoeyTestInventory.unity
+    guid: c07c9060dd8ad73458e8c5bc9cfb7d6e
+  - enabled: 1
+    path: Assets/Scenes/TestScene/ZoeyTestInventory 1.unity
+    guid: 8268665fe66f08f40bb26dd32caabdde
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0
