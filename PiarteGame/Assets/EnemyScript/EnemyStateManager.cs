@@ -1,64 +1,70 @@
 using UnityEngine;
 using UnityEngine.AI;
-using System.Collections.Generic;
 
-public class EnemyStateManager : MonoBehaviour
+public enum EnemyType
 {
-    // 1. Define the options for the dropdown
-    public enum EnemyType
+    Patrolling,
+    Guarding,
+    Spawning
+}
+
+public class EnemyController : MonoBehaviour
+{
+    [Header("Settings")]
+    public EnemyType initialType;
+
+    [Header("Combat Settings")]
+    public Transform playerTarget;
+    public float attackRange = 1.5f;
+    public float attackCooldown = 2f;
+
+    [Header("Equipment")]
+    public bool hasTorch = false;
+    public int torchLayerIndex = 1; // Assuming Torch Override is on Layer 1
+
+    [Header("Movement Settings")]
+    public float walkingSpeed = 1f;
+    public float runningSpeed = 3f;
+    public Transform[] patrolPoints;
+    public Transform guardPoint;
+
+    [Header("References")]
+    public Animator animator;
+    public NavMeshAgent agent;
+
+    private EnemyBaseState _currentState;
+
+    // State Instances
+    public readonly EnemyStartState StartState = new EnemyStartState();
+    public readonly EnemyAgroedState AgroedState = new EnemyAgroedState();
+    public readonly EnemyDeathState DeathState = new EnemyDeathState();
+
+    private void Start()
     {
-        Patrolling,
-        Spawning
+        // Initialize Torch Layer Weight
+        SetTorchLayerWeight(hasTorch ? 1f : 0f);
+
+        TransitionToState(StartState);
     }
 
-    [Header("Initial Settings")]
-    public EnemyType startType;
-
-    public EnemyBaseState currentState;
-
-    public EnemySpawnState spawnState = new EnemySpawnState();
-    public EnemyPatrolState patrolState = new EnemyPatrolState();
-    public EnemyChaseState chaseState = new EnemyChaseState();
-    public EnemyAttackState attackState = new EnemyAttackState();
-    public EnemyDeathState deathState = new EnemyDeathState();
-
-    void Start()
+    private void Update()
     {
-        switch (startType)
-        {
-            case EnemyType.Patrolling:
-                currentState = patrolState;
-                break;
-            case EnemyType.Spawning:
-                currentState = spawnState;
-                break;
-        }
-
-        if (currentState != null)
-        {
-            currentState.EnterState(this);
-        }
+        _currentState?.UpdateState(this);
     }
 
-    void Update()
+    public void TransitionToState(EnemyBaseState newState)
     {
-        if (currentState != null)
-        {
-            currentState.UpdateState(this);
-        }
+        _currentState?.ExitState(this);
+        _currentState = newState;
+        _currentState.EnterState(this);
     }
 
-    public void SwitchState(EnemyBaseState state)
+    // Helper to safely set layer weight
+    public void SetTorchLayerWeight(float weight)
     {
-        currentState = state;
-        state.EnterState(this);
-    }
-
-    private void OnCollisionEnter(Collision collision)
-    {
-        if (currentState != null)
+        if (animator != null && torchLayerIndex < animator.layerCount)
         {
-           // currentState.OnCollisionEnter(this, collision);
+            animator.SetLayerWeight(torchLayerIndex, weight);
         }
     }
 }
