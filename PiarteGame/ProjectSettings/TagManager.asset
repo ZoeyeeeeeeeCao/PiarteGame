@@ -8,6 +8,7 @@ TagManager:
   - PW - Nature
   - NarrowBeam
   - SwingableLedge
+  - Enemy
   layers:
   - Default
   - TransparentFX
@@ -23,7 +24,7 @@ TagManager:
   - FootTrigger
   - Hotspot
   - HitBone
-  - 
+  - Enemy
   - 
   - 
   - 

@@ -11,6 +11,10 @@ public class SwordCombatController : MonoBehaviour
     [SerializeField] private Transform beltSocket;
     [SerializeField] private WeaponTrailEffect weaponTrail;
 
+    [Header("Sword Collider - NEW")]
+    [SerializeField] private Collider swordCollider; // Assign the sword's trigger collider here
+    [SerializeField] private bool debugCollisions = true;
+
     [Header("Sword Transform Adjustments")]
     [SerializeField] private Vector3 handPositionOffset = new Vector3(0.021f, -0.043f, 0.026f);
     [SerializeField] private Vector3 handRotationOffset = new Vector3(-15.551f, 107.252f, 54.941f);
@@ -29,8 +33,6 @@ public class SwordCombatController : MonoBehaviour
     [SerializeField] private float comboWindow = 0.6f;
     [SerializeField] private int hardAttackRequirement = 10;
     [SerializeField] private LayerMask enemyLayer;
-    [SerializeField] private float attackRange = 2f;
-    [SerializeField] private Transform attackPoint;
 
     [Header("Queue System")]
     [Tooltip("Maximum attacks that can be queued (1 = only queue next attack)")]
@@ -49,6 +51,12 @@ public class SwordCombatController : MonoBehaviour
     [SerializeField] private float trailDuration = 0.3f;
     [SerializeField] private float hardAttackTrailDuration = 0.5f;
 
+    [Header("Collision Window Timing - NEW")]
+    [Tooltip("When collision detection starts (0.4 = 40% into animation)")]
+    [SerializeField] private float collisionWindowStart = 0.4f;
+    [Tooltip("When collision detection ends (0.7 = 70% into animation)")]
+    [SerializeField] private float collisionWindowEnd = 0.7f;
+
     [Header("Attack Animation Names")]
     [SerializeField] private string[] easyAttackAnimations = new string[] { "EasyAttack1", "EasyAttack2", "EasyAttack3" };
     [SerializeField] private string[] normalAttackAnimations = new string[] { "NormalAttack1", "NormalAttack2", "NormalAttack3" };
@@ -65,7 +73,38 @@ public class SwordCombatController : MonoBehaviour
     [SerializeField] private float normalAttackDuration = 0f;
     [SerializeField] private float hardAttackDuration = 0f;
 
-    [Header("Camera Shake for Hard Attack")]
+    [Header("Hit VFX Settings")]
+    [SerializeField] private bool useHitVFX = true;
+
+    [Header("Contact VFX (Along Sword Blade)")]
+    [Tooltip("VFX that spawns along the sword blade where it contacts enemy")]
+    [SerializeField] private GameObject[] enemyContactVFXPrefabs;
+    [SerializeField] private GameObject[] generalContactVFXPrefabs;
+    [SerializeField] private float contactVFXLifetime = 2f;
+    [SerializeField] private int vfxSpawnCount = 3;
+    [SerializeField] private bool scaleVFXToSwordLength = true;
+    [SerializeField] private float vfxSizeMultiplier = 1f;
+
+    [Header("Sword Transform Points (For VFX)")]
+    [Tooltip("Same transforms used by WeaponTrailEffect - tip and bottom of blade")]
+    [SerializeField] private Transform swordTipTransform;
+    [SerializeField] private Transform swordBottomTransform;
+
+    [Header("Impact Wave VFX (Around Player)")]
+    [Tooltip("Large VFX that spawns around player and affects area")]
+    [SerializeField] private GameObject[] enemyImpactWaveVFXPrefabs;
+    [SerializeField] private GameObject[] generalImpactWaveVFXPrefabs;
+    [SerializeField] private float impactWaveVFXLifetime = 3f;
+    [SerializeField] private Vector3 impactWaveOffset = new Vector3(0, 0.1f, 0);
+    [SerializeField] private bool spawnImpactWaveOnEveryHit = true;
+
+    [Header("Camera Shake Settings")]
+    [SerializeField] private bool useCameraShakeOnHit = true;
+    [SerializeField] private float hitShakeDuration = 0.15f;
+    [SerializeField] private float hitShakeMagnitude = 0.08f;
+    [SerializeField] private float hitShakeRotation = 1.5f;
+
+    [Header("Hard Attack Cinematic")]
     [SerializeField] private bool useHardAttackCinematic = true;
     [SerializeField] private float cinematicDuration = 2f;
 
@@ -75,6 +114,11 @@ public class SwordCombatController : MonoBehaviour
     private bool canAttack = true;
     private bool isDrawingOrSheathing = false;
     private bool inComboWindow = false;
+
+    // NEW: Collision tracking
+    private bool isCollisionActive = false;
+    private int currentAttackDamage = 0;
+    private HashSet<Collider> hitEnemiesThisAttack = new HashSet<Collider>();
 
     // Attack tracking
     private int attackCounter = 0;
@@ -86,7 +130,7 @@ public class SwordCombatController : MonoBehaviour
 
     // Layer weight management
     private Coroutine currentLayerTransition = null;
-    private Coroutine currentAttackCoroutine = null; // Track the current attack
+    private Coroutine currentAttackCoroutine = null;
 
     // Animation hashes
     private int drawSwordHash;
@@ -98,7 +142,6 @@ public class SwordCombatController : MonoBehaviour
     private int[] normalAttackHashes;
     private int hardAttackHash;
 
-    // Attack input structure
     private struct AttackInput
     {
         public AttackType type;
@@ -122,6 +165,7 @@ public class SwordCombatController : MonoBehaviour
     {
         InitializeAnimationHashes();
         InitializeSwordState();
+        InitializeSwordCollider();
     }
 
     private void InitializeAnimationHashes()
@@ -176,7 +220,31 @@ public class SwordCombatController : MonoBehaviour
             weaponTrail.StopTrail();
         }
 
-        Debug.Log("Combat System initialized - Movement will be locked during attacks");
+        Debug.Log("Combat System initialized - Collision-based damage system ready");
+    }
+
+    private void InitializeSwordCollider()
+    {
+        if (swordCollider == null)
+        {
+            Debug.LogError("❌ SWORD COLLIDER NOT ASSIGNED! Please assign the sword's collider in the inspector.");
+            Debug.LogError("   1. Select your sword prefab");
+            Debug.LogError("   2. Add a Capsule/Box Collider along the blade");
+            Debug.LogError("   3. Check 'Is Trigger'");
+            Debug.LogError("   4. Assign it to 'Sword Collider' field");
+            return;
+        }
+
+        // Make sure it's a trigger
+        if (!swordCollider.isTrigger)
+        {
+            swordCollider.isTrigger = true;
+            Debug.LogWarning("⚠️ Sword collider was not set as trigger. Fixed automatically.");
+        }
+
+        // Disable collision by default
+        swordCollider.enabled = false;
+        Debug.Log("✅ Sword collider initialized and disabled (will activate during attacks)");
     }
 
     private void Update()
@@ -190,6 +258,116 @@ public class SwordCombatController : MonoBehaviour
         }
     }
 
+    // NEW: Handle sword collisions
+    private void OnTriggerEnter(Collider other)
+    {
+        // This should be on the SWORD object, not the player
+        // If you add this script to the player, you need to handle it differently
+        // Better to put this logic here and call it from a separate SwordCollider script
+        HandleSwordCollision(other);
+    }
+
+    private void HandleSwordCollision(Collider other)
+    {
+        if (!isCollisionActive)
+        {
+            if (debugCollisions)
+                Debug.Log($"🚫 Collision ignored - not in damage window: {other.gameObject.name}");
+            return;
+        }
+
+        // Check layer
+        if (((1 << other.gameObject.layer) & enemyLayer) == 0)
+        {
+            if (debugCollisions)
+                Debug.Log($"🚫 Collision ignored - wrong layer: {other.gameObject.name}");
+            return;
+        }
+
+        // Check if already hit
+        if (hitEnemiesThisAttack.Contains(other))
+        {
+            if (debugCollisions)
+                Debug.Log($"🚫 Already hit: {other.gameObject.name}");
+            return;
+        }
+
+        // Mark as hit
+        hitEnemiesThisAttack.Add(other);
+
+        Debug.Log($"⚔️ SWORD HIT: {other.gameObject.name}!");
+
+        // Calculate hit data
+        Vector3 hitPosition = other.ClosestPoint(swordCollider.transform.position);
+        Vector3 hitDirection = (hitPosition - swordCollider.transform.position).normalized;
+        bool isEnemy = other.CompareTag("Enemy");
+
+        // Deal damage
+        if (isEnemy)
+        {
+            EnemyHealth enemyHealth = other.GetComponent<EnemyHealth>();
+            if (enemyHealth != null)
+            {
+                enemyHealth.TakeDamage(currentAttackDamage);
+                Debug.Log($"💔 Dealt {currentAttackDamage} damage to {other.gameObject.name}");
+
+                // Camera shake
+                if (useCameraShakeOnHit && CameraShake.Instance != null)
+                {
+                    CameraShake.Instance.Shake(hitShakeDuration, hitShakeMagnitude, hitShakeRotation);
+                    Debug.Log($"📹 Camera shake triggered!");
+                }
+            }
+            else
+            {
+                Debug.LogError($"❌ {other.gameObject.name} has 'Enemy' tag but no EnemyHealth component!");
+            }
+        }
+
+        // Spawn VFX
+        if (useHitVFX)
+        {
+            if (isEnemy && enemyContactVFXPrefabs != null && enemyContactVFXPrefabs.Length > 0)
+            {
+                SpawnContactVFXAlongBlade(enemyContactVFXPrefabs, hitPosition, hitDirection);
+                SpawnImpactWaveVFX(enemyImpactWaveVFXPrefabs);
+            }
+            else if (!isEnemy && generalContactVFXPrefabs != null && generalContactVFXPrefabs.Length > 0)
+            {
+                SpawnContactVFXAlongBlade(generalContactVFXPrefabs, hitPosition, hitDirection);
+                SpawnImpactWaveVFX(generalImpactWaveVFXPrefabs);
+            }
+        }
+    }
+
+    private void EnableSwordCollision(int damage)
+    {
+        if (swordCollider == null)
+        {
+            Debug.LogError("❌ Cannot enable sword collision - collider not assigned!");
+            return;
+        }
+
+        isCollisionActive = true;
+        currentAttackDamage = damage;
+        hitEnemiesThisAttack.Clear();
+        swordCollider.enabled = true;
+
+        Debug.Log($"⚔️ COLLISION ACTIVE - Damage: {damage}");
+    }
+
+    private void DisableSwordCollision()
+    {
+        if (swordCollider == null) return;
+
+        isCollisionActive = false;
+        currentAttackDamage = 0;
+        swordCollider.enabled = false;
+        hitEnemiesThisAttack.Clear();
+
+        Debug.Log($"🛡️ COLLISION DISABLED");
+    }
+
     private void DebugAnimatorState()
     {
         AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
@@ -197,15 +375,6 @@ public class SwordCombatController : MonoBehaviour
         string currentClip = clipInfo.Length > 0 ? clipInfo[0].clip.name : "None";
 
         Debug.Log($"📊 Current State: {stateInfo.fullPathHash} | Clip: {currentClip} | IsAttacking Param: {animator.GetBool(isAttackingHash)} | IsAttacking: {isAttacking} | Normalized Time: {stateInfo.normalizedTime:F2}");
-
-        // Check if any triggers are still set
-        foreach (var param in animator.parameters)
-        {
-            if (param.type == AnimatorControllerParameterType.Trigger)
-            {
-                Debug.Log($"  Trigger '{param.name}': {animator.GetBool(param.nameHash)}");
-            }
-        }
     }
 
     private void HandleInput()
@@ -243,14 +412,12 @@ public class SwordCombatController : MonoBehaviour
     {
         lastInputTime = Time.time;
 
-        // If not attacking, execute immediately
         if (!isAttacking && canAttack)
         {
             ExecuteAttackFromQueue(type);
             return;
         }
 
-        // If in combo window, queue the attack
         if (inComboWindow && attackQueue.Count < maxQueueSize)
         {
             attackQueue.Enqueue(new AttackInput(type, Time.time));
@@ -371,6 +538,9 @@ public class SwordCombatController : MonoBehaviour
             weaponTrail.StopTrail();
         }
 
+        // Make sure collision is disabled
+        DisableSwordCollision();
+
         float animLength = GetAnimationLength("SheathSword");
 
         yield return new WaitForSeconds(animLength * 0.75f);
@@ -401,7 +571,6 @@ public class SwordCombatController : MonoBehaviour
 
     private void PerformEasyAttack()
     {
-        // Safety check: Don't start if already attacking
         if (currentAttackCoroutine != null)
         {
             Debug.LogWarning("⚠️ Attack already in progress, skipping Easy Attack");
@@ -422,7 +591,6 @@ public class SwordCombatController : MonoBehaviour
 
     private void PerformNormalAttack()
     {
-        // Safety check: Don't start if already attacking
         if (currentAttackCoroutine != null)
         {
             Debug.LogWarning("⚠️ Attack already in progress, skipping Normal Attack");
@@ -443,7 +611,6 @@ public class SwordCombatController : MonoBehaviour
 
     private void PerformHardAttack()
     {
-        // Safety check: Don't start if already attacking
         if (currentAttackCoroutine != null)
         {
             Debug.LogWarning("⚠️ Attack already in progress, skipping Hard Attack");
@@ -460,27 +627,23 @@ public class SwordCombatController : MonoBehaviour
 
     private IEnumerator ExecuteAttack(int animationHash, string animationName, int damage, float duration, float customTrailDuration)
     {
-        // Ensure we're in attacking state
         isAttacking = true;
         canAttack = false;
 
         animator.SetBool(isAttackingHash, true);
 
-        // PlayerController will now block all locomotion automatically
         Debug.Log($"🔒 Movement LOCKED - {animationName} started");
 
         StartSmoothLayerTransition(swordMaskLayerIndex, 0f, 0.1f);
 
-        // CRITICAL: Reset ALL triggers and wait a frame before setting new trigger
         ResetAllAttackTriggers();
-        yield return null; // Wait one frame for animator to process the reset
+        yield return null;
 
         animator.SetTrigger(animationHash);
 
-        // Wait another frame to ensure trigger is processed
         yield return null;
 
-        // Start trail effect
+        // Start trail
         yield return new WaitForSeconds(trailStartDelay);
 
         if (weaponTrail != null)
@@ -488,20 +651,27 @@ public class SwordCombatController : MonoBehaviour
             weaponTrail.StartTrail();
         }
 
-        // Deal damage at midpoint
-        float waitForDamage = (duration * 0.5f) - trailStartDelay;
-        yield return new WaitForSeconds(waitForDamage);
+        // Enable collision at the right time (WHEN SWORD ACTUALLY SWINGS)
+        float collisionStartTime = duration * collisionWindowStart;
+        yield return new WaitForSeconds(collisionStartTime - trailStartDelay);
 
-        DealDamageToEnemies(damage);
+        EnableSwordCollision(damage);
+        Debug.Log($"⚔️ Collision window OPENED at {collisionWindowStart * 100}% of animation");
 
-        // Open combo window
+        // Keep collision active during swing
+        float collisionDuration = duration * (collisionWindowEnd - collisionWindowStart);
+        yield return new WaitForSeconds(collisionDuration);
+
+        DisableSwordCollision();
+        Debug.Log($"🛡️ Collision window CLOSED at {collisionWindowEnd * 100}% of animation");
+
+        // Continue animation timing
         float comboStartTime = duration * comboWindowStart;
-        float timeUntilCombo = comboStartTime - (duration * 0.5f);
+        float timeUntilCombo = comboStartTime - (duration * collisionWindowEnd);
         yield return new WaitForSeconds(timeUntilCombo);
 
         OpenComboWindow();
 
-        // Keep trail active
         yield return new WaitForSeconds(customTrailDuration);
 
         if (weaponTrail != null)
@@ -509,18 +679,15 @@ public class SwordCombatController : MonoBehaviour
             weaponTrail.StopTrail();
         }
 
-        // Wait for combo window to close
         yield return new WaitForSeconds(comboWindow - customTrailDuration);
 
         CloseComboWindow();
 
         bool hasQueuedAttack = attackQueue.Count > 0;
 
-        // Recovery time
         float recoveryTime = hasQueuedAttack ? comboExecutionDelay : attackCooldown;
         yield return new WaitForSeconds(recoveryTime);
 
-        // Only restore state if no queued attack
         if (!hasQueuedAttack)
         {
             animator.SetBool(isAttackingHash, false);
@@ -531,7 +698,6 @@ public class SwordCombatController : MonoBehaviour
                 StartSmoothLayerTransition(swordMaskLayerIndex, 1f, 0.15f);
             }
 
-            // IMPORTANT: Clear coroutine reference and set states
             currentAttackCoroutine = null;
             isAttacking = false;
             canAttack = true;
@@ -540,17 +706,13 @@ public class SwordCombatController : MonoBehaviour
         }
         else
         {
-            // Execute queued attack while STAYING in attack state
             AttackInput nextAttack = attackQueue.Dequeue();
             Debug.Log($"✅ Executing queued {nextAttack.type} attack (Remaining: {attackQueue.Count})");
 
-            // Clear current coroutine reference before starting new one
             currentAttackCoroutine = null;
 
-            // Stay in attacking state
-            canAttack = true; // Allow the next attack to execute
+            canAttack = true;
 
-            // Execute immediately without exiting attack state
             ExecuteAttackFromQueue(nextAttack.type);
         }
     }
@@ -562,23 +724,20 @@ public class SwordCombatController : MonoBehaviour
 
         animator.SetBool(isAttackingHash, true);
 
-        // PlayerController will now block all locomotion automatically
         Debug.Log("🔒 Movement LOCKED - Hard Attack started");
 
         StartSmoothLayerTransition(swordMaskLayerIndex, 0f, 0.1f);
 
-        // CRITICAL: Reset ALL triggers and wait a frame before setting new trigger
         ResetAllAttackTriggers();
-        yield return null; // Wait one frame for animator to process the reset
+        yield return null;
 
-        if (useHardAttackCinematic)
+        if (useHardAttackCinematic && HardAttackCinematic.Instance != null)
         {
-            StartCoroutine(HardAttackCinematic());
+            HardAttackCinematic.Instance.PlayHardAttackCinematic();
         }
 
         animator.SetTrigger(hardAttackHash);
 
-        // Wait another frame to ensure trigger is processed
         yield return null;
 
         yield return new WaitForSeconds(trailStartDelay);
@@ -588,10 +747,18 @@ public class SwordCombatController : MonoBehaviour
             weaponTrail.StartTrail();
         }
 
-        float waitForDamage = (duration * 0.5f) - trailStartDelay;
-        yield return new WaitForSeconds(waitForDamage);
+        // Enable collision for hard attack
+        float collisionStartTime = duration * collisionWindowStart;
+        yield return new WaitForSeconds(collisionStartTime - trailStartDelay);
 
-        DealDamageToEnemies(hardAttackDamage);
+        EnableSwordCollision(hardAttackDamage);
+        Debug.Log($"💥 Hard attack collision window OPENED");
+
+        float collisionDuration = duration * (collisionWindowEnd - collisionWindowStart);
+        yield return new WaitForSeconds(collisionDuration);
+
+        DisableSwordCollision();
+        Debug.Log($"💥 Hard attack collision window CLOSED");
 
         yield return new WaitForSeconds(hardAttackTrailDuration);
 
@@ -600,7 +767,7 @@ public class SwordCombatController : MonoBehaviour
             weaponTrail.StopTrail();
         }
 
-        float remainingTime = duration - (duration * 0.5f) - hardAttackTrailDuration;
+        float remainingTime = duration - (duration * collisionWindowEnd) - hardAttackTrailDuration;
         yield return new WaitForSeconds(remainingTime);
 
         yield return new WaitForSeconds(attackCooldown);
@@ -613,7 +780,6 @@ public class SwordCombatController : MonoBehaviour
             StartSmoothLayerTransition(swordMaskLayerIndex, 1f, 0.15f);
         }
 
-        // Clear coroutine reference and states
         currentAttackCoroutine = null;
         isAttacking = false;
         canAttack = true;
@@ -622,12 +788,6 @@ public class SwordCombatController : MonoBehaviour
 
         Debug.Log("🔓 Movement UNLOCKED - Hard attack complete");
         Debug.Log("💥 Hard attack complete - Attack counter reset");
-    }
-
-    private IEnumerator HardAttackCinematic()
-    {
-        Debug.Log("🎬 Hard Attack Cinematic Effect!");
-        yield return new WaitForSeconds(cinematicDuration);
     }
 
     private void StartSmoothLayerTransition(int layerIndex, float targetWeight, float duration)
@@ -689,19 +849,74 @@ public class SwordCombatController : MonoBehaviour
         }
     }
 
-    private void DealDamageToEnemies(int damage)
+    private void SpawnContactVFXAlongBlade(GameObject[] vfxArray, Vector3 hitPosition, Vector3 hitDirection)
     {
-        if (attackPoint == null) return;
+        if (vfxArray == null || vfxArray.Length == 0) return;
 
-        Collider[] hitEnemies = Physics.OverlapSphere(attackPoint.position, attackRange, enemyLayer);
-
-        foreach (Collider enemy in hitEnemies)
+        if (swordTipTransform == null || swordBottomTransform == null)
         {
-            EnemyHealth enemyHealth = enemy.GetComponent<EnemyHealth>();
-            if (enemyHealth != null)
-            {
-                enemyHealth.TakeDamage(damage);
-            }
+            Debug.LogWarning("Sword transform points not assigned! Falling back to single VFX at hit point.");
+            SpawnSingleContactVFX(vfxArray, hitPosition, hitDirection);
+            return;
+        }
+
+        Vector3 tipPos = swordTipTransform.position;
+        Vector3 bottomPos = swordBottomTransform.position;
+        Vector3 bladeDirection = (tipPos - bottomPos).normalized;
+        float bladeLength = Vector3.Distance(tipPos, bottomPos);
+
+        float vfxScale = scaleVFXToSwordLength ? (bladeLength / vfxSpawnCount) * vfxSizeMultiplier : vfxSizeMultiplier;
+
+        int randomIndex = Random.Range(0, vfxArray.Length);
+        GameObject vfxPrefab = vfxArray[randomIndex];
+
+        if (vfxPrefab == null) return;
+
+        for (int i = 0; i < vfxSpawnCount; i++)
+        {
+            float t = vfxSpawnCount > 1 ? (float)i / (vfxSpawnCount - 1) : 0.5f;
+            Vector3 spawnPosition = Vector3.Lerp(bottomPos, tipPos, t);
+
+            Quaternion vfxRotation = Quaternion.LookRotation(-hitDirection, bladeDirection);
+
+            GameObject vfx = Instantiate(vfxPrefab, spawnPosition, vfxRotation);
+            vfx.transform.localScale = Vector3.one * vfxScale;
+            Destroy(vfx, contactVFXLifetime);
+
+            Debug.Log($"💥 Spawned contact VFX {i + 1}/{vfxSpawnCount} at blade position: {t:F2}");
+        }
+    }
+
+    private void SpawnSingleContactVFX(GameObject[] vfxArray, Vector3 hitPosition, Vector3 hitDirection)
+    {
+        int randomIndex = Random.Range(0, vfxArray.Length);
+        GameObject vfxPrefab = vfxArray[randomIndex];
+
+        if (vfxPrefab != null)
+        {
+            Quaternion vfxRotation = Quaternion.LookRotation(-hitDirection);
+            GameObject vfx = Instantiate(vfxPrefab, hitPosition, vfxRotation);
+            vfx.transform.localScale = Vector3.one * vfxSizeMultiplier;
+            Destroy(vfx, contactVFXLifetime);
+        }
+    }
+
+    private void SpawnImpactWaveVFX(GameObject[] vfxArray)
+    {
+        if (vfxArray == null || vfxArray.Length == 0) return;
+
+        int randomIndex = Random.Range(0, vfxArray.Length);
+        GameObject vfxPrefab = vfxArray[randomIndex];
+
+        if (vfxPrefab != null)
+        {
+            Vector3 spawnPosition = transform.position + impactWaveOffset;
+            Quaternion spawnRotation = Quaternion.Euler(-90, 0, 0);
+
+            GameObject impactVFX = Instantiate(vfxPrefab, spawnPosition, spawnRotation);
+            Destroy(impactVFX, impactWaveVFXLifetime);
+
+            Debug.Log($"🌊 Spawned impact wave VFX: {vfxPrefab.name}");
         }
     }
 
@@ -719,7 +934,6 @@ public class SwordCombatController : MonoBehaviour
 
     public void ResetAllAttackTriggers()
     {
-        // Force clear all attack triggers
         foreach (int hash in easyAttackHashes)
         {
             animator.ResetTrigger(hash);
@@ -730,7 +944,6 @@ public class SwordCombatController : MonoBehaviour
         }
         animator.ResetTrigger(hardAttackHash);
 
-        // Force animator to update immediately
         animator.Update(0f);
     }
 
@@ -754,16 +967,7 @@ public class SwordCombatController : MonoBehaviour
         Debug.Log("✅ Attack animation complete");
     }
 
-    private void OnDrawGizmosSelected()
-    {
-        if (attackPoint != null)
-        {
-            Gizmos.color = Color.red;
-            Gizmos.DrawWireSphere(attackPoint.position, attackRange);
-        }
-    }
-
-    // Public properties - PlayerController uses IsAttacking to block movement
+    // Public properties
     public bool IsSwordDrawn => isSwordDrawn;
     public bool IsAttacking => isAttacking;
     public bool CanAttack => canAttack;
