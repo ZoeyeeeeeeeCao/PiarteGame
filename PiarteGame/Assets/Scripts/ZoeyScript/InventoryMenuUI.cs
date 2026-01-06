@@ -27,6 +27,9 @@ public class InventoryMenuUI : MonoBehaviour
     [Header("Detail Panel")]
     public InventoryDetailPanel detailPanel;
 
+    [Header("Inspect (optional but recommended)")]
+    public InspectManager inspectManager;
+
     PickUpItemCategory currentCategory = PickUpItemCategory.Herbs;
     readonly List<GameObject> spawnedRows = new();
 
@@ -45,7 +48,10 @@ public class InventoryMenuUI : MonoBehaviour
         if (windowRoot) windowRoot.SetActive(false);
         if (detailPanel) detailPanel.Hide();
 
-        // Column button bindings
+        // Make sure detail panel has the inspect manager reference
+        if (detailPanel && detailPanel.inspectManager == null)
+            detailPanel.inspectManager = inspectManager;
+
         if (herbsButton)
             herbsButton.onClick.AddListener(() => SetCategory(PickUpItemCategory.Herbs));
 
@@ -85,9 +91,14 @@ public class InventoryMenuUI : MonoBehaviour
     {
         if (windowRoot) windowRoot.SetActive(false);
 
+        // Stop inspection if it was open
+        if (inspectManager) inspectManager.Hide();
+
         Time.timeScale = 1f;
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+
+        if (detailPanel) detailPanel.Hide();
     }
 
     void SetCategory(PickUpItemCategory cat)

@@ -10,11 +10,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 68cbc7065f772994ba308a80c5ac5478, type: 3}
-  m_Name: TestStone
+  m_Name: Stone3
   m_EditorClassIdentifier: 
-  itemId: Stone
-  displayName: Stone
-  category: 0
+  itemId: Stone3
+  displayName: Stone3
+  category: 1
   description: What ever i m the queen of the world
-  stackable: 1
+  stackable: 0
   maxStack: 99
+  isConsumable: 0
+  healAmount: 0
+  inspectPrefab: {fileID: 919132149155446097, guid: 13ac1a83ec63921418f60d822113c75b, type: 3}
