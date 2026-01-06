@@ -320,7 +320,11 @@ public class SwordCollisionHandler : MonoBehaviour
 
             // Play the Camera Shake
             if (useCameraShakeOnHit && CameraShake.Instance != null)
+            {
+                // USE HIGHER VALUES HERE FOR TESTING
+                // Duration: 0.15f, Magnitude: 0.5f (start high to see if it works!)
                 CameraShake.Instance.Shake(hitShakeDuration, hitShakeMagnitude, hitShakeRotation);
+            }
 
             // Spawn the ACTUAL HIT EFFECTS (Sparks/Impacts)
             SpawnContactVFXAlongBlade(enemyContactVFXPrefabs, hitPoint, hitDirection);

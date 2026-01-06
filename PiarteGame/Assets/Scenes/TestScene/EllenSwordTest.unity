@@ -14588,7 +14588,7 @@ MonoBehaviour:
   playerTransform: {fileID: 0}
   useCameraShakeOnHit: 1
   hitShakeDuration: 0.15
-  hitShakeMagnitude: 0.08
+  hitShakeMagnitude: 0.5
   hitShakeRotation: 1.5
   spawnVFXOnAllCollisions: 1
   genericHitVFXPrefabs: []
