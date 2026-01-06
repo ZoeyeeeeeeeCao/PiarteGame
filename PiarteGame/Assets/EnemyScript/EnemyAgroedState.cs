@@ -1,107 +1,87 @@
 using UnityEngine;
 
-// --- SUPER STATE: AGRO ---
 public class EnemyAgroedState : EnemyBaseState
 {
     private EnemyBaseState _currentSubState;
-    
-    // Sub-states
+
     private readonly EnemyChasingState _chasingState = new EnemyChasingState();
     private readonly EnemyAttackingState _attackingState = new EnemyAttackingState();
 
-    private float _loseAgroTimer = 0f;
+    private float _stateChangeTimer = 0f;
+    private float _attackCooldownTimer = 0f;
 
     public override void EnterState(EnemyController enemy)
     {
         Debug.Log("Agroed: Engaging Player");
-        _loseAgroTimer = 0f;
-        // Default to chasing when first agroed
+        _attackCooldownTimer = 0f;
         SetSubState(enemy, _chasingState);
     }
 
     public override void UpdateState(EnemyController enemy)
     {
-        if (enemy.playerTarget == null)
-        {
-            Debug.LogWarning("Enemy is Agroed but has no Player Target assigned in Inspector!");
-            return;
-        }
+        if (enemy.playerTarget == null) return;
 
-        bool isLockedInAttack = false;
-        if (_currentSubState == _attackingState && enemy.animator != null)
-        {
-            AnimatorStateInfo currentInfo = enemy.animator.GetCurrentAnimatorStateInfo(0);
-            AnimatorStateInfo nextInfo = enemy.animator.GetNextAnimatorStateInfo(0);
+        _stateChangeTimer += Time.deltaTime;
+        _attackCooldownTimer -= Time.deltaTime;
 
-            // Check if currently attacking OR transitioning into attack
-            if (currentInfo.IsName("Attack") || nextInfo.IsName("Attack"))
+        // --- ATTACK LOCK ---
+        if (_currentSubState == _attackingState)
+        {
+            bool isLocked = false;
+
+            if (_stateChangeTimer < 0.2f)
             {
-                isLockedInAttack = true;
+                isLocked = true;
+            }
+            else if (enemy.animator != null)
+            {
+                AnimatorStateInfo info = enemy.animator.GetCurrentAnimatorStateInfo(0);
+                if (info.IsTag("Attack") && info.normalizedTime < 1f)
+                {
+                    isLocked = true;
+                }
+            }
+
+            if (isLocked)
+            {
+                _currentSubState.UpdateState(enemy);
+                return;
             }
         }
 
-        // If locked, just update the attack state and return early (Skip all distance checks)
-        if (isLockedInAttack)
+        // --- FLATTEN DISTANCE CHECK ---
+        Vector3 enemyPos = enemy.transform.position;
+        Vector3 playerPos = enemy.playerTarget.position;
+        enemyPos.y = playerPos.y = 0f;
+
+        float distanceToPlayer = Vector3.Distance(enemyPos, playerPos);
+
+        // --- STATE SELECTION ---
+        if (distanceToPlayer <= enemy.attackSensorRange)
         {
-            _currentSubState?.UpdateState(enemy);
-            return;
-        }
-
-
-        // 2. Normal Distance Logic
-        float distanceToPlayer = Vector3.Distance(enemy.transform.position, enemy.playerTarget.position);
-
-        // -- LOSE AGRO LOGIC --
-        // If player is too far (20f), wait 5 seconds then go back to Start State
-        if (distanceToPlayer > 20f)
-        {
-            if (enemy.agent != null) 
+            if (_currentSubState != _attackingState && _attackCooldownTimer <= 0f)
             {
-                enemy.agent.isStopped = true;
-                enemy.agent.velocity = Vector3.zero;
-            }
-
-            if (enemy.animator != null)
-                enemy.animator.SetFloat("WalkBlend", 0f, 0.2f, Time.deltaTime);
-
-            _loseAgroTimer += Time.deltaTime;
-            if (_loseAgroTimer >= 5f)
-            {
-                ReturnToStart(enemy);
-            }
-            return;
-        }
-        else
-        {
-            _loseAgroTimer = 0f;
-        }
-
-        // -- COMBAT LOGIC --
-        _currentSubState?.UpdateState(enemy);
-
-        if (distanceToPlayer <= enemy.attackRange)
-        {
-            if (_currentSubState != _attackingState)
-            {
+                _attackCooldownTimer = enemy.attackCooldown;
                 SetSubState(enemy, _attackingState);
             }
         }
-        else
+        else if (distanceToPlayer <= enemy.viewRadius)
         {
             if (_currentSubState != _chasingState)
             {
                 SetSubState(enemy, _chasingState);
             }
         }
-    }
-
-    private void ReturnToStart(EnemyController enemy)
-    {
-        if (enemy.initialType == EnemyType.Spawning)
+        else
         {
-            enemy.initialType = EnemyType.Guarding;
+            if (enemy.initialType == EnemyType.Spawning)
+                enemy.initialType = EnemyType.Guarding;
+
+            enemy.TransitionToState(enemy.StartState);
+            return;
         }
-        enemy.TransitionToState(enemy.StartState);
+
+        _currentSubState.UpdateState(enemy);
     }
 
     public override void ExitState(EnemyController enemy)
@@ -111,6 +91,7 @@ public class EnemyAgroedState : EnemyBaseState
 
     private void SetSubState(EnemyController enemy, EnemyBaseState subState)
     {
+        _stateChangeTimer = 0f;
         _currentSubState?.ExitState(enemy);
         _currentSubState = subState;
         _currentSubState.EnterState(enemy);

@@ -2,42 +2,71 @@ using UnityEngine;
 
 public class EnemyChasingState : EnemyBaseState
 {
+    private const float DESIRED_DISTANCE = 1f;
+
     public override void EnterState(EnemyController enemy)
     {
-        // 1. Setup Movement for Chasing
-        if (enemy.agent != null)
+        enemy.ToggleNavMesh(true);
+
+        if (enemy.agent != null && enemy.agent.enabled)
         {
-            enemy.agent.speed = enemy.runningSpeed; // Set to Run Speed (3f)
-            enemy.agent.isStopped = false;          // Ensure we can move
-
-            // Reset stopping distance to 0 so we don't stop early while chasing; 
-            // the transition to AttackState handles the actual "stopping range".
-            enemy.agent.stoppingDistance = 0f;
+            enemy.agent.speed = enemy.runningSpeed;
+            enemy.agent.isStopped = false;
+            enemy.agent.stoppingDistance = 0f; // we control distance manually
+            enemy.agent.updateRotation = false; // manual facing
         }
-
-        enemy.animator.SetBool("Attack", false);
     }
 
     public override void UpdateState(EnemyController enemy)
     {
-        // Ensure we have references
-        if (enemy.agent != null && enemy.playerTarget != null)
+        if (enemy.isSpawning) return;
+        if (enemy.agent == null || !enemy.agent.enabled || enemy.playerTarget == null) return;
+
+        // --- FLATTEN POSITIONS ---
+        Vector3 enemyPos = enemy.transform.position;
+        Vector3 playerPos = enemy.playerTarget.position;
+        enemyPos.y = playerPos.y = 0f;
+
+        float distanceToPlayer = Vector3.Distance(enemyPos, playerPos);
+
+        // --- MAINTAIN DISTANCE ---
+        Vector3 dirFromPlayer = (enemyPos - playerPos).normalized;
+        Vector3 desiredPos = playerPos + dirFromPlayer * DESIRED_DISTANCE;
+
+        if (distanceToPlayer > DESIRED_DISTANCE + 0.15f || distanceToPlayer < DESIRED_DISTANCE - 0.15f)
         {
-            // Continuously update destination to the Player's current position
-            enemy.agent.destination = enemy.playerTarget.position;
+            enemy.agent.isStopped = false;
+            enemy.agent.destination = desiredPos;
+        }
+        else
+        {
+            enemy.agent.isStopped = true;
         }
 
-        // --- SMOOTH ANIMATION TRANSITION ---
+        // --- FACE PLAYER ---
+        Vector3 lookDir = playerPos - enemyPos;
+        if (lookDir.sqrMagnitude > 0.01f)
+        {
+            Quaternion targetRot = Quaternion.LookRotation(lookDir);
+            enemy.transform.rotation = Quaternion.Slerp(
+                enemy.transform.rotation,
+                targetRot,
+                Time.deltaTime * 8f
+            );
+        }
+
+        // --- ANIMATION DRIVEN BY SPEED ---
+        float speed = enemy.agent.velocity.magnitude;
+        float blend = Mathf.InverseLerp(0f, enemy.runningSpeed, speed);
+
         if (enemy.animator != null)
         {
-            // Using 0.2f as the dampTime allows the value to blend from 0 (Idle/Spawn) to 1 (Run) 
-            // smoothly over roughly 0.2 seconds, instead of snapping.
-            enemy.animator.SetFloat("WalkBlend", 1.0f, 0.2f, Time.deltaTime);
+            enemy.animator.SetFloat("WalkBlend", blend, 0.15f, Time.deltaTime);
         }
     }
 
     public override void ExitState(EnemyController enemy)
     {
-        // No specific cleanup needed here.
+        // nothing special
     }
 }

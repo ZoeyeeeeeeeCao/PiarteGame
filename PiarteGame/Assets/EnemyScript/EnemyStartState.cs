@@ -4,7 +4,6 @@ public class EnemyStartState : EnemyBaseState
 {
     private EnemyBaseState _currentSubState;
 
-    // Sub-state instances
     private readonly EnemyPatrolState _patrolState = new EnemyPatrolState();
     private readonly EnemyIdleState _idleState = new EnemyIdleState();
     private readonly EnemySpawnState _spawnState = new EnemySpawnState();
@@ -13,7 +12,6 @@ public class EnemyStartState : EnemyBaseState
     {
         Debug.Log("Entering Start SuperState");
 
-        // Decide sub-state based on Inspector Enum
         switch (enemy.initialType)
         {
             case EnemyType.Patrolling:
@@ -30,19 +28,24 @@ public class EnemyStartState : EnemyBaseState
 
     public override void UpdateState(EnemyController enemy)
     {
-        // Run the logic of the active sub-state
         _currentSubState?.UpdateState(enemy);
 
-        // -- Global Transition Logic for this SuperState --
+        // --- IDLE / ANIMATION LOCK ---
+        // If an animation tagged "Idle" is playing and hasn't finished, prevent transition.
+        if (enemy.animator != null)
+        {
+            AnimatorStateInfo info = enemy.animator.GetCurrentAnimatorStateInfo(0);
+            if (info.IsTag("Idle") && info.normalizedTime < 1.0f)
+            {
+                return;
+            }
+        }
 
-        // Example: Transition to Agro if player is close
-        // logic: if (Vector3.Distance(enemy.transform.position, player.position) < visionRange)
-        // {
-        //     enemy.TransitionToState(enemy.AgroedState);
-        // }
-
-        // Example: Transition to Death if health is low
-        // logic: if (health <= 0) enemy.TransitionToState(enemy.DeathState);
+        // --- DETECTION LOGIC ---
+        if (enemy.CanSeePlayer() && !enemy.isSpawning)
+        {
+            enemy.TransitionToState(enemy.AgroedState);
+        }
     }
 
     public override void ExitState(EnemyController enemy)

@@ -3,74 +3,76 @@ using UnityEngine;
 public class EnemyAttackingState : EnemyBaseState
 {
     private float _timer;
+    private float _torchWeightTransitionSpeed = 3f; // Speed of torch layer weight transitions
+    private float _rotationSpeed = 8f; // Rotation speed toward player
 
     public override void EnterState(EnemyController enemy)
     {
-        if (enemy.agent != null)
-        {
-            enemy.agent.isStopped = true;
-            enemy.agent.velocity = Vector3.zero;
-            enemy.agent.ResetPath();
-        }
-
-        // Attack immediately on enter
-        _timer = enemy.attackCooldown;
+        //enemy.ToggleNavMesh(false);
+        _timer = enemy.attackCooldown; // Start ready to attack
     }
 
     public override void UpdateState(EnemyController enemy)
     {
-        // Safety: Aggressively kill movement
-        if (enemy.agent != null)
-        {
-            enemy.agent.velocity = Vector3.zero;
-            if (enemy.agent.hasPath) enemy.agent.ResetPath();
-        }
-
         if (enemy.playerTarget == null) return;
 
-        // 1. Smoothly blend movement animation to Idle
+        // Smoothly stop movement animation
         if (enemy.animator != null)
         {
             enemy.animator.SetFloat("WalkBlend", 0f, 0.2f, Time.deltaTime);
         }
 
+        // Check if currently playing an attack animation
         bool isAttacking = false;
         if (enemy.animator != null)
         {
             AnimatorStateInfo stateInfo = enemy.animator.GetCurrentAnimatorStateInfo(0);
-            if (stateInfo.IsName("Attack"))
+            if (stateInfo.IsTag("Attack"))
             {
                 isAttacking = true;
             }
         }
 
-        // 2. Face the Player (Only if NOT currently mid-attack)
+        // Only rotate and manage torch when NOT attacking
         if (!isAttacking)
         {
+            // Rotate to face player
             Vector3 direction = (enemy.playerTarget.position - enemy.transform.position).normalized;
             direction.y = 0;
             if (direction != Vector3.zero)
             {
                 Quaternion lookRotation = Quaternion.LookRotation(direction);
-                enemy.transform.rotation = Quaternion.Slerp(enemy.transform.rotation, lookRotation, Time.deltaTime * 2f);
+                enemy.transform.rotation = Quaternion.Slerp(enemy.transform.rotation, lookRotation, Time.deltaTime * 5f);
             }
 
-            // Restore Torch Layer weight to 1 when done attacking (and holding a torch).
-            // We use _timer > 0.2f (buffer) to ensure we don't accidentally reset it immediately 
-            // after PerformRandomAttack sets it to 0 (before the animation starts).
+            // Smoothly restore torch layer weight after a brief delay
             if (enemy.hasTorch && _timer > 0.2f)
             {
-                enemy.SetTorchLayerWeight(1f);
+                float currentWeight = enemy.animator.GetLayerWeight(enemy.torchLayerIndex);
+                float targetWeight = 1f;
+                float newWeight = Mathf.Lerp(currentWeight, targetWeight, Time.deltaTime * _torchWeightTransitionSpeed);
+                enemy.animator.SetLayerWeight(enemy.torchLayerIndex, newWeight);
+            }
+        }
+        else
+        {
+            // Smoothly lower torch layer weight during attacks if torch attack is active
+            if (enemy.hasTorch && enemy.animator.GetBool("TorchAttack"))
+            {
+                float currentWeight = enemy.animator.GetLayerWeight(enemy.torchLayerIndex);
+                float targetWeight = 0f;
+                float newWeight = Mathf.Lerp(currentWeight, targetWeight, Time.deltaTime * _torchWeightTransitionSpeed);
+                enemy.animator.SetLayerWeight(enemy.torchLayerIndex, newWeight);
             }
         }
 
-        // 3. Handle Attack Logic
+        // Increment attack cooldown timer
         _timer += Time.deltaTime;
 
+        // Trigger attack when cooldown is ready and not currently attacking
         if (_timer >= enemy.attackCooldown && !isAttacking)
         {
             PerformRandomAttack(enemy);
-            _timer = 0f;
         }
     }
 
@@ -78,66 +80,61 @@ public class EnemyAttackingState : EnemyBaseState
     {
         if (enemy.animator == null) return;
 
-        // A. Decide Attack Type (Torch vs Normal)
-        bool useTorchAttack = false;
+        // CRITICAL: Reset timer FIRST to prevent immediate re-triggering
+        _timer = 0f;
 
+        // Determine if using torch attack (50/50 chance if enemy has torch)
+        bool useTorchAttack = false;
         if (enemy.hasTorch)
         {
-            // If holding a torch, randomly choose (50/50) between using it or a normal attack
             useTorchAttack = Random.Range(0, 2) == 0;
         }
-        else
-        {
-            // No torch -> Always Normal Attack
-            useTorchAttack = false;
-        }
 
-        // B. Set Animator Bools
+        Debug.Log("Attack Triggered: " + (useTorchAttack ? "Torch Attack" : "Normal Attack"));
+
+        // Set attack type bools
         enemy.animator.SetBool("TorchAttack", useTorchAttack);
         enemy.animator.SetBool("NormalAttack", !useTorchAttack);
 
-        // C. Manage Torch Layer Weight
-        // If we chose a Torch Attack, set weight to 0 so the attack animation controls the arm.
-        // If Normal Attack, we leave it (or it stays 1 from Update) to keep holding the torch up.
-        if (useTorchAttack)
-        {
-            enemy.SetTorchLayerWeight(0f);
-        }
+        // Note: Torch layer weight will be smoothly transitioned in UpdateState
+        // No instant change here
 
-        // D. Choose Random Attack Index (0, 1, or 3)
-        // We pick a random number 0, 1, or 2 to represent the 3 possible attacks
+        // Select random attack variation (0, 1, or 3)
         int rand = Random.Range(0, 3);
         int attackIndex = 0;
-
         switch (rand)
         {
-            case 0: attackIndex = 0; break; // Attack 1
-            case 1: attackIndex = 1; break; // Attack 2
-            case 2: attackIndex = 3; break; // Attack 3
+            case 0: attackIndex = 0; break;
+            case 1: attackIndex = 1; break;
+            case 2: attackIndex = 3; break;
         }
 
-        // E. Trigger Attack (Using SetInteger for precision)
         enemy.animator.SetInteger("AttackIndex", attackIndex);
-        enemy.animator.SetTrigger("Attack");
     }
 
     public override void ExitState(EnemyController enemy)
     {
+        // Clean up attack parameters
         if (enemy.animator != null)
         {
-            // Reset Bools on exit to ensure clean state
+            Debug.Log("Attacks Disabled - Exiting Attack State");
             enemy.animator.SetBool("TorchAttack", false);
             enemy.animator.SetBool("NormalAttack", false);
         }
 
-        // Important: Restore the Torch Layer when leaving the attack state
+        // Smoothly restore torch layer weight based on whether enemy has torch
         if (enemy.hasTorch)
         {
-            enemy.SetTorchLayerWeight(1f);
+            // Start smooth transition to weight 1
+            float currentWeight = enemy.animator.GetLayerWeight(enemy.torchLayerIndex);
+            float targetWeight = 1f;
+            // Use a faster transition speed on exit for responsiveness
+            float newWeight = Mathf.Lerp(currentWeight, targetWeight, 0.5f);
+            enemy.animator.SetLayerWeight(enemy.torchLayerIndex, newWeight);
         }
         else
         {
-            enemy.SetTorchLayerWeight(0f);
+            enemy.animator.SetLayerWeight(enemy.torchLayerIndex, 0f);
         }
     }
 }

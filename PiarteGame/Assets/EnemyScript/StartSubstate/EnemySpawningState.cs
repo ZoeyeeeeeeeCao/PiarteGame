@@ -8,6 +8,11 @@ public class EnemySpawnState : EnemyBaseState
     public override void EnterState(EnemyController enemy)
     {
         Debug.Log("Enemy Spawning...");
+
+        enemy.isSpawning = true;
+
+        enemy.ToggleNavMesh(false);
+
         _hasStartedSpawnAnimation = false;
 
         if (enemy.animator != null)
@@ -52,6 +57,6 @@ public class EnemySpawnState : EnemyBaseState
 
     public override void ExitState(EnemyController enemy)
     {
-        // Cleanup if necessary
+        enemy.isSpawning = false;
     }
 }

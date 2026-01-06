@@ -4,43 +4,61 @@ public class EnemyIdleState : EnemyBaseState
 {
     public override void EnterState(EnemyController enemy)
     {
-        
+        // Enable NavMesh so the enemy can walk back to guard point
+        enemy.ToggleNavMesh(true);
+
+        if (enemy.agent != null)
+        {
+            enemy.agent.isStopped = false;
+            enemy.agent.speed = enemy.walkingSpeed;
+            enemy.agent.updateRotation = false; // manual rotation
+        }
+
+        if (enemy.animator != null)
+            enemy.animator.SetFloat("WalkBlend", 0f);
     }
 
     public override void UpdateState(EnemyController enemy)
     {
-        if (enemy.guardPoint == null) return;
-        if (enemy.agent == null) return;
+        if (enemy.guardPoint == null || enemy.agent == null || !enemy.agent.enabled) return;
 
-        // Check distance to the guard point
-        // using agent.remainingDistance is often more accurate than Vector3.Distance for NavMesh paths,
-        // but Vector3.Distance is safer if the path isn't calculated yet.
-        float distanceToPoint = Vector3.Distance(enemy.transform.position, enemy.guardPoint.position);
+        Vector3 flatEnemyPos = new Vector3(enemy.transform.position.x, 0f, enemy.transform.position.z);
+        Vector3 flatTargetPos = new Vector3(enemy.guardPoint.position.x, 0f, enemy.guardPoint.position.z);
+        float distanceToPoint = Vector3.Distance(flatEnemyPos, flatTargetPos);
 
-        // 1. Walk to the point if not there
-        if (distanceToPoint > 1.0f)
+        // WALK to guard point
+        if (distanceToPoint > enemy.agent.stoppingDistance + 0.1f)
         {
-            enemy.agent.isStopped = false;
-            enemy.agent.speed = enemy.walkingSpeed;
             enemy.agent.destination = enemy.guardPoint.position;
 
             if (enemy.animator != null)
                 enemy.animator.SetTrigger("Walk");
                 enemy.animator.SetFloat("WalkBlend", 0.5f);
+
+            // Face movement direction
+            if (enemy.agent.velocity.sqrMagnitude > 0.05f)
+            {
+                Vector3 dir = enemy.agent.velocity.normalized;
+                dir.y = 0f;
+
+                Quaternion targetRot = Quaternion.LookRotation(dir);
+                enemy.transform.rotation = Quaternion.Slerp(
+                    enemy.transform.rotation,
+                    targetRot,
+                    Time.deltaTime * 8f
+                );
+            }
         }
-        // 2. If at the point, Idle and Face Direction
+        // ARRIVED
         else
         {
-            Debug.Log("Enemy Stop");
-            // Stop the agent so it doesn't push around
             enemy.agent.isStopped = true;
+            enemy.ToggleNavMesh(false); // truly idle
 
             if (enemy.animator != null)
-                enemy.animator.SetTrigger("Walk");
                 enemy.animator.SetFloat("WalkBlend", 0f);
 
-            // Face the direction of the empty object (Match rotation)
-            // Slerp provides a smooth turn instead of a snap
+            // Face guard direction
             enemy.transform.rotation = Quaternion.Slerp(
                 enemy.transform.rotation,
                 enemy.guardPoint.rotation,
@@ -51,8 +69,6 @@ public class EnemyIdleState : EnemyBaseState
 
     public override void ExitState(EnemyController enemy)
     {
-        // Ensure agent is free to move when leaving this state (e.g., getting agroed)
-        if (enemy.agent != null)
-            enemy.agent.isStopped = false;
+        enemy.ToggleNavMesh(true);
     }
 }
