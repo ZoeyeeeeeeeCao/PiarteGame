@@ -13,9 +13,12 @@ MonoBehaviour:
   m_Name: Stone2
   m_EditorClassIdentifier: 
   itemId: Stone2
-  displayName: Stone2
+  displayName: Blackwake Atoll Relic
   category: 1
-  description: What ever i m the queen of the world
+  description: Hidden within the pirate stronghold of Blackwake Atoll, the Tidemark
+    Stone pulses with restless energy. It was once used to command the seas, granting
+    its bearer swift passage and dominance over tides. Over time, pirates turned
+    on one another for its power, staining the stone with betrayal and bloodshed.
   stackable: 0
   maxStack: 99
   isConsumable: 0

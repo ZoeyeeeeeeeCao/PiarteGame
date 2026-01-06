@@ -13,9 +13,13 @@ MonoBehaviour:
   m_Name: Stone1
   m_EditorClassIdentifier: 
   itemId: Stone1
-  displayName: Stone1
+  displayName: Havenport Isle Relic
   category: 1
-  description: What ever i m the queen of the world
+  description: Forged long ago to protect the first pirates who settled Havenport
+    Isle, the Hearthstone embodies home, loyalty, and legacy. Its golden core glows
+    faintly when held by one of true blood, responding to courage rather than greed.
+    Though calm in appearance, it is said to be the anchor that binds the other stones
+    together.
   stackable: 0
   maxStack: 99
   isConsumable: 0

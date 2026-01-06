@@ -13,9 +13,12 @@ MonoBehaviour:
   m_Name: Stone3
   m_EditorClassIdentifier: 
   itemId: Stone3
-  displayName: Stone3
+  displayName: Gravewind Isle Relic
   category: 1
-  description: What ever i m the queen of the world
+  description: Recovered from the cursed depths of Gravewind Isle, the Boneveil Stone
+    hums with whispers of the dead. It binds the souls of fallen pirates, raising
+    them as skeletal guardians doomed to wander the island forever. The stone feeds
+    on fear, growing stronger the longer it remains undisturbed.
   stackable: 0
   maxStack: 99
   isConsumable: 0

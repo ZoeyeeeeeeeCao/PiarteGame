@@ -13,9 +13,12 @@ MonoBehaviour:
   m_Name: Stone4
   m_EditorClassIdentifier: 
   itemId: Stone4
-  displayName: Stone4
+  displayName: Bloodskull Isle Relic
   category: 1
-  description: What ever i m the queen of the world
+  description: Guarded by the tribal warriors of Bloodskull Isle, the Sunshard Stone
+    radiates raw, ancient power. Unlike the other stones, it was never corrupted.
+    Forged to seal the legendary treasure, it judges all who seek it. Only when united
+    with the other stones does it reveal the path to the final relic.
   stackable: 0
   maxStack: 99
   isConsumable: 0
