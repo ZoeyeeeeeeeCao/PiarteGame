@@ -24,7 +24,7 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
     [Header("NPC Name (optional)")]
     public string npcName = "NPC";
 
-    [Header("Dialogue Content (TMP)")]
+    [Header("Dialogue Content")]
     [TextArea(2, 6)]
     public string[] firstDialogue;      // 第一次：开启点火盆
 
@@ -34,18 +34,32 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
     [TextArea(2, 6)]
     public string[] notReadyDialogue;   // 第二次但没完成：提示回去点火
 
+    [Header("Voice Clips (one clip per line, optional)")]
+    public AudioClip[] firstVoice;
+    public AudioClip[] secondVoice;
+    public AudioClip[] notReadyVoice;
+
+    [Header("Audio Settings")]
+    [Tooltip("Optional. If empty, will auto add/find an AudioSource on this NPC.")]
+    public AudioSource voiceSource;
+    [Range(0f, 1f)] public float voiceVolume = 1f;
+
+    [Tooltip("If true, stop previous voice when switching to next line.")]
+    public bool stopPreviousOnNext = true;
+
     [Header("Optional: Pause game while talking (PC)")]
     public bool pauseTimeWhileTalking = false;
     public bool showCursorWhileTalking = false;
 
-    private int dialogueIndex;
-    private bool playerInRange;
-    private bool dialoguePlaying;
+    int dialogueIndex;
+    bool playerInRange;
+    bool dialoguePlaying;
 
-    private string[] activeDialogue;
+    string[] activeDialogue;
+    AudioClip[] activeVoice;
 
-    private enum TalkState { First, Second, Done }
-    private TalkState talkState = TalkState.First;
+    enum TalkState { First, Second, Done }
+    TalkState talkState = TalkState.First;
 
     void Start()
     {
@@ -53,13 +67,23 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
         if (pressEIndicator) pressEIndicator.SetActive(false);
 
         if (npcNameText) npcNameText.text = npcName;
+
+        // Prepare audio source
+        if (!voiceSource)
+        {
+            voiceSource = GetComponent<AudioSource>();
+            if (!voiceSource) voiceSource = gameObject.AddComponent<AudioSource>();
+        }
+        voiceSource.playOnAwake = false;
+
+        // 通常对白建议 2D（不跟距离衰减）；你想 3D 就把下面改成 1
+        voiceSource.spatialBlend = 0f;
     }
 
     void Update()
     {
         if (!playerInRange) return;
 
-        // 未在对话中：按 E 开始
         if (!dialoguePlaying)
         {
             if (Input.GetKeyDown(interactKey))
@@ -67,7 +91,6 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
             return;
         }
 
-        // 对话中：按 Space 下一句
         if (Input.GetKeyDown(nextKey))
             NextLine();
     }
@@ -78,7 +101,6 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
 
         playerInRange = true;
 
-        // Done 状态就不提示了（可按你需要改）
         if (talkState != TalkState.Done && pressEIndicator)
             pressEIndicator.SetActive(true);
     }
@@ -93,7 +115,6 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
 
     void StartDialogue()
     {
-        // Done 后不再对话（可改成允许重复播放）
         if (talkState == TalkState.Done) return;
 
         dialoguePlaying = true;
@@ -104,10 +125,8 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
 
         if (npcNameText) npcNameText.text = npcName;
 
-        // 选择本次要播放的台词组
-        activeDialogue = PickDialogueForThisTalk();
+        PickDialogueAndVoiceForThisTalk();
 
-        // 防呆：空数组就直接结束
         if (activeDialogue == null || activeDialogue.Length == 0)
         {
             EndDialogue();
@@ -115,34 +134,57 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
         }
 
         ApplyTalkingPause(true);
-        ShowCurrentLine();
+        ShowCurrentLine(playVoice: true);
     }
 
-    string[] PickDialogueForThisTalk()
+    void PickDialogueAndVoiceForThisTalk()
     {
         if (talkState == TalkState.First)
-            return firstDialogue;
+        {
+            activeDialogue = firstDialogue;
+            activeVoice = firstVoice;
+            return;
+        }
 
         if (talkState == TalkState.Second)
         {
-            // 第二次：如果火盆没点完，播放 notReady
-            if (QuestFinalSceneManager.Instance != null &&
-                !QuestFinalSceneManager.Instance.AllBraziersLit())
+            bool ready = QuestFinalSceneManager.Instance != null &&
+                         QuestFinalSceneManager.Instance.AllBraziersLit();
+
+            if (!ready && notReadyDialogue != null && notReadyDialogue.Length > 0)
             {
-                if (notReadyDialogue != null && notReadyDialogue.Length > 0)
-                    return notReadyDialogue;
+                activeDialogue = notReadyDialogue;
+                activeVoice = notReadyVoice;
+                return;
             }
 
-            return secondDialogue;
+            activeDialogue = secondDialogue;
+            activeVoice = secondVoice;
+            return;
         }
 
-        return null;
+        activeDialogue = null;
+        activeVoice = null;
     }
 
-    void ShowCurrentLine()
+    void ShowCurrentLine(bool playVoice)
     {
-        if (!dialogueText) return;
-        dialogueText.text = activeDialogue[dialogueIndex];
+        if (dialogueText)
+            dialogueText.text = activeDialogue[dialogueIndex];
+
+        if (!playVoice) return;
+
+        // 播放对应行的音频（如果有）
+        if (voiceSource && activeVoice != null &&
+            dialogueIndex >= 0 && dialogueIndex < activeVoice.Length)
+        {
+            var clip = activeVoice[dialogueIndex];
+            if (clip)
+            {
+                if (stopPreviousOnNext) voiceSource.Stop();
+                voiceSource.PlayOneShot(clip, voiceVolume);
+            }
+        }
     }
 
     void NextLine()
@@ -155,17 +197,20 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
             return;
         }
 
-        ShowCurrentLine();
+        ShowCurrentLine(playVoice: true);
     }
 
     void EndDialogue()
     {
+        if (voiceSource && stopPreviousOnNext)
+            voiceSource.Stop();
+
         if (dialogueCanvas) dialogueCanvas.SetActive(false);
         dialoguePlaying = false;
 
         ApplyTalkingPause(false);
 
-        // 对话结束触发任务逻辑
+        // 结束触发任务逻辑
         if (talkState == TalkState.First)
         {
             if (QuestFinalSceneManager.Instance != null)
@@ -186,7 +231,6 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
             // 没完成就保持 Second，让玩家回去点火盆
         }
 
-        // 玩家仍在范围内，且没 Done，就重新显示 E 提示
         if (playerInRange && talkState != TalkState.Done && pressEIndicator)
             pressEIndicator.SetActive(true);
     }
