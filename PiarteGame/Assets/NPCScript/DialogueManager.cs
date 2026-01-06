@@ -1,5 +1,4 @@
-using UnityEngine;
-using UnityEngine.UI;
+﻿using UnityEngine;
 using TMPro;
 using System.Collections;
 
@@ -9,218 +8,132 @@ public class DialogueManager : MonoBehaviour
     public GameObject dialogueBox;
     public TextMeshProUGUI npcNameText;
     public TextMeshProUGUI dialogueText;
-    public GameObject continueIndicator; // Optional: "Press Space" text
 
-    [Header("Typewriter Settings")]
-    public float typeSpeed = 0.05f; // Time between each character
-    public bool canSkipTyping = true; // Press Space to instantly show full text
+    [Header("Settings")]
+    public float typeSpeed = 0.05f;
 
-    [Header("Animation Settings")]
-    public float slideSpeed = 0.3f; // Duration of slide animation
-    public float slideDistance = 300f; // How far to slide from bottom
-    public float closeDelay = 0.2f; // Delay before sliding down
+    [Header("Audio Settings")]
+    public AudioSource audioSource;
+    public AudioClip defaultTypingClip; // The "blip" sound (optional)
+    public bool stopAudioOnSkip = true;
 
-    private string[] currentDialogueLines;
-    private int currentLineIndex = 0;
-    private bool dialogueActive = false;
+    [Range(1, 5)]
+    public int frequencyLevel = 2;
+
+    private Dialogue.DialogueLine[] currentLines;
+    private int lineIndex = 0;
+
+    // --- KEEPING YOUR VARIABLES ---
+    private bool isDialogueActive = false;
     private bool isTyping = false;
-    private bool isAnimating = false;
-    private Coroutine typingCoroutine;
-
-    private RectTransform dialogueBoxRect;
-    private Vector2 hiddenPosition;
-    private Vector2 visiblePosition;
 
     void Start()
     {
-        if (dialogueBox != null)
-        {
-            dialogueBoxRect = dialogueBox.GetComponent<RectTransform>();
-
-            if (dialogueBoxRect != null)
-            {
-                // Store the visible position (current position in editor)
-                visiblePosition = dialogueBoxRect.anchoredPosition;
-                // Calculate hidden position (below screen)
-                hiddenPosition = new Vector2(visiblePosition.x, visiblePosition.y - slideDistance);
-                // Start hidden
-                dialogueBoxRect.anchoredPosition = hiddenPosition;
-            }
-
-            dialogueBox.SetActive(false);
-        }
+        if (dialogueBox != null) dialogueBox.SetActive(false);
+        if (audioSource == null) audioSource = GetComponent<AudioSource>();
     }
 
     void Update()
     {
-        if (dialogueActive && !isAnimating && Input.GetKeyDown(KeyCode.Space))
+        // STRICTLY ENTER KEY ONLY
+        if (isDialogueActive && Input.GetKeyDown(KeyCode.Return))
         {
-            if (isTyping && canSkipTyping)
+            if (isTyping)
             {
-                // Skip typing animation
-                SkipTyping();
+                StopAllCoroutines();
+                dialogueText.text = currentLines[lineIndex].text;
+                isTyping = false;
+
+                // If player skips text, stop the voice line?
+                if (stopAudioOnSkip && audioSource.isPlaying)
+                {
+                    audioSource.Stop();
+                }
             }
-            else if (!isTyping)
+            else
             {
-                // Go to next line
-                DisplayNextLine();
+                NextLine();
             }
         }
     }
 
     public void StartDialogue(Dialogue dialogue)
     {
-        if (dialogue == null || dialogue.dialogueLines.Length == 0)
-            return;
+        isDialogueActive = true;
+        currentLines = dialogue.dialogueLines;
+        lineIndex = 0;
 
-        dialogueActive = true;
-        currentDialogueLines = dialogue.dialogueLines;
-        currentLineIndex = 0;
+        if (dialogueBox != null) dialogueBox.SetActive(true);
+        if (npcNameText != null) npcNameText.text = dialogue.npcName;
 
-        if (npcNameText != null)
-            npcNameText.text = dialogue.npcName;
-
-        // Slide up animation
-        StartCoroutine(SlideIn());
-
-        DisplayLine(currentDialogueLines[currentLineIndex]);
+        StartCoroutine(TypeLine());
     }
 
-    void DisplayNextLine()
+    void NextLine()
     {
-        currentLineIndex++;
-
-        if (currentLineIndex < currentDialogueLines.Length)
+        lineIndex++;
+        if (lineIndex < currentLines.Length)
         {
-            DisplayLine(currentDialogueLines[currentLineIndex]);
+            StartCoroutine(TypeLine());
         }
         else
         {
-            StartCoroutine(EndDialogueWithAnimation());
+            EndDialogue();
         }
     }
 
-    void DisplayLine(string line)
-    {
-        // Stop any existing typing animation
-        if (typingCoroutine != null)
-        {
-            StopCoroutine(typingCoroutine);
-        }
-
-        // Start typing animation
-        typingCoroutine = StartCoroutine(TypeText(line));
-
-        // Hide continue indicator while typing
-        if (continueIndicator != null)
-            continueIndicator.SetActive(false);
-    }
-
-    IEnumerator TypeText(string text)
+    IEnumerator TypeLine()
     {
         isTyping = true;
-        dialogueText.text = "";
 
-        foreach (char c in text)
+        // 1. Get the data for the current line
+        Dialogue.DialogueLine currentLineData = currentLines[lineIndex];
+
+        dialogueText.text = "";
+        string lineToType = currentLineData.text;
+
+        // 2. CHECK FOR SPECIFIC AUDIO CLIP (Like 'herbdone')
+        // This assumes your struct variable is named 'audioClip'
+        bool hasSpecificClip = currentLineData.audioClip != null;
+
+        if (hasSpecificClip && audioSource != null)
+        {
+            audioSource.pitch = 1f; // Normal pitch for voice acting
+            audioSource.PlayOneShot(currentLineData.audioClip);
+        }
+
+        int charCount = 0;
+
+        foreach (char c in lineToType.ToCharArray())
         {
             dialogueText.text += c;
+            charCount++;
+
+            // 3. PLAY TYPING BLIPS (Only if there is NO specific voice clip)
+            if (!hasSpecificClip && audioSource != null && defaultTypingClip != null)
+            {
+                if (charCount % frequencyLevel == 0)
+                {
+                    audioSource.pitch = Random.Range(0.9f, 1.1f);
+                    audioSource.PlayOneShot(defaultTypingClip);
+                }
+            }
+
             yield return new WaitForSeconds(typeSpeed);
         }
 
         isTyping = false;
-
-        // Show continue indicator after typing (hide on last line)
-        if (continueIndicator != null)
-        {
-            bool isLastLine = currentLineIndex >= currentDialogueLines.Length - 1;
-            continueIndicator.SetActive(!isLastLine);
-        }
     }
 
-    void SkipTyping()
+    void EndDialogue()
     {
-        if (typingCoroutine != null)
-        {
-            StopCoroutine(typingCoroutine);
-        }
-
-        // Show full text immediately
-        dialogueText.text = currentDialogueLines[currentLineIndex];
-        isTyping = false;
-
-        // Show continue indicator
-        if (continueIndicator != null)
-        {
-            bool isLastLine = currentLineIndex >= currentDialogueLines.Length - 1;
-            continueIndicator.SetActive(!isLastLine);
-        }
+        isDialogueActive = false;
+        if (dialogueBox != null) dialogueBox.SetActive(false);
     }
 
-    IEnumerator SlideIn()
+    // --- KEEPING YOUR PUBLIC METHOD ---
+    public bool IsDialogueActive()
     {
-        if (dialogueBox == null || dialogueBoxRect == null) yield break;
-
-        isAnimating = true;
-        dialogueBox.SetActive(true);
-
-        float elapsed = 0f;
-
-        while (elapsed < slideSpeed)
-        {
-            elapsed += Time.deltaTime;
-            float t = elapsed / slideSpeed;
-            // Smooth easing
-            t = t * t * (3f - 2f * t); // Smoothstep
-
-            dialogueBoxRect.anchoredPosition = Vector2.Lerp(hiddenPosition, visiblePosition, t);
-            yield return null;
-        }
-
-        dialogueBoxRect.anchoredPosition = visiblePosition;
-        isAnimating = false;
-    }
-
-    IEnumerator SlideOut()
-    {
-        if (dialogueBox == null || dialogueBoxRect == null) yield break;
-
-        isAnimating = true;
-
-        float elapsed = 0f;
-
-        while (elapsed < slideSpeed)
-        {
-            elapsed += Time.deltaTime;
-            float t = elapsed / slideSpeed;
-            // Smooth easing
-            t = t * t * (3f - 2f * t); // Smoothstep
-
-            dialogueBoxRect.anchoredPosition = Vector2.Lerp(visiblePosition, hiddenPosition, t);
-            yield return null;
-        }
-
-        dialogueBoxRect.anchoredPosition = hiddenPosition;
-        dialogueBox.SetActive(false);
-        isAnimating = false;
-    }
-
-    IEnumerator EndDialogueWithAnimation()
-    {
-        dialogueActive = false;
-        isTyping = false;
-
-        if (typingCoroutine != null)
-        {
-            StopCoroutine(typingCoroutine);
-        }
-
-        // Small delay before sliding down
-        yield return new WaitForSeconds(closeDelay);
-
-        // Slide down before closing
-        yield return StartCoroutine(SlideOut());
-
-        currentDialogueLines = null;
-        currentLineIndex = 0;
+        return isDialogueActive;
     }
 }

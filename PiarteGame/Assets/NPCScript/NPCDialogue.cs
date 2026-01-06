@@ -1,83 +1,111 @@
 using UnityEngine;
+using System.Collections;
 
 public class NPCDialogue : MonoBehaviour
 {
-    [Header("Dialogue Settings")]
+    [Header("Dialogue Data")]
     public Dialogue dialogue;
 
     [Header("Detection Settings")]
     public float detectionRadius = 3f;
-    public string playerTag = "Player"; // Using tag instead of layer
+    public string playerTag = "Player";
 
-    [Header("Glow Effect")]
-    public GameObject glowEffect; // Assign a child object with glow sprite/particle
+    [Header("Visuals")]
+    public GameObject particleEffect; // The "Talk to me" indicator
+
+    [Header("Tutorial Integration")]
+    [Tooltip("Drag ANY tutorial manager here (Herb, Parkour, or Combat)")]
+    // CHANGED: Now accepts the parent class, so it works for ALL mission types
+    public TutorialManagerBase tutorialManager;
 
     private bool playerInRange = false;
+    private bool hasInteracted = false;
     private DialogueManager dialogueManager;
 
     void Start()
     {
         dialogueManager = FindObjectOfType<DialogueManager>();
+        if (dialogueManager == null)
+            Debug.LogError("DialogueManager not found in the scene!");
 
-        if (glowEffect != null)
-            glowEffect.SetActive(false);
-
-        Debug.Log("NPC Dialogue Started on: " + gameObject.name);
+        // Show particle at start
+        if (particleEffect != null)
+            particleEffect.SetActive(true);
     }
 
     void Update()
     {
         CheckForPlayer();
 
+        // Check for "E" press, but ONLY if player is in range AND dialogue isn't already running
         if (playerInRange && Input.GetKeyDown(KeyCode.E))
         {
-            Debug.Log("E pressed! Player in range!");
-
-            if (dialogueManager != null && dialogue != null)
+            if (dialogueManager != null && !dialogueManager.IsDialogueActive())
             {
-                Debug.Log("Starting dialogue...");
-                dialogueManager.StartDialogue(dialogue);
-            }
-            else
-            {
-                if (dialogueManager == null) Debug.LogError("DialogueManager not found!");
-                if (dialogue == null) Debug.LogError("No dialogue assigned to NPC!");
+                TriggerDialogue();
             }
         }
     }
 
+    void TriggerDialogue()
+    {
+        if (dialogueManager == null || dialogue == null) return;
+
+        Debug.Log("Interacting with " + gameObject.name);
+
+        // 1. Start the conversation
+        dialogueManager.StartDialogue(dialogue);
+
+        // 2. Handle one-time events (like Tutorials)
+        if (!hasInteracted)
+        {
+            hasInteracted = true;
+
+            // Turn off the particle effect forever
+            if (particleEffect != null)
+                particleEffect.SetActive(false);
+
+            // If there is a tutorial attached, wait for the talk to finish
+            if (tutorialManager != null)
+            {
+                StartCoroutine(WaitForDialogueToEnd());
+            }
+        }
+    }
+
+    IEnumerator WaitForDialogueToEnd()
+    {
+        // Wait while the dialogue box is still open
+        while (dialogueManager.IsDialogueActive())
+        {
+            yield return null;
+        }
+
+        // Now that the box is closed, start the tutorial
+        Debug.Log("Dialogue finished. Triggering Tutorial.");
+        tutorialManager.OnDialogueComplete();
+    }
+
     void CheckForPlayer()
     {
-        // Find all colliders in range (3D VERSION)
         Collider[] hits = Physics.OverlapSphere(transform.position, detectionRadius);
-
-        bool foundPlayer = false;
+        bool currentlyInRange = false;
 
         foreach (Collider hit in hits)
         {
             if (hit.CompareTag(playerTag))
             {
-                foundPlayer = true;
-
-                if (!playerInRange)
-                {
-                    playerInRange = true;
-                    Debug.Log("Player entered range!");
-
-                    if (glowEffect != null)
-                        glowEffect.SetActive(true);
-                }
+                currentlyInRange = true;
                 break;
             }
         }
 
-        if (!foundPlayer && playerInRange)
+        // Logic to detect enter/exit only once
+        if (currentlyInRange != playerInRange)
         {
-            playerInRange = false;
-            Debug.Log("Player left range!");
-
-            if (glowEffect != null)
-                glowEffect.SetActive(false);
+            playerInRange = currentlyInRange;
+            if (playerInRange) Debug.Log("Player entered range.");
+            else Debug.Log("Player left range.");
         }
     }
 
