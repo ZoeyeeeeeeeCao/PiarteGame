@@ -8,6 +8,7 @@ TagManager:
   - PW - Nature
   - NarrowBeam
   - SwingableLedge
+  - CarriageRig
   layers:
   - Default
   - TransparentFX
