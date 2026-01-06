@@ -10275,6 +10275,7 @@ GameObject:
   - component: {fileID: 1948352994}
   - component: {fileID: 9149900605577814363}
   - component: {fileID: 9149900605577814364}
+  - component: {fileID: 9149900605577814365}
   m_Layer: 0
   m_Name: Pirate_Sword (1)
   m_TagString: Untagged
@@ -14361,8 +14362,7 @@ MonoBehaviour:
   handSocket: {fileID: 4493026627553715211}
   beltSocket: {fileID: 1009708353}
   weaponTrail: {fileID: 1948352994}
-  swordCollider: {fileID: 9149900605577814364}
-  debugCollisions: 1
+  swordCollisionHandler: {fileID: 9149900605577814365}
   handPositionOffset: {x: 0.021, y: -0.043, z: 0.026}
   handRotationOffset: {x: -15.551, y: 107.252, z: 54.941}
   beltPositionOffset: {x: 0, y: 0, z: 0}
@@ -14373,9 +14373,6 @@ MonoBehaviour:
   attackCooldown: 0.5
   comboWindow: 0.5
   hardAttackRequirement: 10
-  enemyLayer:
-    serializedVersion: 2
-    m_Bits: 16384
   maxQueueSize: 1
   queueTimeout: 1.5
   comboWindowStart: 0.75
@@ -14400,27 +14397,11 @@ MonoBehaviour:
   easyAttackDuration: 0.4
   normalAttackDuration: 0.6
   hardAttackDuration: 1.5
-  useHitVFX: 1
-  enemyContactVFXPrefabs:
-  - {fileID: 5024009746357069194, guid: ec3f674830402cc45bce805cf6493db7, type: 3}
-  generalContactVFXPrefabs: []
-  contactVFXLifetime: 2
-  vfxSpawnCount: 3
-  scaleVFXToSwordLength: 1
-  vfxSizeMultiplier: 1
-  swordTipTransform: {fileID: 1603538797}
-  swordBottomTransform: {fileID: 1398571219}
-  enemyImpactWaveVFXPrefabs: []
-  generalImpactWaveVFXPrefabs: []
-  impactWaveVFXLifetime: 3
-  impactWaveOffset: {x: 0, y: 0.1, z: 0}
-  spawnImpactWaveOnEveryHit: 1
-  useCameraShakeOnHit: 1
-  hitShakeDuration: 0.15
-  hitShakeMagnitude: 0.08
-  hitShakeRotation: 1.5
   useHardAttackCinematic: 1
-  cinematicDuration: 2
+  swingVFXPrefabs:
+  - {fileID: 5024009746357069194, guid: ec3f674830402cc45bce805cf6493db7, type: 3}
+  swingVFXSpawnPoint: {fileID: 0}
+  swingVFXLifetime: 1
 --- !u!4 &9103105612884322521
 Transform:
   m_ObjectHideFlags: 0
@@ -14574,6 +14555,44 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.024764841, y: 0.8027066, z: 0.09210511}
   m_Center: {x: -0.0038595449, y: 0.55822337, z: 0.0252585}
+--- !u!114 &9149900605577814365
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4764510603482477637}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4416f56734f63f74fb1684d8c3220976, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  swordCollider: {fileID: 9149900605577814364}
+  enemyLayer:
+    serializedVersion: 2
+    m_Bits: 16384
+  debugCollisions: 1
+  swordTipTransform: {fileID: 1603538797}
+  swordBottomTransform: {fileID: 1398571219}
+  enemyContactVFXPrefabs:
+  - {fileID: 5024009746357069194, guid: ec3f674830402cc45bce805cf6493db7, type: 3}
+  generalContactVFXPrefabs: []
+  vfxSpawnCount: 3
+  contactVFXLifetime: 2
+  scaleVFXToSwordLength: 1
+  vfxSizeMultiplier: 1
+  enemyImpactWaveVFXPrefabs: []
+  generalImpactWaveVFXPrefabs: []
+  impactWaveVFXLifetime: 3
+  impactWaveOffset: {x: 0, y: 0.1, z: 0}
+  playerTransform: {fileID: 0}
+  useCameraShakeOnHit: 1
+  hitShakeDuration: 0.15
+  hitShakeMagnitude: 0.08
+  hitShakeRotation: 1.5
+  spawnVFXOnAllCollisions: 1
+  genericHitVFXPrefabs: []
+  genericHitVFXLifetime: 1.5
 --- !u!114 &9205210137984658239
 MonoBehaviour:
   m_ObjectHideFlags: 0
