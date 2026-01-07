@@ -34,6 +34,9 @@ public class SwordCollisionHandler : MonoBehaviour
     [SerializeField] private Vector3 impactWaveOffset = new Vector3(0, 0.1f, 0);
     [SerializeField] private Transform playerTransform;
 
+    [Header("Audio")]
+    [SerializeField] private SwordAudioManager audioManager;
+
     [Header("Camera Shake")]
     [SerializeField] private bool useFS_CameraShakeBridgeOnHit = true;
     [SerializeField] private float hitShakeDuration = 0.15f;
@@ -69,6 +72,16 @@ public class SwordCollisionHandler : MonoBehaviour
             if (player != null)
             {
                 playerTransform = player.transform;
+            }
+        }
+
+        // Try to find audio manager if not assigned
+        if (audioManager == null)
+        {
+            audioManager = GetComponent<SwordAudioManager>();
+            if (audioManager == null)
+            {
+                Debug.LogWarning("⚠️ SwordAudioManager not found. Audio will not play.");
             }
         }
     }
@@ -191,6 +204,12 @@ public class SwordCollisionHandler : MonoBehaviour
         if (useFS_CameraShakeBridgeOnHit && FS_FS_CameraShakeBridgeBridge.Instance != null)
         {
             FS_FS_CameraShakeBridgeBridge.Instance.Shake(hitShakeDuration, hitShakeMagnitude, hitShakeRotation);
+        }
+
+        // Play hit sound
+        if (audioManager != null)
+        {
+            audioManager.PlayHitSound();
         }
 
         // Spawn VFX
@@ -333,6 +352,12 @@ public class SwordCollisionHandler : MonoBehaviour
             if (useFS_CameraShakeBridgeOnHit && CameraNewShake.Instance != null)
             {
                 CameraNewShake.Instance.Shake(hitShakeDuration, hitShakeMagnitude, hitShakeRotation);
+            }
+
+            // Play hit sound
+            if (audioManager != null)
+            {
+                audioManager.PlayHitSound();
             }
 
             // Spawn the ACTUAL HIT EFFECTS (Sparks/Impacts)

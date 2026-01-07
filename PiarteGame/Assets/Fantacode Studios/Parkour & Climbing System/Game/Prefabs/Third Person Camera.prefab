@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 3247972296458628547}
   - component: {fileID: 3247972296458628546}
   - component: {fileID: 3247972296458628545}
+  - component: {fileID: -6826849583235506292}
   m_Layer: 0
   m_Name: Third Person Camera
   m_TagString: MainCamera
@@ -26,13 +27,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3247972296458628551}
+  serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!20 &3247972296458628547
 Camera:
@@ -106,53 +107,91 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   followTarget: {fileID: 0}
-  defaultSettings:
-    distance: 2.5
-    framingOffset: {x: 0, y: 1.5, z: 0}
-    followSmoothTime: 0.2
-    sensitivity: 0.6
-    minVerticalAngle: -45
-    maxVerticalAngle: 70
-    invertX: 0
-    invertY: 1
-    enableCameraCollisions: 1
-    minDistanceFromTarget: 0.2
-    serialized: 1
-  advancedCameraRotation: 1
+  CameraType: 1
+  firstPersonCamera:
+    defaultSettings:
+      distance: 2.5
+      framingOffset: {x: 0, y: 1.5, z: 0}
+      followSmoothTime: 0
+      localRotationOffset: {x: 0, y: 0}
+      sensitivity: 0.6
+      minVerticalAngle: -45
+      maxVerticalAngle: 70
+      invertX: 0
+      invertY: 1
+      enableCameraCollisions: 1
+      minDistanceFromTarget: 0
+      overridedFollowTarget: {fileID: 0}
+      serialized: 1
+    overrideCameraSettings: []
+    distanceSmoothTime: 0
+    framingSmoothTime: 0
+  thirdPersonCamera:
+    defaultSettings:
+      distance: 2.5
+      framingOffset: {x: 0, y: 1.5, z: 0}
+      followSmoothTime: 0
+      localRotationOffset: {x: 0, y: 0}
+      sensitivity: 0.6
+      minVerticalAngle: -45
+      maxVerticalAngle: 70
+      invertX: 0
+      invertY: 1
+      enableCameraCollisions: 1
+      minDistanceFromTarget: 0
+      overridedFollowTarget: {fileID: 0}
+      serialized: 1
+    overrideCameraSettings: []
+    distanceSmoothTime: 0
+    framingSmoothTime: 0
+  lockCursor: 1
   collisionLayers:
     serializedVersion: 2
     m_Bits: 1
-  lockCursor: 1
-  distanceSmoothTime: 0.3
-  distanceSmoothTimeWhenOcluded: 0
-  framingSmoothTime: 0.5
   collisionPadding: 0.05
-  overrideCameraSettings:
-  - state: 2
-    settings:
-      distance: 2.5
-      framingOffset: {x: 0, y: 1, z: 0}
-      followSmoothTime: 0.2
-      sensitivity: 0.6
-      minVerticalAngle: -45
-      maxVerticalAngle: 70
-      invertX: 0
-      invertY: 1
-      enableCameraCollisions: 1
-      minDistanceFromTarget: 0.2
-      serialized: 1
-  - state: 5
-    settings:
-      distance: 2.5
-      framingOffset: {x: 0, y: 1, z: 0}
-      followSmoothTime: 0.2
-      sensitivity: 0.6
-      minVerticalAngle: -45
-      maxVerticalAngle: 70
-      invertX: 0
-      invertY: 1
-      enableCameraCollisions: 1
-      minDistanceFromTarget: 0.2
-      serialized: 1
   nearClipPlane: 0.1
-  cameraShakeAmount: 0.6
+  distanceSmoothTimeWhenOcluded: 0
+--- !u!114 &-6826849583235506292
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3247972296458628551}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_RenderShadows: 1
+  m_RequiresDepthTextureOption: 2
+  m_RequiresOpaqueTextureOption: 2
+  m_CameraType: 0
+  m_Cameras: []
+  m_RendererIndex: -1
+  m_VolumeLayerMask:
+    serializedVersion: 2
+    m_Bits: 1
+  m_VolumeTrigger: {fileID: 0}
+  m_VolumeFrameworkUpdateModeOption: 2
+  m_RenderPostProcessing: 0
+  m_Antialiasing: 0
+  m_AntialiasingQuality: 2
+  m_StopNaN: 0
+  m_Dithering: 0
+  m_ClearDepth: 1
+  m_AllowXRRendering: 1
+  m_AllowHDROutput: 1
+  m_UseScreenCoordOverride: 0
+  m_ScreenSizeOverride: {x: 0, y: 0, z: 0, w: 0}
+  m_ScreenCoordScaleBias: {x: 0, y: 0, z: 0, w: 0}
+  m_RequiresDepthTexture: 0
+  m_RequiresColorTexture: 0
+  m_Version: 2
+  m_TaaSettings:
+    m_Quality: 3
+    m_FrameInfluence: 0.1
+    m_JitterScale: 1
+    m_MipBias: 0
+    m_VarianceClampScale: 0.9
+    m_ContrastAdaptiveSharpening: 0

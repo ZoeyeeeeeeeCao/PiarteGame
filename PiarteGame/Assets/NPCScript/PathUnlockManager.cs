@@ -1,5 +1,5 @@
 ﻿using UnityEngine;
-using TMPro; // Needed for TextMeshPro
+using TMPro;
 using System.Collections;
 
 public class PathUnlockManager : MonoBehaviour
@@ -12,7 +12,7 @@ public class PathUnlockManager : MonoBehaviour
     [Tooltip("Drag the invisible wall objects here. They will be destroyed when unlocked.")]
     public GameObject[] blockingWalls;
 
-    [Header("Mission UI Update (NEW)")]
+    [Header("Mission UI Update")]
     [Tooltip("Drag your Mission UI Panel here")]
     public GameObject missionUI;
     [Tooltip("Drag the TextMeshPro text that shows the current objective")]
@@ -20,15 +20,35 @@ public class PathUnlockManager : MonoBehaviour
     [Tooltip("What should the mission text say after walls are gone?")]
     public string newMissionObjective = "Path Unlocked! Proceed to the next area.";
 
+    [Header("Audio")]
+    [Tooltip("Audio source for playing sounds")]
+    public AudioSource audioSource;
+    [Tooltip("Sound to play when mission text appears")]
+    public AudioClip missionPopUpSound;
+
     [Header("Unlocking Event")]
     public Dialogue pathOpenedDialogue;
-
     private DialogueManager dialogueManager;
+
     private bool isUnlocked = false;
 
     void Start()
     {
         dialogueManager = FindObjectOfType<DialogueManager>();
+
+        // Setup audio source if not assigned
+        if (audioSource == null)
+        {
+            audioSource = GetComponent<AudioSource>();
+            if (audioSource == null)
+            {
+                audioSource = gameObject.AddComponent<AudioSource>();
+            }
+        }
+
+        // Hide mission UI at start
+        if (missionUI != null)
+            missionUI.SetActive(false);
     }
 
     void Update()
@@ -68,8 +88,50 @@ public class PathUnlockManager : MonoBehaviour
             if (wall != null) Destroy(wall);
         }
 
-        // 2. Update Mission UI Text (NEW)
-        if (missionUI != null) missionUI.SetActive(true);
+        // 2. Start Dialogue first
+        if (pathOpenedDialogue != null && pathOpenedDialogue.dialogueLines != null && pathOpenedDialogue.dialogueLines.Length > 0)
+        {
+            StartCoroutine(StartDialogueAndMission());
+        }
+        else
+        {
+            // No dialogue, show mission UI immediately
+            ShowMissionUI();
+        }
+    }
+
+    IEnumerator StartDialogueAndMission()
+    {
+        // Wait 1 second so player sees the walls vanish first
+        yield return new WaitForSeconds(1.0f);
+
+        if (dialogueManager != null)
+        {
+            dialogueManager.StartDialogue(pathOpenedDialogue);
+
+            // Wait for dialogue to finish
+            while (dialogueManager.IsDialogueActive())
+            {
+                yield return null;
+            }
+
+            Debug.Log("✅ Dialogue finished! Showing mission UI...");
+
+            // Wait a tiny bit before showing mission UI
+            yield return new WaitForSeconds(0.1f);
+
+            // Show mission UI after dialogue ends
+            ShowMissionUI();
+        }
+    }
+
+    void ShowMissionUI()
+    {
+        // Show mission UI
+        if (missionUI != null)
+            missionUI.SetActive(true);
+
+        // Update mission text
         if (missionText != null)
         {
             missionText.text = newMissionObjective;
@@ -77,21 +139,12 @@ public class PathUnlockManager : MonoBehaviour
             Canvas.ForceUpdateCanvases();
         }
 
-        // 3. Start Dialogue
-        if (pathOpenedDialogue.dialogueLines != null && pathOpenedDialogue.dialogueLines.Length > 0)
+        // Play sound when mission text pops up
+        if (missionPopUpSound != null && audioSource != null)
         {
-            StartCoroutine(StartDialogueDelayed());
+            audioSource.PlayOneShot(missionPopUpSound);
         }
-    }
 
-    IEnumerator StartDialogueDelayed()
-    {
-        // Wait 1 second so player sees the walls vanish/UI update first
-        yield return new WaitForSeconds(1.0f);
-
-        if (dialogueManager != null)
-        {
-            dialogueManager.StartDialogue(pathOpenedDialogue);
-        }
+        Debug.Log("🎯 Mission UI updated: " + newMissionObjective);
     }
 }
