@@ -8,6 +8,12 @@ public enum EnemyType
     Spawning
 }
 
+/// <summary>
+/// Main controller for Enemy AI. 
+/// Supports Animator Override Controllers to allow different visuals/animations 
+/// for different enemy types while sharing the same logic.
+/// </summary>
+[RequireComponent(typeof(NavMeshAgent))]
 public class EnemyController : MonoBehaviour
 {
     [Header("Settings")]
@@ -28,18 +34,22 @@ public class EnemyController : MonoBehaviour
     public int torchLayerIndex = 1;
 
     [Header("Movement Settings")]
-    public float walkingSpeed = 1f;
-    public float runningSpeed = 3f;
+    public float walkingSpeed = 1.5f;
+    public float runningSpeed = 4f;
     public Transform[] patrolPoints;
     public Transform guardPoint;
 
     [Header("References")]
     public Animator animator;
+    /// <summary>
+    /// Assign a unique Animator Override Controller for each enemy variant (e.g., Skeleton, Orc).
+    /// </summary>
+    public AnimatorOverrideController enemyAnimationOverride;
     public NavMeshAgent agent;
     public EnemyHealthController healthController;
 
     private EnemyBaseState _currentState;
-    public bool isSpawning = false;
+    [HideInInspector] public bool isSpawning = false;
 
     // State Instances
     public readonly EnemyStartState StartState = new EnemyStartState();
@@ -49,19 +59,35 @@ public class EnemyController : MonoBehaviour
 
     private void Awake()
     {
-        if (healthController == null)
-            healthController = GetComponent<EnemyHealthController>();
+        if (agent == null) agent = GetComponent<NavMeshAgent>();
+        if (healthController == null) healthController = GetComponent<EnemyHealthController>();
     }
 
     private void Start()
     {
+        // 1. Apply the Animator Override if one is assigned
+        if (animator != null && enemyAnimationOverride != null)
+        {
+            animator.runtimeAnimatorController = enemyAnimationOverride;
+        }
+
+        // 2. Setup Animation Layers
         SetTorchLayerWeight(hasTorch ? 1f : 0f);
+
+        // 3. Initialize State
         TransitionToState(StartState);
     }
 
     private void Update()
     {
         _currentState?.UpdateState(this);
+
+        // Update Animator Speed parameter based on NavMesh velocity
+        if (animator != null && agent != null)
+        {
+            float currentSpeed = agent.velocity.magnitude;
+            animator.SetFloat("Speed", currentSpeed);
+        }
     }
 
     public void TransitionToState(EnemyBaseState newState)
@@ -74,21 +100,8 @@ public class EnemyController : MonoBehaviour
         _currentState.EnterState(this);
     }
 
-    /// <summary>
-    /// Called by the Health Controller when damage is taken but the enemy is still alive.
-    /// </summary>
-    public void TakeDamage()
-    {
-        TransitionToState(DamageState);
-    }
-
-    /// <summary>
-    /// Called by the Health Controller when health reaching zero.
-    /// </summary>
-    public void Die()
-    {
-        TransitionToState(DeathState);
-    }
+    public void TakeDamage() => TransitionToState(DamageState);
+    public void Die() => TransitionToState(DeathState);
 
     public void SetTorchLayerWeight(float weight)
     {
