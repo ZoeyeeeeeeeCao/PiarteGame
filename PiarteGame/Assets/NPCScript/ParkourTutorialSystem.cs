@@ -4,6 +4,11 @@ using System.Collections;
 
 public class ParkourTutorialSystem : TutorialManagerBase
 {
+    [Header("Audio Settings")]
+    public AudioSource audioSource;
+    public AudioClip slideTransitionSound;
+    public AudioClip missionStartSound;
+
     [Header("Teleport Settings")]
     public Transform tutorialTeleportPoint;
     public Transform returnTeleportPoint;
@@ -18,8 +23,7 @@ public class ParkourTutorialSystem : TutorialManagerBase
     private int currentSlideIndex = 0;
     private bool tutorialActive = false;
 
-    [Header("Intermediate Dialogue")]
-    [Tooltip("This plays right after the player finishes reading the slides.")]
+    [Header("Intermediate Dialogue (Subtitles)")]
     public Dialogue afterSlidesDialogue;
     private bool waitingForPostSlideDialogue = false;
 
@@ -27,7 +31,7 @@ public class ParkourTutorialSystem : TutorialManagerBase
     public GameObject missionUI;
     public TextMeshProUGUI progressText;
 
-    [Header("Completion")]
+    [Header("Completion (Subtitles)")]
     public Dialogue completionDialogue;
     public GameObject npcToDestroy;
 
@@ -38,6 +42,8 @@ public class ParkourTutorialSystem : TutorialManagerBase
     void Start()
     {
         dialogueManager = FindObjectOfType<DialogueManager>();
+
+        if (audioSource == null) audioSource = GetComponent<AudioSource>();
 
         if (missionUI != null) missionUI.SetActive(false);
         if (tutorialUI != null) tutorialUI.SetActive(false);
@@ -50,20 +56,18 @@ public class ParkourTutorialSystem : TutorialManagerBase
 
     void Update()
     {
-        // 1. Handle Slide Navigation
+        // 1. Handle Slide Navigation (Works while frozen)
         if (tutorialActive && Input.GetKeyDown(KeyCode.Return))
         {
             NextTutorialSlide();
         }
 
-        // 2. Handle "After Slides" Dialogue
+        // 2. Handle Dialogue checks
         if (waitingForPostSlideDialogue && dialogueManager != null && !dialogueManager.IsDialogueActive())
         {
             waitingForPostSlideDialogue = false;
-            Debug.Log("🗣️ Post-Slide dialogue finished.");
         }
 
-        // 3. Handle Completion Dialogue
         if (waitingForCompletionDialogue && dialogueManager != null && !dialogueManager.IsDialogueActive())
         {
             waitingForCompletionDialogue = false;
@@ -76,31 +80,34 @@ public class ParkourTutorialSystem : TutorialManagerBase
         StartCoroutine(StartSequence());
     }
 
-    public override bool IsMissionActive()
-    {
-        return missionActive;
-    }
+    public override bool IsMissionActive() => missionActive;
 
     IEnumerator StartSequence()
     {
         yield return new WaitForSeconds(0.5f);
 
-        // Teleport
-        if (tutorialTeleportPoint != null)
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        if (tutorialTeleportPoint != null && player != null)
         {
-            GameObject player = GameObject.FindGameObjectWithTag("Player");
-            if (player != null)
-            {
-                player.transform.position = tutorialTeleportPoint.position;
-                player.transform.rotation = tutorialTeleportPoint.rotation;
-            }
+            CharacterController cc = player.GetComponent<CharacterController>();
+            if (cc != null) cc.enabled = false;
+
+            player.transform.position = tutorialTeleportPoint.position;
+            player.transform.rotation = tutorialTeleportPoint.rotation;
+
+            if (cc != null) cc.enabled = true;
+            Debug.Log("🚀 Parkour Teleport Successful");
         }
 
-        StartMission();
+        yield return new WaitForSeconds(1.0f);
 
         if (tutorialUI != null && tutorialSlides != null && tutorialSlides.Length > 0)
         {
             ShowTutorialUI();
+        }
+        else
+        {
+            StartMission();
         }
     }
 
@@ -109,7 +116,12 @@ public class ParkourTutorialSystem : TutorialManagerBase
         missionActive = true;
         currentTargetIndex = 0;
 
-        if (missionUI != null) missionUI.SetActive(true);
+        if (missionUI != null)
+        {
+            missionUI.SetActive(true);
+            if (missionStartSound != null && audioSource != null)
+                audioSource.PlayOneShot(missionStartSound);
+        }
 
         if (checkpointObjects.Length > 0 && checkpointObjects[0] != null)
         {
@@ -119,11 +131,11 @@ public class ParkourTutorialSystem : TutorialManagerBase
         UpdateUI();
     }
 
-    // --- SLIDE LOGIC ---
     void ShowTutorialUI()
     {
         tutorialActive = true;
         tutorialUI.SetActive(true);
+        Time.timeScale = 0f;
         currentSlideIndex = 0;
         ShowSlide(0);
     }
@@ -131,7 +143,12 @@ public class ParkourTutorialSystem : TutorialManagerBase
     void ShowSlide(int index)
     {
         foreach (var s in tutorialSlides) s.SetActive(false);
-        if (index < tutorialSlides.Length) tutorialSlides[index].SetActive(true);
+        if (index < tutorialSlides.Length)
+        {
+            tutorialSlides[index].SetActive(true);
+            if (slideTransitionSound != null && audioSource != null)
+                audioSource.PlayOneShot(slideTransitionSound);
+        }
     }
 
     void NextTutorialSlide()
@@ -143,29 +160,27 @@ public class ParkourTutorialSystem : TutorialManagerBase
         }
         else
         {
-            // Slides Finished
+            Time.timeScale = 1f;
             tutorialActive = false;
             tutorialUI.SetActive(false);
 
-            // --- FIX IS HERE: USE COROUTINE TO DELAY START ---
-            if (afterSlidesDialogue.dialogueLines != null && afterSlidesDialogue.dialogueLines.Length > 0)
+            StartMission();
+
+            if (afterSlidesDialogue != null && afterSlidesDialogue.dialogueLines.Length > 0)
             {
-                StartCoroutine(StartMiddleDialogueWithDelay());
+                StartCoroutine(StartMiddleSubtitleWithDelay());
             }
         }
     }
 
-    // NEW: Small delay ensures the "Enter" key press doesn't skip the animation
-    IEnumerator StartMiddleDialogueWithDelay()
+    IEnumerator StartMiddleSubtitleWithDelay()
     {
-        yield return new WaitForSeconds(0.1f);
-
-        Debug.Log("🗣️ Triggering Intermediate Dialogue.");
-        dialogueManager.StartDialogue(afterSlidesDialogue);
+        yield return new WaitForSecondsRealtime(0.1f);
+        // CHANGED: Mode is now Subtitle (No Enter key required)
+        dialogueManager.StartDialogue(afterSlidesDialogue, DialogueManager.DialogueMode.Subtitle);
         waitingForPostSlideDialogue = true;
     }
 
-    // --- CHECKPOINT LOGIC ---
     public void OnCheckpointReached(int indexFromCheckpoint)
     {
         if (!missionActive) return;
@@ -189,7 +204,8 @@ public class ParkourTutorialSystem : TutorialManagerBase
 
     void UpdateUI()
     {
-        if (progressText != null) progressText.text = $"Checkpoint {currentTargetIndex}/{checkpointObjects.Length}";
+        if (progressText != null)
+            progressText.text = $"Checkpoint {currentTargetIndex}/{checkpointObjects.Length}";
     }
 
     void CompleteMission()
@@ -199,7 +215,8 @@ public class ParkourTutorialSystem : TutorialManagerBase
 
         if (completionDialogue.dialogueLines != null && completionDialogue.dialogueLines.Length > 0)
         {
-            dialogueManager.StartDialogue(completionDialogue);
+            // CHANGED: Mode is now Subtitle (No Enter key required)
+            dialogueManager.StartDialogue(completionDialogue, DialogueManager.DialogueMode.Subtitle);
             waitingForCompletionDialogue = true;
         }
         else
@@ -211,7 +228,10 @@ public class ParkourTutorialSystem : TutorialManagerBase
     IEnumerator Finish()
     {
         yield return new WaitForSeconds(0.5f);
-        if (returnTeleportPoint != null) GameObject.FindGameObjectWithTag("Player").transform.position = returnTeleportPoint.position;
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        if (returnTeleportPoint != null && player != null)
+            player.transform.position = returnTeleportPoint.position;
+
         if (npcToDestroy != null) Destroy(npcToDestroy);
     }
 }

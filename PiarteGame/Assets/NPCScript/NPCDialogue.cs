@@ -10,12 +10,12 @@ public class NPCDialogue : MonoBehaviour
     public float detectionRadius = 3f;
     public string playerTag = "Player";
 
-    [Header("Visuals")]
+    [Header("Visual Indicators")]
     public GameObject particleEffect; // The "Talk to me" indicator
+    public GameObject interactImage;  // NEW: The "Press E" image/prompt
 
     [Header("Tutorial Integration")]
     [Tooltip("Drag ANY tutorial manager here (Herb, Parkour, or Combat)")]
-    // CHANGED: Now accepts the parent class, so it works for ALL mission types
     public TutorialManagerBase tutorialManager;
 
     private bool playerInRange = false;
@@ -28,16 +28,19 @@ public class NPCDialogue : MonoBehaviour
         if (dialogueManager == null)
             Debug.LogError("DialogueManager not found in the scene!");
 
-        // Show particle at start
+        // Show indicator at start
         if (particleEffect != null)
             particleEffect.SetActive(true);
+
+        // Hide interaction image at start
+        if (interactImage != null)
+            interactImage.SetActive(false);
     }
 
     void Update()
     {
         CheckForPlayer();
 
-        // Check for "E" press, but ONLY if player is in range AND dialogue isn't already running
         if (playerInRange && Input.GetKeyDown(KeyCode.E))
         {
             if (dialogueManager != null && !dialogueManager.IsDialogueActive())
@@ -51,12 +54,14 @@ public class NPCDialogue : MonoBehaviour
     {
         if (dialogueManager == null || dialogue == null) return;
 
-        Debug.Log("Interacting with " + gameObject.name);
-
         // 1. Start the conversation
         dialogueManager.StartDialogue(dialogue);
 
-        // 2. Handle one-time events (like Tutorials)
+        // 2. Hide indicators immediately when speaking starts
+        if (interactImage != null)
+            interactImage.SetActive(false);
+
+        // 3. Handle one-time events
         if (!hasInteracted)
         {
             hasInteracted = true;
@@ -65,7 +70,6 @@ public class NPCDialogue : MonoBehaviour
             if (particleEffect != null)
                 particleEffect.SetActive(false);
 
-            // If there is a tutorial attached, wait for the talk to finish
             if (tutorialManager != null)
             {
                 StartCoroutine(WaitForDialogueToEnd());
@@ -75,13 +79,11 @@ public class NPCDialogue : MonoBehaviour
 
     IEnumerator WaitForDialogueToEnd()
     {
-        // Wait while the dialogue box is still open
         while (dialogueManager.IsDialogueActive())
         {
             yield return null;
         }
 
-        // Now that the box is closed, start the tutorial
         Debug.Log("Dialogue finished. Triggering Tutorial.");
         tutorialManager.OnDialogueComplete();
     }
@@ -100,12 +102,28 @@ public class NPCDialogue : MonoBehaviour
             }
         }
 
-        // Logic to detect enter/exit only once
         if (currentlyInRange != playerInRange)
         {
             playerInRange = currentlyInRange;
-            if (playerInRange) Debug.Log("Player entered range.");
-            else Debug.Log("Player left range.");
+
+            // Only toggle the image if the NPC hasn't been "completed" yet
+            // and if a dialogue isn't currently playing
+            UpdateInteractVisuals();
+        }
+    }
+
+    void UpdateInteractVisuals()
+    {
+        if (interactImage == null) return;
+
+        // Show image only if: Player is in range AND haven't finished the interaction
+        if (playerInRange && !hasInteracted)
+        {
+            interactImage.SetActive(true);
+        }
+        else
+        {
+            interactImage.SetActive(false);
         }
     }
 
