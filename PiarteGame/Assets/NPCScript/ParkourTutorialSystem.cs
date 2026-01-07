@@ -23,7 +23,7 @@ public class ParkourTutorialSystem : TutorialManagerBase
     private int currentSlideIndex = 0;
     private bool tutorialActive = false;
 
-    [Header("Intermediate Dialogue")]
+    [Header("Intermediate Dialogue (Subtitles)")]
     public Dialogue afterSlidesDialogue;
     private bool waitingForPostSlideDialogue = false;
 
@@ -31,7 +31,7 @@ public class ParkourTutorialSystem : TutorialManagerBase
     public GameObject missionUI;
     public TextMeshProUGUI progressText;
 
-    [Header("Completion")]
+    [Header("Completion (Subtitles)")]
     public Dialogue completionDialogue;
     public GameObject npcToDestroy;
 
@@ -84,14 +84,11 @@ public class ParkourTutorialSystem : TutorialManagerBase
 
     IEnumerator StartSequence()
     {
-        // 1. Pause after first dialogue closes
         yield return new WaitForSeconds(0.5f);
 
-        // 2. TELEPORT + ROTATION
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (tutorialTeleportPoint != null && player != null)
         {
-            // Temporarily disable CharacterController for teleport safety
             CharacterController cc = player.GetComponent<CharacterController>();
             if (cc != null) cc.enabled = false;
 
@@ -102,10 +99,8 @@ public class ParkourTutorialSystem : TutorialManagerBase
             Debug.Log("🚀 Parkour Teleport Successful");
         }
 
-        // 3. LONGER DELAY (Ensures player is spawned before freezing)
         yield return new WaitForSeconds(1.0f);
 
-        // 4. Show Slides (Freeze) OR Start Mission
         if (tutorialUI != null && tutorialSlides != null && tutorialSlides.Length > 0)
         {
             ShowTutorialUI();
@@ -124,7 +119,6 @@ public class ParkourTutorialSystem : TutorialManagerBase
         if (missionUI != null)
         {
             missionUI.SetActive(true);
-            // Play mission HUD sound
             if (missionStartSound != null && audioSource != null)
                 audioSource.PlayOneShot(missionStartSound);
         }
@@ -137,15 +131,11 @@ public class ParkourTutorialSystem : TutorialManagerBase
         UpdateUI();
     }
 
-    // --- SLIDE LOGIC ---
     void ShowTutorialUI()
     {
         tutorialActive = true;
         tutorialUI.SetActive(true);
-
-        // FREEZE THE SCREEN
         Time.timeScale = 0f;
-
         currentSlideIndex = 0;
         ShowSlide(0);
     }
@@ -156,8 +146,6 @@ public class ParkourTutorialSystem : TutorialManagerBase
         if (index < tutorialSlides.Length)
         {
             tutorialSlides[index].SetActive(true);
-
-            // Play Slide Sound
             if (slideTransitionSound != null && audioSource != null)
                 audioSource.PlayOneShot(slideTransitionSound);
         }
@@ -172,7 +160,6 @@ public class ParkourTutorialSystem : TutorialManagerBase
         }
         else
         {
-            // UNFREEZE
             Time.timeScale = 1f;
             tutorialActive = false;
             tutorialUI.SetActive(false);
@@ -181,19 +168,19 @@ public class ParkourTutorialSystem : TutorialManagerBase
 
             if (afterSlidesDialogue != null && afterSlidesDialogue.dialogueLines.Length > 0)
             {
-                StartCoroutine(StartMiddleDialogueWithDelay());
+                StartCoroutine(StartMiddleSubtitleWithDelay());
             }
         }
     }
 
-    IEnumerator StartMiddleDialogueWithDelay()
+    IEnumerator StartMiddleSubtitleWithDelay()
     {
         yield return new WaitForSecondsRealtime(0.1f);
-        dialogueManager.StartDialogue(afterSlidesDialogue);
+        // CHANGED: Mode is now Subtitle (No Enter key required)
+        dialogueManager.StartDialogue(afterSlidesDialogue, DialogueManager.DialogueMode.Subtitle);
         waitingForPostSlideDialogue = true;
     }
 
-    // --- CHECKPOINT LOGIC ---
     public void OnCheckpointReached(int indexFromCheckpoint)
     {
         if (!missionActive) return;
@@ -228,7 +215,8 @@ public class ParkourTutorialSystem : TutorialManagerBase
 
         if (completionDialogue.dialogueLines != null && completionDialogue.dialogueLines.Length > 0)
         {
-            dialogueManager.StartDialogue(completionDialogue);
+            // CHANGED: Mode is now Subtitle (No Enter key required)
+            dialogueManager.StartDialogue(completionDialogue, DialogueManager.DialogueMode.Subtitle);
             waitingForCompletionDialogue = true;
         }
         else

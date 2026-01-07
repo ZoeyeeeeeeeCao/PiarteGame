@@ -19,7 +19,7 @@ public class CombatTutorialSystem : TutorialManagerBase
     private int currentSlideIndex = 0;
     private bool tutorialActive = false;
 
-    [Header("Intermediate Dialogue")]
+    [Header("Intermediate Dialogue (Subtitles)")]
     public Dialogue afterSlidesDialogue;
     private bool waitingForPostSlideDialogue = false;
 
@@ -89,7 +89,6 @@ public class CombatTutorialSystem : TutorialManagerBase
         // 1. TELEPORT FIRST
         if (combatArenaPoint != null && player != null)
         {
-            // Disable CharacterController temporarily for teleport safety
             CharacterController cc = player.GetComponent<CharacterController>();
             if (cc != null) cc.enabled = false;
 
@@ -121,7 +120,6 @@ public class CombatTutorialSystem : TutorialManagerBase
         if (missionUI != null)
         {
             missionUI.SetActive(true);
-            // Play HUD appearance sound
             if (missionStartSound != null && audioSource != null)
                 audioSource.PlayOneShot(missionStartSound);
         }
@@ -133,10 +131,7 @@ public class CombatTutorialSystem : TutorialManagerBase
     {
         tutorialActive = true;
         tutorialUI.SetActive(true);
-
-        // FREEZE THE SCREEN
         Time.timeScale = 0f;
-
         currentSlideIndex = 0;
         ShowSlide(0);
     }
@@ -147,8 +142,6 @@ public class CombatTutorialSystem : TutorialManagerBase
         if (index < tutorialSlides.Length)
         {
             tutorialSlides[index].SetActive(true);
-
-            // Play Slide Sound
             if (slideTransitionSound != null && audioSource != null)
                 audioSource.PlayOneShot(slideTransitionSound);
         }
@@ -163,7 +156,6 @@ public class CombatTutorialSystem : TutorialManagerBase
         }
         else
         {
-            // UNFREEZE
             Time.timeScale = 1f;
             tutorialActive = false;
             tutorialUI.SetActive(false);
@@ -172,15 +164,16 @@ public class CombatTutorialSystem : TutorialManagerBase
 
             if (afterSlidesDialogue != null && afterSlidesDialogue.dialogueLines.Length > 0)
             {
-                StartCoroutine(StartMiddleDialogueWithDelay());
+                StartCoroutine(StartMiddleSubtitleWithDelay());
             }
         }
     }
 
-    IEnumerator StartMiddleDialogueWithDelay()
+    IEnumerator StartMiddleSubtitleWithDelay()
     {
         yield return new WaitForSecondsRealtime(0.1f);
-        dialogueManager.StartDialogue(afterSlidesDialogue);
+        // CHANGED: Triggering as Subtitle Mode (Hands-free)
+        dialogueManager.StartDialogue(afterSlidesDialogue, DialogueManager.DialogueMode.Subtitle);
         waitingForPostSlideDialogue = true;
     }
 
@@ -210,7 +203,8 @@ public class CombatTutorialSystem : TutorialManagerBase
 
         if (completionDialogue != null && completionDialogue.dialogueLines.Length > 0)
         {
-            dialogueManager.StartDialogue(completionDialogue);
+            // CHANGED: Triggering as Subtitle Mode (Hands-free)
+            dialogueManager.StartDialogue(completionDialogue, DialogueManager.DialogueMode.Subtitle);
             waitingForCompletionDialogue = true;
         }
         else

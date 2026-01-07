@@ -15,7 +15,7 @@ public class HerbTutorialSystem : TutorialManagerBase
     private int currentSlideIndex = 0;
     private bool tutorialActive = false;
 
-    [Header("Intermediate Dialogue")]
+    [Header("Intermediate Dialogue (Subtitle)")]
     public Dialogue afterSlidesDialogue;
     private bool waitingForPostSlideDialogue = false;
 
@@ -61,6 +61,7 @@ public class HerbTutorialSystem : TutorialManagerBase
             NextTutorialSlide();
         }
 
+        // Handle logical flags for flow control
         if (waitingForPostSlideDialogue && dialogueManager != null && !dialogueManager.IsDialogueActive())
         {
             waitingForPostSlideDialogue = false;
@@ -82,27 +83,20 @@ public class HerbTutorialSystem : TutorialManagerBase
 
     IEnumerator StartSequence()
     {
-        // 1. Short pause after dialogue closes
         yield return new WaitForSeconds(0.5f);
 
-        // 2. TELEPORT
         if (tutorialTeleportPoint != null && player != null)
         {
-            // If using a CharacterController, disable it temporarily during teleport
             CharacterController cc = player.GetComponent<CharacterController>();
             if (cc != null) cc.enabled = false;
 
             player.transform.position = tutorialTeleportPoint.position;
 
             if (cc != null) cc.enabled = true;
-            Debug.Log("🚀 Player Teleported. Waiting for world to catch up...");
         }
 
-        // 3. LONGER DELAY (1 full second)
-        // We wait long enough for the camera to follow and the player to "spawn" visually
         yield return new WaitForSeconds(1.0f);
 
-        // 4. Start Tutorial UI and FREEZE
         if (tutorialUI != null && tutorialSlides != null && tutorialSlides.Length > 0)
         {
             ShowTutorialUI();
@@ -117,11 +111,7 @@ public class HerbTutorialSystem : TutorialManagerBase
     {
         tutorialActive = true;
         tutorialUI.SetActive(true);
-
-        // FREEZE THE SCREEN
         Time.timeScale = 0f;
-        Debug.Log("⏸️ Game Frozen");
-
         currentSlideIndex = 0;
         ShowSlide(0);
     }
@@ -129,11 +119,9 @@ public class HerbTutorialSystem : TutorialManagerBase
     void ShowSlide(int index)
     {
         foreach (var s in tutorialSlides) s.SetActive(false);
-
         if (index < tutorialSlides.Length)
         {
             tutorialSlides[index].SetActive(true);
-
             if (slideTransitionSound != null && audioSource != null)
                 audioSource.PlayOneShot(slideTransitionSound);
         }
@@ -148,7 +136,6 @@ public class HerbTutorialSystem : TutorialManagerBase
         }
         else
         {
-            // UNFREEZE
             Time.timeScale = 1f;
             tutorialActive = false;
             tutorialUI.SetActive(false);
@@ -157,7 +144,7 @@ public class HerbTutorialSystem : TutorialManagerBase
 
             if (afterSlidesDialogue != null && afterSlidesDialogue.dialogueLines.Length > 0)
             {
-                StartCoroutine(StartMiddleDialogueWithDelay());
+                StartCoroutine(StartMiddleSubtitleWithDelay());
             }
         }
     }
@@ -166,7 +153,6 @@ public class HerbTutorialSystem : TutorialManagerBase
     {
         missionActive = true;
         herbsCollected = 0;
-
         if (missionUI != null)
         {
             missionUI.SetActive(true);
@@ -176,11 +162,11 @@ public class HerbTutorialSystem : TutorialManagerBase
         UpdateUI();
     }
 
-    IEnumerator StartMiddleDialogueWithDelay()
+    IEnumerator StartMiddleSubtitleWithDelay()
     {
-        // Use Realtime delay because we just un-froze
         yield return new WaitForSecondsRealtime(0.2f);
-        dialogueManager.StartDialogue(afterSlidesDialogue);
+        // FIX: Start as Subtitle (Auto-advancing)
+        dialogueManager.StartDialogue(afterSlidesDialogue, DialogueManager.DialogueMode.Subtitle);
         waitingForPostSlideDialogue = true;
     }
 
@@ -212,7 +198,8 @@ public class HerbTutorialSystem : TutorialManagerBase
 
         if (completionDialogue != null && completionDialogue.dialogueLines.Length > 0)
         {
-            dialogueManager.StartDialogue(completionDialogue);
+            // FIX: Start as Subtitle (Auto-advancing)
+            dialogueManager.StartDialogue(completionDialogue, DialogueManager.DialogueMode.Subtitle);
             waitingForCompletionDialogue = true;
         }
         else
