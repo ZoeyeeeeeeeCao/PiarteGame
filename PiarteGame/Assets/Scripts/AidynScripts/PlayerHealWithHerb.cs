@@ -37,6 +37,8 @@ public class PlayerHealWithHerb : MonoBehaviour
         float healAmount = herbItem.healAmount > 0 ? herbItem.healAmount : 20f;
         health.Heal(healAmount);
 
+
+
         Debug.Log($"Used {herbItem.displayName}, healed {healAmount}");
         return true;
     }
