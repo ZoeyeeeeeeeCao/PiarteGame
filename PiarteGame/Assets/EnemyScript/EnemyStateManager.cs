@@ -14,12 +14,12 @@ public class EnemyController : MonoBehaviour
     public EnemyType initialType;
 
     [Header("Sensors & Detection")]
-    public float viewRadius = 15f;      // "Sensor in 15f distance" / Chase distance
+    public float viewRadius = 15f;
     [Range(0, 360)]
-    public float viewAngle = 60f;       // "FOV of 60"
-    public float attackSensorRange = 2f; // "Sensor of 2f"
+    public float viewAngle = 60f;
+    public float attackSensorRange = 2f;
 
-    public LayerMask obstacleMask;       // To block raycasts (Walls)
+    public LayerMask obstacleMask;
     public Transform playerTarget;
 
     [Header("Combat Settings")]
@@ -36,6 +36,7 @@ public class EnemyController : MonoBehaviour
     [Header("References")]
     public Animator animator;
     public NavMeshAgent agent;
+    public EnemyHealthController healthController;
 
     private EnemyBaseState _currentState;
     public bool isSpawning = false;
@@ -44,6 +45,13 @@ public class EnemyController : MonoBehaviour
     public readonly EnemyStartState StartState = new EnemyStartState();
     public readonly EnemyAgroedState AgroedState = new EnemyAgroedState();
     public readonly EnemyDeathState DeathState = new EnemyDeathState();
+    public readonly EnemyDamageState DamageState = new EnemyDamageState();
+
+    private void Awake()
+    {
+        if (healthController == null)
+            healthController = GetComponent<EnemyHealthController>();
+    }
 
     private void Start()
     {
@@ -58,9 +66,28 @@ public class EnemyController : MonoBehaviour
 
     public void TransitionToState(EnemyBaseState newState)
     {
+        // Don't allow transitions if we are already dead
+        if (_currentState == DeathState) return;
+
         _currentState?.ExitState(this);
         _currentState = newState;
         _currentState.EnterState(this);
+    }
+
+    /// <summary>
+    /// Called by the Health Controller when damage is taken but the enemy is still alive.
+    /// </summary>
+    public void TakeDamage()
+    {
+        TransitionToState(DamageState);
+    }
+
+    /// <summary>
+    /// Called by the Health Controller when health reaching zero.
+    /// </summary>
+    public void Die()
+    {
+        TransitionToState(DeathState);
     }
 
     public void SetTorchLayerWeight(float weight)
@@ -71,94 +98,69 @@ public class EnemyController : MonoBehaviour
         }
     }
 
-    //// Helper to safely enable/disable NavMeshAgent
     public void ToggleNavMesh(bool enable)
     {
         if (agent == null) return;
 
         if (enable)
         {
-            // Only enable if the agent is on a NavMesh
             if (!agent.enabled && agent.isOnNavMesh)
-            {
                 agent.enabled = true;
-            }
 
-            // Start movement if agent is enabled and on NavMesh
             if (agent.enabled && agent.isOnNavMesh)
             {
                 agent.isStopped = false;
-                agent.updateRotation = true;  // Enable NavMesh rotation control
+                agent.updateRotation = true;
             }
         }
         else
         {
-            // Stop movement but keep rotation active
             if (agent.enabled && agent.isOnNavMesh)
             {
-                agent.velocity = Vector3.zero;    // Kill momentum instantly
-                agent.isStopped = true;            // Stop movement
-                agent.ResetPath();                 // Clear the current path
-                agent.updateRotation = false;      // Disable NavMesh rotation (manual control)
+                agent.velocity = Vector3.zero;
+                agent.isStopped = true;
+                agent.ResetPath();
+                agent.updateRotation = false;
             }
-
-            // Keep agent ENABLED so rotation can still be controlled manually
-            // agent.enabled = false; // REMOVED - keep enabled for manual rotation
         }
     }
 
-    // --- DETECTION LOGIC ---
     public bool CanSeePlayer()
     {
         if (playerTarget == null) return false;
 
         float distanceToPlayer = Vector3.Distance(transform.position, playerTarget.position);
+        if (distanceToPlayer > viewRadius) return false;
 
-        // 1. Check Distance (15f Sensor)
-        if (distanceToPlayer > viewRadius)
-            return false;
-
-        // 2. Check Angle (60 deg FOV)
         Vector3 dirToPlayer = (playerTarget.position - transform.position).normalized;
         if (Vector3.Angle(transform.forward, dirToPlayer) < viewAngle / 2)
         {
-            // 3. Raycast (Check for walls)
-            // Raycast from slightly up (eye level) to player center
             if (!Physics.Raycast(transform.position + Vector3.up, dirToPlayer, distanceToPlayer, obstacleMask))
             {
-                return true; // Player is seen
+                return true;
             }
         }
-
         return false;
     }
 
-    // --- VISUALIZATION ---
     private void OnDrawGizmosSelected()
     {
-        // 1. Attack Sensor (Red Sphere)
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, attackSensorRange);
 
-        // 2. Chase Sensor / View Radius (Yellow Sphere)
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, viewRadius);
 
-        // 3. Field of View (Blue Lines)
         Gizmos.color = Color.blue;
         Vector3 viewAngleA = DirFromAngle(-viewAngle / 2, false);
         Vector3 viewAngleB = DirFromAngle(viewAngle / 2, false);
-
         Gizmos.DrawLine(transform.position, transform.position + viewAngleA * viewRadius);
         Gizmos.DrawLine(transform.position, transform.position + viewAngleB * viewRadius);
     }
 
     private Vector3 DirFromAngle(float angleInDegrees, bool angleIsGlobal)
     {
-        if (!angleIsGlobal)
-        {
-            angleInDegrees += transform.eulerAngles.y;
-        }
+        if (!angleIsGlobal) angleInDegrees += transform.eulerAngles.y;
         return new Vector3(Mathf.Sin(angleInDegrees * Mathf.Deg2Rad), 0, Mathf.Cos(angleInDegrees * Mathf.Deg2Rad));
     }
 }
