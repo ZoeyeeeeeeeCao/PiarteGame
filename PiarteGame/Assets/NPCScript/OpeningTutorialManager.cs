@@ -33,6 +33,8 @@ public class OpeningTutorialManager : MonoBehaviour
     public GameObject[] missionTexts;
 
     [Header("NPC Mission System")]
+    [Tooltip("The main background panel/box for the NPC missions")]
+    public GameObject missionBoxUI; // NEW: Added this to control the box together
     public MissionObjective[] missions;
     public Color completedColor = new Color(1f, 0.84f, 0f); // Yellow
 
@@ -67,7 +69,9 @@ public class OpeningTutorialManager : MonoBehaviour
         if (player != null)
             lastPlayerPosition = player.transform.position;
 
-        // Hide all mission HUD elements initially
+        // Hide Mission Box and NPC mission HUD elements initially
+        if (missionBoxUI != null) missionBoxUI.SetActive(false);
+
         if (missions != null)
         {
             foreach (var m in missions)
@@ -111,16 +115,19 @@ public class OpeningTutorialManager : MonoBehaviour
 
         if (missions != null && missionActive)
         {
+            // If generic mission is active, hide the whole box and all mission lines
+            bool showOverallUI = !anyGenericMissionActive;
+
+            if (missionBoxUI != null && missionBoxUI.activeSelf != showOverallUI)
+                missionBoxUI.SetActive(showOverallUI);
+
             foreach (var mission in missions)
             {
                 if (mission.missionText != null)
                 {
-                    // Hide ALL NPC missions (even completed ones) when generic mission is active
-                    bool shouldBeVisible = !anyGenericMissionActive;
-
-                    if (mission.missionText.gameObject.activeSelf != shouldBeVisible)
+                    if (mission.missionText.gameObject.activeSelf != showOverallUI)
                     {
-                        mission.missionText.gameObject.SetActive(shouldBeVisible);
+                        mission.missionText.gameObject.SetActive(showOverallUI);
                     }
                 }
             }
@@ -191,7 +198,6 @@ public class OpeningTutorialManager : MonoBehaviour
 
         Time.timeScale = 1f;
 
-        // Stage 1: Missions appear in White and play Start Audio
         StartMissionHUD();
 
         StartCoroutine(ShowDialogueWithDelay());
@@ -201,14 +207,19 @@ public class OpeningTutorialManager : MonoBehaviour
     {
         yield return new WaitForSeconds(0.1f);
         if (welcomeDialogue != null && dialogueManager != null)
-            dialogueManager.StartDialogue(welcomeDialogue);
+        {
+            // CHANGED: Triggered as Subtitle (Auto-advancing, no Enter required)
+            dialogueManager.StartDialogue(welcomeDialogue, DialogueManager.DialogueMode.Subtitle);
+        }
     }
 
     void StartMissionHUD()
     {
         missionActive = true;
 
-        // Play sound effect when mission text first appears (White stage)
+        // Show the mission box/background
+        if (missionBoxUI != null) missionBoxUI.SetActive(true);
+
         if (missionStartAudio != null && audioSource != null)
             audioSource.PlayOneShot(missionStartAudio);
 
@@ -234,64 +245,51 @@ public class OpeningTutorialManager : MonoBehaviour
 
         foreach (var mission in missions)
         {
-            // Stage 2: When NPC is destroyed, change visual state and play Complete Audio
             if (!mission.isCompleted && mission.npc == null)
             {
                 mission.isCompleted = true;
 
                 if (mission.missionText != null)
                 {
-                    // Change to yellow and add strikethrough (don't force visibility)
                     mission.missionText.color = completedColor;
                     mission.missionText.text = "<s>" + mission.missionDescription + "</s>";
 
-                    // Play completion sound for this specific objective
                     if (missionCompleteAudio != null && audioSource != null)
                     {
                         audioSource.PlayOneShot(missionCompleteAudio);
                     }
-
-                    Debug.Log($"✅ Mission completed: {mission.missionDescription}");
                 }
             }
 
-            // Check if this mission is still incomplete
             if (!mission.isCompleted)
             {
                 allComplete = false;
             }
         }
 
-        // If all missions complete, hide/destroy them after a delay
         if (allComplete && !allMissionsCompleted)
         {
             allMissionsCompleted = true;
-            Debug.Log("🎉 All NPC missions completed! Hiding mission texts...");
-            StartCoroutine(HideAllMissionTexts());
+            StartCoroutine(HideAllMissionTextsAndBox());
         }
     }
 
-    IEnumerator HideAllMissionTexts()
+    IEnumerator HideAllMissionTextsAndBox()
     {
-        // Wait 2 seconds so player can see all missions are yellow/crossed
         yield return new WaitForSeconds(2f);
 
-        // Hide or destroy all mission texts
+        // Hide the whole box and texts together
+        if (missionBoxUI != null) missionBoxUI.SetActive(false);
+
         if (missions != null)
         {
             foreach (var mission in missions)
             {
                 if (mission.missionText != null)
                 {
-                    // Option 1: Hide (can reuse later)
                     mission.missionText.gameObject.SetActive(false);
-
-                    // Option 2: Destroy (uncomment if you prefer)
-                    // Destroy(mission.missionText.gameObject);
                 }
             }
         }
-
-        Debug.Log("✅ All NPC mission texts hidden!");
     }
 }
