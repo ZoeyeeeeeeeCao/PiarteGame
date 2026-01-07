@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using FS_ThirdPerson;
 
 public class SwordCombatController : MonoBehaviour
 {
@@ -21,31 +22,34 @@ public class SwordCombatController : MonoBehaviour
     [Header("Animator")]
     [SerializeField] private Animator animator;
     [SerializeField] private int swordMaskLayerIndex = 1;
-    [SerializeField] private float layerTransitionSpeed = 0.2f;
+    [SerializeField] private float layerTransitionSpeed = 0.1f;
 
-    [Header("Combat Settings")]
-    [SerializeField] private float attackCooldown = 0.1f;
-    [SerializeField] private float comboWindow = 0.6f;
+    [Header("Combat Settings - FLUID COMBO")]
+    [SerializeField] private float attackCooldown = 0.05f; // Much shorter for fluid combos
+    [SerializeField] private float comboWindow = 0.4f; // Tighter combo window
     [SerializeField] private int hardAttackRequirement = 10;
+    [SerializeField] private bool rotateTowardsCameraOnAttack = true;
+    [SerializeField] private float rotationSpeed = 1080f; // Faster rotation
+    [SerializeField] private float animationSpeedMultiplier = 1.3f; // Speed up animations!
 
     [Header("Queue System")]
     [SerializeField] private int maxQueueSize = 1;
-    [SerializeField] private float queueTimeout = 1.5f;
+    [SerializeField] private float queueTimeout = 1.0f;
 
-    [Header("Combo Timing")]
-    [SerializeField] private float comboWindowStart = 0.75f;
-    [SerializeField] private float comboExecutionDelay = 0.05f;
+    [Header("Combo Timing - FASTER")]
+    [SerializeField] private float comboWindowStart = 0.6f; // Earlier combo window
+    [SerializeField] private float comboExecutionDelay = 0.02f; // Instant combo transition
 
     [Header("Trail Settings")]
-    [SerializeField] private float trailStartDelay = 0.1f;
-    [SerializeField] private float trailDuration = 0.3f;
-    [SerializeField] private float hardAttackTrailDuration = 0.5f;
+    [SerializeField] private float trailStartDelay = 0.05f;
+    [SerializeField] private float trailDuration = 0.25f;
+    [SerializeField] private float hardAttackTrailDuration = 0.4f;
 
     [Header("Collision Window Timing")]
     [Tooltip("When collision detection starts (normalized time 0-1)")]
-    [SerializeField] private float collisionWindowStart = 0.25f;
+    [SerializeField] private float collisionWindowStart = 0.3f; // Earlier hit detection
     [Tooltip("When collision detection ends (normalized time 0-1)")]
-    [SerializeField] private float collisionWindowEnd = 0.85f;
+    [SerializeField] private float collisionWindowEnd = 0.7f; // Shorter window
 
     [Header("Attack Animation Names")]
     [SerializeField] private string[] easyAttackAnimations = new string[] { "EasyAttack1", "EasyAttack2", "EasyAttack3" };
@@ -68,7 +72,7 @@ public class SwordCombatController : MonoBehaviour
     [Header("Swing VFX (Always Plays)")]
     [Tooltip("VFX that plays on every swing, triggered by Animation Events")]
     [SerializeField] private GameObject[] swingVFXPrefabs;
-    [SerializeField] private Transform swingVFXSpawnPoint; // Should be sword tip
+    [SerializeField] private Transform swingVFXSpawnPoint;
     [SerializeField] private float swingVFXLifetime = 1f;
 
     // State tracking
@@ -98,6 +102,10 @@ public class SwordCombatController : MonoBehaviour
     private int[] normalAttackHashes;
     private int hardAttackHash;
 
+    // References
+    private PlayerController playerController;
+    private CameraController cameraController;
+
     private struct AttackInput
     {
         public AttackType type;
@@ -122,6 +130,20 @@ public class SwordCombatController : MonoBehaviour
         InitializeAnimationHashes();
         InitializeSwordState();
 
+        // Get references
+        playerController = GetComponent<PlayerController>();
+        cameraController = Camera.main?.GetComponent<CameraController>();
+
+        if (playerController == null)
+        {
+            Debug.LogError("❌ PlayerController not found on this GameObject!");
+        }
+
+        if (cameraController == null)
+        {
+            Debug.LogError("❌ CameraController not found on main camera!");
+        }
+
         if (swordCollisionHandler == null)
         {
             Debug.LogError("❌ SwordCollisionHandler not assigned! Please assign it in the inspector.");
@@ -130,6 +152,12 @@ public class SwordCombatController : MonoBehaviour
         if (swingVFXSpawnPoint == null)
         {
             Debug.LogWarning("⚠️ Swing VFX Spawn Point not assigned. Swing VFX won't appear. Assign sword tip transform.");
+        }
+
+        // Set animation speed multiplier
+        if (animator != null)
+        {
+            animator.speed = animationSpeedMultiplier;
         }
     }
 
@@ -185,7 +213,7 @@ public class SwordCombatController : MonoBehaviour
             weaponTrail.StopTrail();
         }
 
-        Debug.Log("Combat System initialized");
+        Debug.Log("Combat System initialized - FLUID COMBAT MODE");
     }
 
     private void Update()
@@ -280,6 +308,7 @@ public class SwordCombatController : MonoBehaviour
         string attackName = attackNames[randomIndex];
 
         float duration = durationOverride > 0 ? durationOverride : GetAnimationLength(attackName);
+        duration /= animationSpeedMultiplier; // Adjust for animation speed
 
         currentAttackCoroutine = StartCoroutine(ExecuteAttack(attackHash, attackName, damage, duration, customTrailDuration, isHardAttack));
 
@@ -299,7 +328,29 @@ public class SwordCombatController : MonoBehaviour
         canAttack = false;
         animator.SetBool(isAttackingHash, true);
 
-        StartSmoothLayerTransition(swordMaskLayerIndex, 0f, 0.1f);
+        // Faster layer transition for smoother attacks
+        StartSmoothLayerTransition(swordMaskLayerIndex, 0f, 0.05f);
+
+        // ROTATE CHARACTER TO FACE CAMERA DIRECTION - FASTER
+        if (rotateTowardsCameraOnAttack && cameraController != null)
+        {
+            Quaternion targetRotation = cameraController.PlanarRotation;
+            float rotationTime = 0f;
+            float maxRotationTime = 0.1f; // Much faster rotation
+
+            while (rotationTime < maxRotationTime)
+            {
+                transform.rotation = Quaternion.RotateTowards(
+                    transform.rotation,
+                    targetRotation,
+                    rotationSpeed * Time.deltaTime
+                );
+                rotationTime += Time.deltaTime;
+                yield return null;
+            }
+
+            transform.rotation = targetRotation;
+        }
 
         ResetAllAttackTriggers();
         yield return null;
@@ -319,7 +370,7 @@ public class SwordCombatController : MonoBehaviour
         Debug.Log($"🎬 Animation: {animationName}, Duration: {duration:F2}s");
         Debug.Log($"⏱️ Collision will be active from {collisionStartTime:F2}s to {(collisionStartTime + collisionDuration):F2}s");
 
-        // Start trail
+        // Start trail - minimal delay
         yield return new WaitForSeconds(trailStartDelay);
         if (weaponTrail != null) weaponTrail.StartTrail();
 
@@ -333,7 +384,7 @@ public class SwordCombatController : MonoBehaviour
         // Enable collision
         if (swordCollisionHandler != null)
         {
-            swordCollisionHandler.EnableCollision(damage);
+            swordCollisionHandler.EnableCollision(damage, isHardAttack);
         }
 
         // Keep collision active for the full duration
@@ -345,7 +396,7 @@ public class SwordCombatController : MonoBehaviour
             swordCollisionHandler.DisableCollision();
         }
 
-        // Continue with combo window timing
+        // Open combo window EARLY for fluid combos
         float comboStartTime = duration * comboWindowStart;
         float timeUntilCombo = comboStartTime - (collisionStartTime + collisionDuration);
         if (timeUntilCombo > 0)
@@ -372,7 +423,7 @@ public class SwordCombatController : MonoBehaviour
 
             if (isSwordDrawn)
             {
-                StartSmoothLayerTransition(swordMaskLayerIndex, 1f, 0.15f);
+                StartSmoothLayerTransition(swordMaskLayerIndex, 1f, 0.1f);
             }
 
             currentAttackCoroutine = null;
@@ -551,15 +602,10 @@ public class SwordCombatController : MonoBehaviour
         animator.Update(0f);
     }
 
-    /// <summary>
-    /// Called by Animation Events to spawn swing VFX at the peak of each attack
-    /// </summary>
     public void SpawnSwingVFX()
     {
         if (swordCollisionHandler != null)
         {
-            // Tell the handler to check for a collision right now
-            // It will only play Hit VFX if it actually touches something
             swordCollisionHandler.CheckForHitAtEvent(easyAttackDamage);
         }
     }

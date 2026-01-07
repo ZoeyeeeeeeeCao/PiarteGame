@@ -35,7 +35,7 @@ public class SwordCollisionHandler : MonoBehaviour
     [SerializeField] private Transform playerTransform;
 
     [Header("Camera Shake")]
-    [SerializeField] private bool useCameraShakeOnHit = true;
+    [SerializeField] private bool useFS_CameraShakeBridgeOnHit = true;
     [SerializeField] private float hitShakeDuration = 0.15f;
     [SerializeField] private float hitShakeMagnitude = 0.08f;
     [SerializeField] private float hitShakeRotation = 1.5f;
@@ -46,9 +46,16 @@ public class SwordCollisionHandler : MonoBehaviour
     [SerializeField] private GameObject[] genericHitVFXPrefabs;
     [SerializeField] private float genericHitVFXLifetime = 1.5f;
 
+    [Header("Knockback Settings")]
+    [SerializeField] private bool enableKnockback = true;
+    [SerializeField] private float normalKnockbackForce = 3f;
+    [SerializeField] private float hardKnockbackForce = 10f;
+    [SerializeField] private float hardAttackSpreadAngle = 15f;
+
     // State tracking
     private bool isCollisionActive = false;
     private int currentAttackDamage = 0;
+    private bool isHardAttack = false;
     private HashSet<Collider> hitTargetsThisAttack = new HashSet<Collider>();
 
     private void Start()
@@ -71,7 +78,8 @@ public class SwordCollisionHandler : MonoBehaviour
         // Debug: Show when collision is active
         if (debugCollisions && isCollisionActive)
         {
-            Debug.Log($"⚔️ COLLISION ACTIVE - Waiting for hits... (Damage: {currentAttackDamage})");
+            string attackType = isHardAttack ? "HARD ATTACK" : "Normal";
+            Debug.Log($"⚔️ COLLISION ACTIVE - Waiting for hits... (Damage: {currentAttackDamage}, Type: {attackType})");
         }
     }
 
@@ -98,7 +106,7 @@ public class SwordCollisionHandler : MonoBehaviour
         Debug.Log("✅ Sword collision handler initialized");
     }
 
-    public void EnableCollision(int damage)
+    public void EnableCollision(int damage, bool hardAttack = false)
     {
         if (swordCollider == null)
         {
@@ -108,10 +116,12 @@ public class SwordCollisionHandler : MonoBehaviour
 
         isCollisionActive = true;
         currentAttackDamage = damage;
+        isHardAttack = hardAttack;
         hitTargetsThisAttack.Clear();
         swordCollider.enabled = true;
 
-        Debug.Log($"⚔️ COLLISION ENABLED - Damage: {damage}");
+        string attackType = hardAttack ? "HARD ATTACK" : "Normal Attack";
+        Debug.Log($"⚔️ COLLISION ENABLED - Damage: {damage} ({attackType})");
     }
 
     public void DisableCollision()
@@ -120,6 +130,7 @@ public class SwordCollisionHandler : MonoBehaviour
 
         isCollisionActive = false;
         currentAttackDamage = 0;
+        isHardAttack = false;
         swordCollider.enabled = false;
 
         if (hitTargetsThisAttack.Count > 0)
@@ -134,52 +145,10 @@ public class SwordCollisionHandler : MonoBehaviour
         hitTargetsThisAttack.Clear();
     }
 
-    //private void OnTriggerEnter(Collider other)
-    //{
-    //    if (!isCollisionActive)
-    //    {
-    //        if (debugCollisions)
-    //            Debug.Log($"🚫 Collision ignored - not in damage window: {other.gameObject.name}");
-    //        return;
-    //    }
-
-    //    // Check if already hit this attack
-    //    if (hitTargetsThisAttack.Contains(other))
-    //    {
-    //        if (debugCollisions)
-    //            Debug.Log($"🚫 Already hit this attack: {other.gameObject.name}");
-    //        return;
-    //    }
-
-    //    // Mark as hit
-    //    hitTargetsThisAttack.Add(other);
-
-    //    // Calculate hit data
-    //    Vector3 hitPosition = other.ClosestPoint(swordCollider.transform.position);
-    //    Vector3 hitDirection = (hitPosition - swordCollider.transform.position).normalized;
-
-    //    // Ensure direction is valid
-    //    if (hitDirection.magnitude < 0.01f)
-    //    {
-    //        hitDirection = swordCollider.transform.forward;
-    //    }
-
-    //    // Check if it's an enemy
-    //    bool isEnemy = ((1 << other.gameObject.layer) & enemyLayer) != 0;
-
-    //    if (isEnemy)
-    //    {
-    //        HandleEnemyHit(other, hitPosition, hitDirection);
-    //    }
-    //    else
-    //    {
-    //        HandleGeneralCollision(other, hitPosition, hitDirection);
-    //    }
-    //}
-
     private void HandleEnemyHit(Collider enemyCollider, Vector3 hitPosition, Vector3 hitDirection)
     {
-        Debug.Log($"⚔️ SWORD HIT ENEMY: {enemyCollider.gameObject.name}!");
+        string attackType = isHardAttack ? "HARD ATTACK" : "normal attack";
+        Debug.Log($"⚔️ SWORD HIT ENEMY: {enemyCollider.gameObject.name} with {attackType}!");
 
         // Deal damage
         EnemyHealth enemyHealth = enemyCollider.GetComponent<EnemyHealth>();
@@ -193,10 +162,35 @@ public class SwordCollisionHandler : MonoBehaviour
             Debug.LogWarning($"⚠️ {enemyCollider.gameObject.name} is on enemy layer but has no EnemyHealth component!");
         }
 
-        // Camera shake
-        if (useCameraShakeOnHit && CameraShake.Instance != null)
+        // Apply knockback
+        if (enableKnockback && playerTransform != null)
         {
-            CameraShake.Instance.Shake(hitShakeDuration, hitShakeMagnitude, hitShakeRotation);
+            EnemyKnockback knockback = enemyCollider.GetComponent<EnemyKnockback>();
+            if (knockback != null)
+            {
+                if (isHardAttack)
+                {
+                    // Hard attack: push enemies back hard with spread
+                    knockback.ApplyHardKnockback(playerTransform.position, playerTransform.forward);
+                    Debug.Log($"💥💥 Applied HARD knockback to {enemyCollider.gameObject.name}");
+                }
+                else
+                {
+                    // Normal attack: light knockback
+                    knockback.ApplyNormalKnockback(playerTransform.position);
+                    Debug.Log($"💥 Applied normal knockback to {enemyCollider.gameObject.name}");
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"⚠️ {enemyCollider.gameObject.name} has no EnemyKnockback component!");
+            }
+        }
+
+        // Camera shake
+        if (useFS_CameraShakeBridgeOnHit && FS_FS_CameraShakeBridgeBridge.Instance != null)
+        {
+            FS_FS_CameraShakeBridgeBridge.Instance.Shake(hitShakeDuration, hitShakeMagnitude, hitShakeRotation);
         }
 
         // Spawn VFX
@@ -318,12 +312,27 @@ public class SwordCollisionHandler : MonoBehaviour
             EnemyHealth health = col.GetComponent<EnemyHealth>();
             if (health != null) health.TakeDamage(damage);
 
-            // Play the Camera Shake
-            if (useCameraShakeOnHit && CameraShake.Instance != null)
+            // Apply knockback
+            if (enableKnockback && playerTransform != null)
             {
-                // USE HIGHER VALUES HERE FOR TESTING
-                // Duration: 0.15f, Magnitude: 0.5f (start high to see if it works!)
-                CameraShake.Instance.Shake(hitShakeDuration, hitShakeMagnitude, hitShakeRotation);
+                EnemyKnockback knockback = col.GetComponent<EnemyKnockback>();
+                if (knockback != null)
+                {
+                    if (isHardAttack)
+                    {
+                        knockback.ApplyHardKnockback(playerTransform.position, playerTransform.forward);
+                    }
+                    else
+                    {
+                        knockback.ApplyNormalKnockback(playerTransform.position);
+                    }
+                }
+            }
+
+            // Play the Camera Shake
+            if (useFS_CameraShakeBridgeOnHit && CameraNewShake.Instance != null)
+            {
+                CameraNewShake.Instance.Shake(hitShakeDuration, hitShakeMagnitude, hitShakeRotation);
             }
 
             // Spawn the ACTUAL HIT EFFECTS (Sparks/Impacts)
@@ -358,6 +367,7 @@ public class SwordCollisionHandler : MonoBehaviour
             HandleEnemyHit(col, hitPoint, direction);
         }
     }
+
     private void SpawnImpactWaveVFX(GameObject[] vfxArray)
     {
         if (vfxArray == null || vfxArray.Length == 0) return;
@@ -400,7 +410,6 @@ public class SwordCollisionHandler : MonoBehaviour
                 Debug.Log($"✨ Spawned generic hit VFX at collision point");
         }
     }
-
 
     // Public getters
     public bool IsCollisionActive => isCollisionActive;

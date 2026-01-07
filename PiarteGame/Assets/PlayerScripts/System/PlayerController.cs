@@ -64,7 +64,7 @@ namespace FS_ThirdPerson
         public ICharacter player { get; set; }
         public Damagable Damagable { get; private set; }
 
-        public Action<float, float> OnStartCameraShake;
+        public Action<float, float> OnStartFS_CameraShakeBridge;
         public Action<Vector3> CameraLookAtPoint;
         public Action<CameraSettings> SetCustomCameraState;
         public Action<RecoilInfo> CameraRecoil;
@@ -73,7 +73,7 @@ namespace FS_ThirdPerson
         public bool IsInAir { get; set; }
         public bool PreventRotation { get; set; }
         public bool PreventFallingFromLedge { get; set; } = true;
-        public bool PreventCameraShake { get; set; } = false;
+        public bool PreventFS_CameraShakeBridge { get; set; } = false;
         public bool PreventVerticalJump { get; set; } = false;
         public Action OnCameraLateUpdate { get; set; }
         public bool IsDead => Damagable.CurrentHealth <= 0;

@@ -1,30 +1,31 @@
 ﻿using UnityEngine;
-using FS_ThirdPerson; // This is the namespace used in your CameraController
+using FS_ThirdPerson;
 
-public class CameraShake : MonoBehaviour
+public class FS_FS_CameraShakeBridgeBridge : MonoBehaviour
 {
-    public static CameraShake Instance;
+    public static FS_FS_CameraShakeBridgeBridge Instance;
     private CameraController controller;
 
     void Awake()
     {
-        if (Instance == null) Instance = this;
+        // If an instance already exists, destroy this one to avoid duplicates
+        if (Instance != null && Instance != this)
+        {
+            Destroy(this);
+            return;
+        }
 
-        // Get the Third Person Controller sitting on this same camera
+        Instance = this;
         controller = GetComponent<CameraController>();
     }
 
-    // This is called by your Sword script when the Animation Event hits an enemy
     public void Shake(float duration = 0.2f, float magnitude = 0.1f, float rotationStrength = 2f)
     {
         if (controller != null)
         {
-            // We call the function ALREADY inside your CameraController
-            // Note: I suggest using a higher magnitude (like 0.5) in the inspector 
-            // because the FS_ThirdPerson math is very subtle.
-            controller.StartCameraShake(magnitude, duration);
-
-            Debug.Log($"📹 Animation Event triggered shake: Mag {magnitude}, Dur {duration}");
+            // This calls the shake function ALREADY inside your CameraController.cs
+            controller.StartFS_CameraShakeBridge(magnitude, duration);
+            Debug.Log($"📹 FS Bridge Triggered Shake: Mag {magnitude}, Dur {duration}");
         }
     }
 }

@@ -9,6 +9,7 @@ TagManager:
   - NarrowBeam
   - SwingableLedge
   - Enemy
+  - Herbs
   layers:
   - Default
   - TransparentFX
