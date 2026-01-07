@@ -75,6 +75,9 @@ public class SwordCombatController : MonoBehaviour
     [SerializeField] private Transform swingVFXSpawnPoint;
     [SerializeField] private float swingVFXLifetime = 1f;
 
+    [Header("Audio")]
+    [SerializeField] private SwordAudioManager audioManager;
+
     // State tracking
     private bool isSwordDrawn = false;
     private bool isAttacking = false;
@@ -152,6 +155,25 @@ public class SwordCombatController : MonoBehaviour
         if (swingVFXSpawnPoint == null)
         {
             Debug.LogWarning("⚠️ Swing VFX Spawn Point not assigned. Swing VFX won't appear. Assign sword tip transform.");
+        }
+
+        // Find audio manager if not assigned
+        if (audioManager == null)
+        {
+            audioManager = GetComponent<SwordAudioManager>();
+            if (audioManager == null)
+            {
+                // Try to find it on the sword
+                if (prefabSword != null)
+                {
+                    audioManager = prefabSword.GetComponent<SwordAudioManager>();
+                }
+
+                if (audioManager == null)
+                {
+                    Debug.LogWarning("⚠️ SwordAudioManager not found. Audio will not play. Add SwordAudioManager component.");
+                }
+            }
         }
 
         // Set animation speed multiplier
@@ -374,8 +396,17 @@ public class SwordCombatController : MonoBehaviour
         yield return new WaitForSeconds(trailStartDelay);
         if (weaponTrail != null) weaponTrail.StartTrail();
 
+        // Play swing sound in the middle of the animation (better timing)
+        float soundDelay = duration * 0.35f; // Play at 35% through animation
+        yield return new WaitForSeconds(soundDelay - trailStartDelay);
+
+        if (audioManager != null)
+        {
+            audioManager.PlaySwingSound(isHardAttack);
+        }
+
         // Wait until collision window should start
-        float waitUntilCollision = collisionStartTime - trailStartDelay;
+        float waitUntilCollision = collisionStartTime - trailStartDelay - soundDelay;
         if (waitUntilCollision > 0)
         {
             yield return new WaitForSeconds(waitUntilCollision);
@@ -485,6 +516,12 @@ public class SwordCombatController : MonoBehaviour
         animator.SetTrigger(drawSwordHash);
         animator.SetBool(isDrawnHash, true);
 
+        // Play draw sound
+        if (audioManager != null)
+        {
+            audioManager.PlayDrawSound();
+        }
+
         float animLength = GetAnimationLength("DrawSword");
         yield return new WaitForSeconds(animLength * 0.25f);
 
@@ -505,6 +542,12 @@ public class SwordCombatController : MonoBehaviour
 
         animator.SetTrigger(sheathSwordHash);
         animator.SetBool(isDrawnHash, false);
+
+        // Play sheath sound
+        if (audioManager != null)
+        {
+            audioManager.PlaySheathSound();
+        }
 
         if (weaponTrail != null) weaponTrail.StopTrail();
         if (swordCollisionHandler != null) swordCollisionHandler.DisableCollision();
