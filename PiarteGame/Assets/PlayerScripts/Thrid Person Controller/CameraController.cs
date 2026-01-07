@@ -46,7 +46,7 @@ namespace FS_ThirdPerson
 
 
 
-        float cameraShakeAmount = 0.6f;
+        float FS_CameraShakeBridgeAmount = 0.6f;
 
         CameraSettings settings;
         CameraSettings customSettings;
@@ -86,10 +86,10 @@ namespace FS_ThirdPerson
             input = followTarget.GetComponent<LocomotionInputManager>();
             locomotionController = followTarget.GetComponent<LocomotionController>();
 
-            playerController.OnStartCameraShake += StartCameraShake;
+            playerController.OnStartFS_CameraShakeBridge += StartFS_CameraShakeBridge;
             playerController.CameraLookAtPoint += CameraLookAtPoint;
-            playerController.OnLand -= playerController.OnStartCameraShake;
-            playerController.OnLand += playerController.OnStartCameraShake;
+            playerController.OnLand -= playerController.OnStartFS_CameraShakeBridge;
+            playerController.OnLand += playerController.OnStartFS_CameraShakeBridge;
 
             playerController.SetCustomCameraState += SetCustomCameraState;
             playerController.CameraRecoil += CameraRecoil;
@@ -273,10 +273,10 @@ namespace FS_ThirdPerson
             currentFollowPos = Vector3.SmoothDamp(previousPos, followTarget.position, ref followSmoothVel, settings.followSmoothTime);
 
             // Apply camera shake
-            if (CameraShakeDuration > 0)
+            if (FS_CameraShakeBridgeDuration > 0)
             {
-                currentFollowPos += UnityEngine.Random.insideUnitSphere * CurrentCameraShakeAmount * cameraShakeAmount * Mathf.Clamp01(CameraShakeDuration);
-                CameraShakeDuration -= Time.deltaTime;
+                currentFollowPos += UnityEngine.Random.insideUnitSphere * CurrentFS_CameraShakeBridgeAmount * FS_CameraShakeBridgeAmount * Mathf.Clamp01(FS_CameraShakeBridgeDuration);
+                FS_CameraShakeBridgeDuration -= Time.deltaTime;
             }
 
             var targetFramingOffset = settings.framingOffset;
@@ -333,12 +333,12 @@ namespace FS_ThirdPerson
         float cameraRotSmooth;
 
 
-        public float CameraShakeDuration { get; set; } = 0f;
-        public float CurrentCameraShakeAmount { get; set; } = 0f;
-        public void StartCameraShake(float currentCameraShakeAmount, float shakeDuration)
+        public float FS_CameraShakeBridgeDuration { get; set; } = 0f;
+        public float CurrentFS_CameraShakeBridgeAmount { get; set; } = 0f;
+        public void StartFS_CameraShakeBridge(float currentFS_CameraShakeBridgeAmount, float shakeDuration)
         {
-            CurrentCameraShakeAmount = currentCameraShakeAmount;
-            CameraShakeDuration = shakeDuration;
+            CurrentFS_CameraShakeBridgeAmount = currentFS_CameraShakeBridgeAmount;
+            FS_CameraShakeBridgeDuration = shakeDuration;
         }
         public void CameraLookAtPoint(Vector3 worldPoint)
         {
