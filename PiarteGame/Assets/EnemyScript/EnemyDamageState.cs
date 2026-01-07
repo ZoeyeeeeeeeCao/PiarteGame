@@ -10,7 +10,7 @@ public class EnemyDamageState : EnemyBaseState
     private const float _knockbackDuration = 0.2f;
     private const float _stateDuration = 0.5f; // Total time spent in this state
     private Vector3 _knockbackDirection;
-    private float _knockbackForce = 10f;
+    private float _knockbackForce = 3f;
 
     public override void EnterState(EnemyController enemy)
     {
