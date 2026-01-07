@@ -12,12 +12,21 @@ public class InspectRotator : MonoBehaviour
     public float minFov = 20f;
     public float maxFov = 60f;
 
+    [Header("Optional: restrict dragging to UI area")]
+    public RectTransform dragArea;
+
     Vector2 lastPos;
     bool dragging;
 
     void Update()
     {
-        // Mouse drag rotate
+        // If dragArea is assigned, only rotate when mouse is over it.
+        if (dragArea != null && !RectTransformUtility.RectangleContainsScreenPoint(dragArea, Input.mousePosition))
+        {
+            dragging = false;
+            return;
+        }
+
         if (Input.GetMouseButtonDown(0))
         {
             dragging = true;
@@ -37,12 +46,10 @@ public class InspectRotator : MonoBehaviour
             float yaw = -delta.x * rotateSpeed;
             float pitch = (invertY ? -1f : 1f) * delta.y * rotateSpeed;
 
-            // Rotate around world axes for stable feel
             transform.Rotate(Vector3.up, yaw, Space.World);
             transform.Rotate(Vector3.right, pitch, Space.World);
         }
 
-        // Scroll zoom (FOV)
         if (inspectCamera != null)
         {
             float scroll = Input.mouseScrollDelta.y;

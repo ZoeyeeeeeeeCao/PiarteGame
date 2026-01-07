@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 68cbc7065f772994ba308a80c5ac5478, type: 3}
+  m_Name: Note_1.1
+  m_EditorClassIdentifier: 
+  itemId: note_1.1
+  displayName: Dockside Complaint
+  category: 1
+  description: 'They say Blackwake is rich.
+
+    They never say who pays   for it.
+
+    We
+    unload crates under gunpoint.
+
+    We eat when allowed.
+
+    We sleep when the
+    Captain remembers we exist.
+
+
+    Whatever he keeps locked inside that fort,
+
+    it
+    made him crueler than the sea ever did.'
+  stackable: 0
+  maxStack: 99
+  isConsumable: 0
+  healAmount: 0
+  inspectPrefab: {fileID: 919132149155446097, guid: 419464e0e8adacd4a8af46e2b3a27216, type: 3}
