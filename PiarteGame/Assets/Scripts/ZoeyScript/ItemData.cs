@@ -24,4 +24,7 @@ public class ItemData : ScriptableObject
     public bool isConsumable;
     public float healAmount;
 
+    public GameObject inspectPrefab; // drag your 3D collectible prefab here
+
+
 }
