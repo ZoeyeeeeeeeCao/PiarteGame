@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be99e75ec8c1d44449c01afbde21cbcb, type: 3}
+  m_Name: DialogueParkour
+  m_EditorClassIdentifier: 
+  npcName: Eldon
+  dialogueLines:
+  - text: "Ash\u2026 you\u2019ve grown so fast. Before you leave, let me see how
+      agile you are.\r\n"
+    audioClip: {fileID: 8300000, guid: b703888b864af5946a2b443d85ddd70e, type: 3}
+  - text: "You\u2019ll need these skills for what lies ahead."
+    audioClip: {fileID: 8300000, guid: f3f4ce49875d134489bb787fdb9ac550, type: 3}
