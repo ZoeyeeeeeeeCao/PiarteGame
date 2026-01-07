@@ -509,6 +509,10 @@ PrefabInstance:
       propertyPath: m_LocalPosition.x
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4491394356515082489, guid: 141352befaa9e6b49a233f365c3de4ba, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 5866666021909216657, guid: 141352befaa9e6b49a233f365c3de4ba, type: 3}
       propertyPath: m_Controller
       value: 
@@ -644,6 +648,7 @@ MonoBehaviour:
   guardPoint: {fileID: 53390441}
   animator: {fileID: 330700802}
   agent: {fileID: 330700800}
+  healthController: {fileID: 0}
   isSpawning: 0
 --- !u!95 &330700802 stripped
 Animator:
@@ -668,7 +673,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!65 &361390802
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -964,12 +969,60 @@ MonoBehaviour:
   guardPoint: {fileID: 53390441}
   animator: {fileID: 562326122}
   agent: {fileID: 562326120}
+  healthController: {fileID: 562326123}
   isSpawning: 0
 --- !u!95 &562326122 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: 141352befaa9e6b49a233f365c3de4ba, type: 3}
   m_PrefabInstance: {fileID: 860916497}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &562326123
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 562326119}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4bcb7b8c56622664ab6ca45ac99328ab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxHealth: 100
+  currentHealth: 0
+  damageTag: EnemyDamage
+  damagePerHit: 10
+  enableDebugKeys: 1
+  OnTakeDamage:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 562326121}
+        m_TargetAssemblyTypeName: EnemyController, Assembly-CSharp
+        m_MethodName: TakeDamage
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  OnDeath:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 562326121}
+        m_TargetAssemblyTypeName: EnemyController, Assembly-CSharp
+        m_MethodName: Die
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!1 &711458291
 GameObject:
   m_ObjectHideFlags: 0
@@ -1263,6 +1316,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 141352befaa9e6b49a233f365c3de4ba, type: 3}
       insertIndex: -1
       addedObject: {fileID: 562326120}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 141352befaa9e6b49a233f365c3de4ba, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 562326123}
   m_SourcePrefab: {fileID: 100100000, guid: 141352befaa9e6b49a233f365c3de4ba, type: 3}
 --- !u!1001 &892713662
 PrefabInstance:
@@ -1602,6 +1658,64 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &1111774878
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 2214845223584550831, guid: dd0a9c2f3940c1641ad966036a6fb181, type: 3}
+      propertyPath: m_Name
+      value: FS Player (1)
+      objectReference: {fileID: 0}
+    - target: {fileID: 3446518795127141525, guid: dd0a9c2f3940c1641ad966036a6fb181, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 1.4704714
+      objectReference: {fileID: 0}
+    - target: {fileID: 3446518795127141525, guid: dd0a9c2f3940c1641ad966036a6fb181, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.00000023841858
+      objectReference: {fileID: 0}
+    - target: {fileID: 3446518795127141525, guid: dd0a9c2f3940c1641ad966036a6fb181, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -9.179942
+      objectReference: {fileID: 0}
+    - target: {fileID: 3446518795127141525, guid: dd0a9c2f3940c1641ad966036a6fb181, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3446518795127141525, guid: dd0a9c2f3940c1641ad966036a6fb181, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3446518795127141525, guid: dd0a9c2f3940c1641ad966036a6fb181, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3446518795127141525, guid: dd0a9c2f3940c1641ad966036a6fb181, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3446518795127141525, guid: dd0a9c2f3940c1641ad966036a6fb181, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3446518795127141525, guid: dd0a9c2f3940c1641ad966036a6fb181, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3446518795127141525, guid: dd0a9c2f3940c1641ad966036a6fb181, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects:
+    - {fileID: 8347428284303351648, guid: dd0a9c2f3940c1641ad966036a6fb181, type: 3}
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: dd0a9c2f3940c1641ad966036a6fb181, type: 3}
 --- !u!1001 &1438721950
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1871,6 +1985,7 @@ MonoBehaviour:
   guardPoint: {fileID: 53390441}
   animator: {fileID: 1553276012}
   agent: {fileID: 1553276010}
+  healthController: {fileID: 0}
   isSpawning: 0
 --- !u!95 &1553276012 stripped
 Animator:
@@ -1936,6 +2051,7 @@ MonoBehaviour:
   guardPoint: {fileID: 53390441}
   animator: {fileID: 1945606205}
   agent: {fileID: 1945606203}
+  healthController: {fileID: 0}
   isSpawning: 0
 --- !u!95 &1945606205 stripped
 Animator:
@@ -1978,6 +2094,7 @@ MonoBehaviour:
   guardPoint: {fileID: 53390441}
   animator: {fileID: 1970768711}
   agent: {fileID: 1970768710}
+  healthController: {fileID: 0}
   isSpawning: 0
 --- !u!195 &1970768710
 NavMeshAgent:
@@ -2332,3 +2449,4 @@ SceneRoots:
   - {fileID: 1438721950}
   - {fileID: 2071186767}
   - {fileID: 1051502534}
+  - {fileID: 1111774878}
