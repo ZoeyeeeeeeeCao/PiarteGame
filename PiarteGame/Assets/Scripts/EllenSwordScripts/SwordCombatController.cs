@@ -1,6 +1,7 @@
-using UnityEngine;
+﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using FS_ThirdPerson;
 
 public class SwordCombatController : MonoBehaviour
 {
@@ -10,6 +11,7 @@ public class SwordCombatController : MonoBehaviour
     [SerializeField] private Transform handSocket;
     [SerializeField] private Transform beltSocket;
     [SerializeField] private WeaponTrailEffect weaponTrail;
+    [SerializeField] private SwordCollisionHandler swordCollisionHandler;
 
     [Header("Sword Transform Adjustments")]
     [SerializeField] private Vector3 handPositionOffset = new Vector3(0.021f, -0.043f, 0.026f);
@@ -19,18 +21,35 @@ public class SwordCombatController : MonoBehaviour
 
     [Header("Animator")]
     [SerializeField] private Animator animator;
-    [SerializeField] private int swordMaskLayerIndex = 1; // Index of the Sword Mask layer
+    [SerializeField] private int swordMaskLayerIndex = 1;
+    [SerializeField] private float layerTransitionSpeed = 0.1f;
 
-    [Header("Movement Integration")]
-    [SerializeField] private MonoBehaviour movementController; // Your movement script
-    [SerializeField] private float layerTransitionSpeed = 0.2f; // Smooth layer weight transitions
-
-    [Header("Combat Settings")]
-    [SerializeField] private float attackCooldown = 0.5f;
+    [Header("Combat Settings - FLUID COMBO")]
+    [SerializeField] private float attackCooldown = 0.05f; // Much shorter for fluid combos
+    [SerializeField] private float comboWindow = 0.4f; // Tighter combo window
     [SerializeField] private int hardAttackRequirement = 10;
-    [SerializeField] private LayerMask enemyLayer;
-    [SerializeField] private float attackRange = 2f;
-    [SerializeField] private Transform attackPoint;
+    [SerializeField] private bool rotateTowardsCameraOnAttack = true;
+    [SerializeField] private float rotationSpeed = 1080f; // Faster rotation
+    [SerializeField] private float animationSpeedMultiplier = 1.3f; // Speed up animations!
+
+    [Header("Queue System")]
+    [SerializeField] private int maxQueueSize = 1;
+    [SerializeField] private float queueTimeout = 1.0f;
+
+    [Header("Combo Timing - FASTER")]
+    [SerializeField] private float comboWindowStart = 0.6f; // Earlier combo window
+    [SerializeField] private float comboExecutionDelay = 0.02f; // Instant combo transition
+
+    [Header("Trail Settings")]
+    [SerializeField] private float trailStartDelay = 0.05f;
+    [SerializeField] private float trailDuration = 0.25f;
+    [SerializeField] private float hardAttackTrailDuration = 0.4f;
+
+    [Header("Collision Window Timing")]
+    [Tooltip("When collision detection starts (normalized time 0-1)")]
+    [SerializeField] private float collisionWindowStart = 0.3f; // Earlier hit detection
+    [Tooltip("When collision detection ends (normalized time 0-1)")]
+    [SerializeField] private float collisionWindowEnd = 0.7f; // Shorter window
 
     [Header("Attack Animation Names")]
     [SerializeField] private string[] easyAttackAnimations = new string[] { "EasyAttack1", "EasyAttack2", "EasyAttack3" };
@@ -43,39 +62,103 @@ public class SwordCombatController : MonoBehaviour
     [SerializeField] private int hardAttackDamage = 50;
 
     [Header("Attack Durations")]
-    [SerializeField] private float easyAttackDuration = 0.4f;
-    [SerializeField] private float normalAttackDuration = 0.6f;
-    [SerializeField] private float hardAttackDuration = 1.5f;
+    [SerializeField] private float easyAttackDuration = 0f;
+    [SerializeField] private float normalAttackDuration = 0f;
+    [SerializeField] private float hardAttackDuration = 0f;
 
-    [Header("Camera Shake for Hard Attack")]
+    [Header("Hard Attack Cinematic")]
     [SerializeField] private bool useHardAttackCinematic = true;
-    [SerializeField] private float cinematicDuration = 2f;
+
+    [Header("Swing VFX (Always Plays)")]
+    [Tooltip("VFX that plays on every swing, triggered by Animation Events")]
+    [SerializeField] private GameObject[] swingVFXPrefabs;
+    [SerializeField] private Transform swingVFXSpawnPoint;
+    [SerializeField] private float swingVFXLifetime = 1f;
 
     // State tracking
     private bool isSwordDrawn = false;
     private bool isAttacking = false;
     private bool canAttack = true;
     private bool isDrawingOrSheathing = false;
+    private bool inComboWindow = false;
 
     // Attack tracking
     private int attackCounter = 0;
+
+    // Queue system
+    private Queue<AttackInput> attackQueue = new Queue<AttackInput>();
+    private float lastInputTime = 0f;
+    private Coroutine queueTimeoutCoroutine;
+    private Coroutine currentLayerTransition = null;
+    private Coroutine currentAttackCoroutine = null;
 
     // Animation hashes
     private int drawSwordHash;
     private int sheathSwordHash;
     private int isDrawnHash;
+    private int isAttackingHash;
+    private int exitAttackStateHash;
     private int[] easyAttackHashes;
     private int[] normalAttackHashes;
     private int hardAttackHash;
 
-    // Movement control interface
-    private IMovementController movementInterface;
+    // References
+    private PlayerController playerController;
+    private CameraController cameraController;
+
+    private struct AttackInput
+    {
+        public AttackType type;
+        public float timestamp;
+
+        public AttackInput(AttackType type, float timestamp)
+        {
+            this.type = type;
+            this.timestamp = timestamp;
+        }
+    }
+
+    private enum AttackType
+    {
+        Easy,
+        Normal,
+        Hard
+    }
 
     private void Start()
     {
         InitializeAnimationHashes();
-        InitializeMovementController();
         InitializeSwordState();
+
+        // Get references
+        playerController = GetComponent<PlayerController>();
+        cameraController = Camera.main?.GetComponent<CameraController>();
+
+        if (playerController == null)
+        {
+            Debug.LogError("❌ PlayerController not found on this GameObject!");
+        }
+
+        if (cameraController == null)
+        {
+            Debug.LogError("❌ CameraController not found on main camera!");
+        }
+
+        if (swordCollisionHandler == null)
+        {
+            Debug.LogError("❌ SwordCollisionHandler not assigned! Please assign it in the inspector.");
+        }
+
+        if (swingVFXSpawnPoint == null)
+        {
+            Debug.LogWarning("⚠️ Swing VFX Spawn Point not assigned. Swing VFX won't appear. Assign sword tip transform.");
+        }
+
+        // Set animation speed multiplier
+        if (animator != null)
+        {
+            animator.speed = animationSpeedMultiplier;
+        }
     }
 
     private void InitializeAnimationHashes()
@@ -83,6 +166,8 @@ public class SwordCombatController : MonoBehaviour
         drawSwordHash = Animator.StringToHash("DrawSword");
         sheathSwordHash = Animator.StringToHash("SheathSword");
         isDrawnHash = Animator.StringToHash("IsDrawn");
+        isAttackingHash = Animator.StringToHash("IsAttacking");
+        exitAttackStateHash = Animator.StringToHash("ExitAttackState");
 
         easyAttackHashes = new int[easyAttackAnimations.Length];
         for (int i = 0; i < easyAttackAnimations.Length; i++)
@@ -99,35 +184,20 @@ public class SwordCombatController : MonoBehaviour
         hardAttackHash = Animator.StringToHash(hardAttackAnimation);
     }
 
-    private void InitializeMovementController()
-    {
-        if (movementController != null)
-        {
-            movementInterface = movementController as IMovementController;
-            if (movementInterface == null)
-            {
-                Debug.LogWarning("Movement controller doesn't implement IMovementController interface. Movement blocking during attacks won't work.");
-            }
-        }
-    }
-
     private void InitializeSwordState()
     {
-        // Disable sword mask layer initially (sword not drawn)
         if (animator != null)
         {
             animator.SetLayerWeight(swordMaskLayerIndex, 0f);
             animator.SetBool(isDrawnHash, false);
-            Debug.Log($"Sword Mask Layer initialized with weight: {animator.GetLayerWeight(swordMaskLayerIndex)}");
+            animator.SetBool(isAttackingHash, false);
         }
 
-        // Position the prefab sword at belt initially
         if (prefabSword != null && beltSocket != null)
         {
             AttachSwordToBelt();
         }
 
-        // Show baked sword, hide prefab sword
         if (bakedSwordRenderer != null)
         {
             bakedSwordRenderer.enabled = true;
@@ -138,55 +208,260 @@ public class SwordCombatController : MonoBehaviour
             prefabSword.SetActive(false);
         }
 
-        // Disable trail at start
         if (weaponTrail != null)
         {
-            weaponTrail.enabled = false;
+            weaponTrail.StopTrail();
         }
 
-        Debug.Log("Sword Combat Controller initialized");
+        Debug.Log("Combat System initialized - FLUID COMBAT MODE");
     }
 
     private void Update()
     {
         HandleInput();
+        CleanupQueueTimeout();
     }
 
     private void HandleInput()
     {
-        // Toggle sword draw/sheath (E key)
         if (Input.GetKeyDown(KeyCode.E) && !isAttacking && !isDrawingOrSheathing)
         {
             ToggleSword();
         }
 
-        // Attack inputs (only when sword is drawn)
-        if (isSwordDrawn && canAttack && !isAttacking && !isDrawingOrSheathing)
+        if (isSwordDrawn && !isDrawingOrSheathing)
         {
-            // Left Mouse Button - Easy Attack
-            if (Input.GetMouseButtonDown(0))
-            {
-                PerformEasyAttack();
-            }
-            // Right Mouse Button - Normal Attack
-            else if (Input.GetMouseButtonDown(1))
-            {
-                PerformNormalAttack();
-            }
-            // Hard Attack - Both buttons or H key
-            else if ((Input.GetMouseButton(0) && Input.GetMouseButtonDown(1)) ||
-                     (Input.GetMouseButton(1) && Input.GetMouseButtonDown(0)) ||
-                     Input.GetKeyDown(KeyCode.H))
+            if (Input.GetKeyDown(KeyCode.H))
             {
                 if (attackCounter >= hardAttackRequirement)
                 {
-                    PerformHardAttack();
+                    QueueAttack(AttackType.Hard);
                 }
                 else
                 {
-                    Debug.Log($"Hard attack locked! Need {hardAttackRequirement - attackCounter} more attacks");
+                    Debug.Log($"Hard attack locked! Need {hardAttackRequirement - attackCounter} more attacks.");
                 }
             }
+            else if (Input.GetMouseButtonDown(0))
+            {
+                QueueAttack(AttackType.Easy);
+            }
+            else if (Input.GetMouseButtonDown(1))
+            {
+                QueueAttack(AttackType.Normal);
+            }
+        }
+    }
+
+    private void QueueAttack(AttackType type)
+    {
+        lastInputTime = Time.time;
+
+        if (!isAttacking && canAttack)
+        {
+            ExecuteAttackFromQueue(type);
+            return;
+        }
+
+        if (inComboWindow && attackQueue.Count < maxQueueSize)
+        {
+            attackQueue.Enqueue(new AttackInput(type, Time.time));
+            Debug.Log($"⏳ Queued {type} attack (Queue size: {attackQueue.Count})");
+
+            if (queueTimeoutCoroutine != null)
+            {
+                StopCoroutine(queueTimeoutCoroutine);
+            }
+            queueTimeoutCoroutine = StartCoroutine(QueueTimeoutCheck());
+        }
+    }
+
+    private void ExecuteAttackFromQueue(AttackType type)
+    {
+        switch (type)
+        {
+            case AttackType.Easy:
+                PerformAttack(easyAttackHashes, easyAttackAnimations, easyAttackDamage, easyAttackDuration, trailDuration, false);
+                break;
+            case AttackType.Normal:
+                PerformAttack(normalAttackHashes, normalAttackAnimations, normalAttackDamage, normalAttackDuration, trailDuration, false);
+                break;
+            case AttackType.Hard:
+                if (attackCounter >= hardAttackRequirement)
+                {
+                    PerformAttack(new int[] { hardAttackHash }, new string[] { hardAttackAnimation }, hardAttackDamage, hardAttackDuration, hardAttackTrailDuration, true);
+                }
+                break;
+        }
+    }
+
+    private void PerformAttack(int[] attackHashes, string[] attackNames, int damage, float durationOverride, float customTrailDuration, bool isHardAttack)
+    {
+        if (currentAttackCoroutine != null)
+        {
+            Debug.LogWarning("⚠️ Attack already in progress");
+            return;
+        }
+
+        int randomIndex = Random.Range(0, attackHashes.Length);
+        int attackHash = attackHashes[randomIndex];
+        string attackName = attackNames[randomIndex];
+
+        float duration = durationOverride > 0 ? durationOverride : GetAnimationLength(attackName);
+        duration /= animationSpeedMultiplier; // Adjust for animation speed
+
+        currentAttackCoroutine = StartCoroutine(ExecuteAttack(attackHash, attackName, damage, duration, customTrailDuration, isHardAttack));
+
+        if (isHardAttack)
+        {
+            attackCounter = 0;
+        }
+        else
+        {
+            attackCounter++;
+        }
+    }
+
+    private IEnumerator ExecuteAttack(int animationHash, string animationName, int damage, float duration, float customTrailDuration, bool isHardAttack)
+    {
+        isAttacking = true;
+        canAttack = false;
+        animator.SetBool(isAttackingHash, true);
+
+        // Faster layer transition for smoother attacks
+        StartSmoothLayerTransition(swordMaskLayerIndex, 0f, 0.05f);
+
+        // ROTATE CHARACTER TO FACE CAMERA DIRECTION - FASTER
+        if (rotateTowardsCameraOnAttack && cameraController != null)
+        {
+            Quaternion targetRotation = cameraController.PlanarRotation;
+            float rotationTime = 0f;
+            float maxRotationTime = 0.1f; // Much faster rotation
+
+            while (rotationTime < maxRotationTime)
+            {
+                transform.rotation = Quaternion.RotateTowards(
+                    transform.rotation,
+                    targetRotation,
+                    rotationSpeed * Time.deltaTime
+                );
+                rotationTime += Time.deltaTime;
+                yield return null;
+            }
+
+            transform.rotation = targetRotation;
+        }
+
+        ResetAllAttackTriggers();
+        yield return null;
+
+        if (isHardAttack && useHardAttackCinematic && HardAttackCinematic.Instance != null)
+        {
+            HardAttackCinematic.Instance.PlayHardAttackCinematic();
+        }
+
+        animator.SetTrigger(animationHash);
+        yield return null;
+
+        // Calculate actual collision timing based on animation duration
+        float collisionStartTime = duration * collisionWindowStart;
+        float collisionDuration = duration * (collisionWindowEnd - collisionWindowStart);
+
+        Debug.Log($"🎬 Animation: {animationName}, Duration: {duration:F2}s");
+        Debug.Log($"⏱️ Collision will be active from {collisionStartTime:F2}s to {(collisionStartTime + collisionDuration):F2}s");
+
+        // Start trail - minimal delay
+        yield return new WaitForSeconds(trailStartDelay);
+        if (weaponTrail != null) weaponTrail.StartTrail();
+
+        // Wait until collision window should start
+        float waitUntilCollision = collisionStartTime - trailStartDelay;
+        if (waitUntilCollision > 0)
+        {
+            yield return new WaitForSeconds(waitUntilCollision);
+        }
+
+        // Enable collision
+        if (swordCollisionHandler != null)
+        {
+            swordCollisionHandler.EnableCollision(damage, isHardAttack);
+        }
+
+        // Keep collision active for the full duration
+        yield return new WaitForSeconds(collisionDuration);
+
+        // Disable collision
+        if (swordCollisionHandler != null)
+        {
+            swordCollisionHandler.DisableCollision();
+        }
+
+        // Open combo window EARLY for fluid combos
+        float comboStartTime = duration * comboWindowStart;
+        float timeUntilCombo = comboStartTime - (collisionStartTime + collisionDuration);
+        if (timeUntilCombo > 0)
+        {
+            yield return new WaitForSeconds(timeUntilCombo);
+        }
+
+        OpenComboWindow();
+
+        yield return new WaitForSeconds(customTrailDuration);
+        if (weaponTrail != null) weaponTrail.StopTrail();
+
+        yield return new WaitForSeconds(comboWindow - customTrailDuration);
+        CloseComboWindow();
+
+        bool hasQueuedAttack = attackQueue.Count > 0;
+        float recoveryTime = hasQueuedAttack ? comboExecutionDelay : attackCooldown;
+        yield return new WaitForSeconds(recoveryTime);
+
+        if (!hasQueuedAttack)
+        {
+            animator.SetBool(isAttackingHash, false);
+            animator.SetTrigger(exitAttackStateHash);
+
+            if (isSwordDrawn)
+            {
+                StartSmoothLayerTransition(swordMaskLayerIndex, 1f, 0.1f);
+            }
+
+            currentAttackCoroutine = null;
+            isAttacking = false;
+            canAttack = true;
+        }
+        else
+        {
+            AttackInput nextAttack = attackQueue.Dequeue();
+            currentAttackCoroutine = null;
+            canAttack = true;
+            ExecuteAttackFromQueue(nextAttack.type);
+        }
+
+        if (isHardAttack)
+        {
+            attackQueue.Clear();
+        }
+    }
+
+    private IEnumerator QueueTimeoutCheck()
+    {
+        yield return new WaitForSeconds(queueTimeout);
+        if (Time.time - lastInputTime >= queueTimeout)
+        {
+            if (attackQueue.Count > 0)
+            {
+                Debug.Log($"⏱️ Queue timeout - clearing {attackQueue.Count} queued attacks");
+                attackQueue.Clear();
+            }
+        }
+    }
+
+    private void CleanupQueueTimeout()
+    {
+        if (!isAttacking && attackQueue.Count > 0 && Time.time - lastInputTime >= queueTimeout)
+        {
+            attackQueue.Clear();
         }
     }
 
@@ -194,284 +469,70 @@ public class SwordCombatController : MonoBehaviour
     {
         if (isSwordDrawn)
         {
-            Debug.Log("Sheathing sword...");
             StartCoroutine(SheathSword());
         }
         else
         {
-            Debug.Log("Drawing sword...");
             StartCoroutine(DrawSword());
         }
     }
 
-    // ========================================
-    // DRAW SWORD - Can be done while moving
-    // ========================================
     private IEnumerator DrawSword()
     {
         isDrawingOrSheathing = true;
+        StartSmoothLayerTransition(swordMaskLayerIndex, 1f, layerTransitionSpeed);
 
-        // IMMEDIATELY enable sword mask layer
-        // This allows upper body to draw while legs continue locomotion
-        StartCoroutine(TransitionLayerWeight(swordMaskLayerIndex, 1f, layerTransitionSpeed));
-
-        // Trigger draw animation on BOTH layers
         animator.SetTrigger(drawSwordHash);
         animator.SetBool(isDrawnHash, true);
 
-        // Get animation length
         float animLength = GetAnimationLength("DrawSword");
-
-        // Wait for hand to reach sword position (25% into animation)
         yield return new WaitForSeconds(animLength * 0.25f);
 
-        // Switch from baked to prefab sword
-        if (bakedSwordRenderer != null)
-        {
-            bakedSwordRenderer.enabled = false;
-        }
-
-        if (prefabSword != null)
-        {
-            prefabSword.SetActive(true);
-        }
+        if (bakedSwordRenderer != null) bakedSwordRenderer.enabled = false;
+        if (prefabSword != null) prefabSword.SetActive(true);
 
         AttachSwordToHand();
-
-        // Wait for rest of draw animation
         yield return new WaitForSeconds(animLength * 0.75f);
 
         isSwordDrawn = true;
         isDrawingOrSheathing = false;
-
-        // Enable weapon trail
-        if (weaponTrail != null)
-        {
-            weaponTrail.enabled = true;
-        }
-
-        Debug.Log("Sword drawn - ready for combat");
     }
 
-    // ========================================
-    // SHEATH SWORD - Can be done while moving
-    // ========================================
     private IEnumerator SheathSword()
     {
         isDrawingOrSheathing = true;
+        attackQueue.Clear();
 
-        // Layer weight stays at 1 during sheath
-        // This allows upper body to sheath while legs continue locomotion
-
-        // Trigger sheath animation on BOTH layers
         animator.SetTrigger(sheathSwordHash);
         animator.SetBool(isDrawnHash, false);
 
-        // Disable weapon trail
-        if (weaponTrail != null)
-        {
-            weaponTrail.enabled = false;
-        }
+        if (weaponTrail != null) weaponTrail.StopTrail();
+        if (swordCollisionHandler != null) swordCollisionHandler.DisableCollision();
 
-        // Get animation length
         float animLength = GetAnimationLength("SheathSword");
-
-        // Wait until sword reaches belt (75% into animation)
         yield return new WaitForSeconds(animLength * 0.75f);
 
         AttachSwordToBelt();
-
         yield return new WaitForSeconds(animLength * 0.05f);
 
-        // Switch from prefab to baked sword
-        if (prefabSword != null)
-        {
-            prefabSword.SetActive(false);
-        }
-
-        if (bakedSwordRenderer != null)
-        {
-            bakedSwordRenderer.enabled = true;
-        }
+        if (prefabSword != null) prefabSword.SetActive(false);
+        if (bakedSwordRenderer != null) bakedSwordRenderer.enabled = true;
 
         yield return new WaitForSeconds(animLength * 0.20f);
 
         isSwordDrawn = false;
         attackCounter = 0;
 
-        // NOW disable sword mask layer after sheath completes
-        StartCoroutine(TransitionLayerWeight(swordMaskLayerIndex, 0f, layerTransitionSpeed));
-
+        StartSmoothLayerTransition(swordMaskLayerIndex, 0f, layerTransitionSpeed);
         isDrawingOrSheathing = false;
-
-        Debug.Log("Sword sheathed");
     }
 
-    // ========================================
-    // ATTACKS - Full body, stops movement
-    // ========================================
-    private void PerformEasyAttack()
+    private void StartSmoothLayerTransition(int layerIndex, float targetWeight, float duration)
     {
-        int randomIndex = Random.Range(0, easyAttackHashes.Length);
-        int attackHash = easyAttackHashes[randomIndex];
-
-        Debug.Log($"Performing Easy Attack: {easyAttackAnimations[randomIndex]}");
-
-        StartCoroutine(ExecuteAttack(attackHash, easyAttackDamage, easyAttackDuration));
-        attackCounter++;
+        if (currentLayerTransition != null) StopCoroutine(currentLayerTransition);
+        currentLayerTransition = StartCoroutine(TransitionLayerWeight(layerIndex, targetWeight, duration));
     }
 
-    private void PerformNormalAttack()
-    {
-        int randomIndex = Random.Range(0, normalAttackHashes.Length);
-        int attackHash = normalAttackHashes[randomIndex];
-
-        Debug.Log($"Performing Normal Attack: {normalAttackAnimations[randomIndex]}");
-
-        StartCoroutine(ExecuteAttack(attackHash, normalAttackDamage, normalAttackDuration));
-        attackCounter++;
-    }
-
-    private void PerformHardAttack()
-    {
-        Debug.Log("Performing Hard Attack!");
-
-        StartCoroutine(ExecuteHardAttack());
-        attackCounter = 0;
-    }
-
-    private IEnumerator ExecuteAttack(int animationHash, int damage, float duration)
-    {
-        isAttacking = true;
-        canAttack = false;
-
-        // STOP MOVEMENT - Dynasty Warriors style
-        if (movementInterface != null)
-        {
-            movementInterface.SetMovementEnabled(false);
-        }
-
-        // DISABLE sword mask layer for full body attack
-        animator.SetLayerWeight(swordMaskLayerIndex, 0f);
-        Debug.Log($"Attack Started - Layer weight: {animator.GetLayerWeight(swordMaskLayerIndex)}");
-
-        // Trigger attack animation
-        animator.SetTrigger(animationHash);
-
-        // Wait for attack to execute (damage frame at 50% of animation)
-        yield return new WaitForSeconds(duration * 0.5f);
-
-        // Deal damage at the peak of the swing
-        DealDamageToEnemies(damage);
-
-        // Weapon trail effect
-        if (weaponTrail != null)
-        {
-            weaponTrail.StartTrail();
-            yield return new WaitForSeconds(0.3f);
-            weaponTrail.StopTrail();
-        }
-
-        // Wait for rest of animation
-        yield return new WaitForSeconds(duration * 0.5f);
-
-        // Cooldown before next attack
-        yield return new WaitForSeconds(attackCooldown);
-
-        // RE-ENABLE sword mask layer if sword is still drawn
-        if (isSwordDrawn)
-        {
-            StartCoroutine(TransitionLayerWeight(swordMaskLayerIndex, 1f, 0.15f));
-        }
-
-        // RE-ENABLE MOVEMENT
-        if (movementInterface != null)
-        {
-            movementInterface.SetMovementEnabled(true);
-        }
-
-        isAttacking = false;
-        canAttack = true;
-
-        Debug.Log($"Attack counter: {attackCounter}/{hardAttackRequirement}");
-    }
-
-    private IEnumerator ExecuteHardAttack()
-    {
-        isAttacking = true;
-        canAttack = false;
-
-        // STOP MOVEMENT
-        if (movementInterface != null)
-        {
-            movementInterface.SetMovementEnabled(false);
-        }
-
-        // DISABLE sword mask layer for full body attack
-        animator.SetLayerWeight(swordMaskLayerIndex, 0f);
-        Debug.Log($"Hard Attack Started - Layer weight: {animator.GetLayerWeight(swordMaskLayerIndex)}");
-
-        // Cinematic effect
-        if (useHardAttackCinematic)
-        {
-            StartCoroutine(HardAttackCinematic());
-        }
-
-        // Trigger hard attack animation
-        animator.SetTrigger(hardAttackHash);
-
-        // Wait for attack to execute
-        yield return new WaitForSeconds(hardAttackDuration * 0.5f);
-
-        // Deal massive damage
-        DealDamageToEnemies(hardAttackDamage);
-
-        // Extended weapon trail
-        if (weaponTrail != null)
-        {
-            weaponTrail.StartTrail();
-            yield return new WaitForSeconds(0.5f);
-            weaponTrail.StopTrail();
-        }
-
-        // Wait for rest of animation
-        yield return new WaitForSeconds(hardAttackDuration * 0.5f);
-
-        // Cooldown
-        yield return new WaitForSeconds(attackCooldown);
-
-        // RE-ENABLE sword mask layer if sword is still drawn
-        if (isSwordDrawn)
-        {
-            StartCoroutine(TransitionLayerWeight(swordMaskLayerIndex, 1f, 0.15f));
-        }
-
-        // RE-ENABLE MOVEMENT
-        if (movementInterface != null)
-        {
-            movementInterface.SetMovementEnabled(true);
-        }
-
-        isAttacking = false;
-        canAttack = true;
-
-        Debug.Log("Hard attack complete - Attack counter reset to 0");
-    }
-
-    private IEnumerator HardAttackCinematic()
-    {
-        Debug.Log("Hard Attack Cinematic Effect!");
-        // TODO: Add camera shake, slow motion, screen effects here
-        // Example:
-        // Time.timeScale = 0.3f; // Slow motion
-        // CameraShake.Shake(0.5f, 0.3f);
-        yield return new WaitForSeconds(cinematicDuration);
-        // Time.timeScale = 1f;
-    }
-
-    // ========================================
-    // HELPER METHODS
-    // ========================================
     private IEnumerator TransitionLayerWeight(int layerIndex, float targetWeight, float duration)
     {
         float startWeight = animator.GetLayerWeight(layerIndex);
@@ -486,12 +547,11 @@ public class SwordCombatController : MonoBehaviour
         }
 
         animator.SetLayerWeight(layerIndex, targetWeight);
+        currentLayerTransition = null;
     }
 
     private float GetAnimationLength(string animationName)
     {
-        // FIX: Search all clips in the controller instead of checking "current" state.
-        // This ensures that even if a transition is happening, we get the correct duration.
         if (animator != null && animator.runtimeAnimatorController != null)
         {
             foreach (AnimationClip clip in animator.runtimeAnimatorController.animationClips)
@@ -499,8 +559,7 @@ public class SwordCombatController : MonoBehaviour
                 if (clip.name == animationName) return clip.length;
             }
         }
-
-        return 1f; // Default fallback if not found
+        return 1f;
     }
 
     private void AttachSwordToHand()
@@ -523,62 +582,40 @@ public class SwordCombatController : MonoBehaviour
         }
     }
 
-    private void DealDamageToEnemies(int damage)
+    private void OpenComboWindow()
     {
-        if (attackPoint == null) return;
+        inComboWindow = true;
+        Debug.Log("🟢 COMBO WINDOW OPEN");
+    }
 
-        Collider[] hitEnemies = Physics.OverlapSphere(attackPoint.position, attackRange, enemyLayer);
+    private void CloseComboWindow()
+    {
+        inComboWindow = false;
+        Debug.Log("🔴 COMBO WINDOW CLOSED");
+    }
 
-        foreach (Collider enemy in hitEnemies)
+    public void ResetAllAttackTriggers()
+    {
+        foreach (int hash in easyAttackHashes) animator.ResetTrigger(hash);
+        foreach (int hash in normalAttackHashes) animator.ResetTrigger(hash);
+        animator.ResetTrigger(hardAttackHash);
+        animator.Update(0f);
+    }
+
+    public void SpawnSwingVFX()
+    {
+        if (swordCollisionHandler != null)
         {
-            EnemyHealth enemyHealth = enemy.GetComponent<EnemyHealth>();
-            if (enemyHealth != null)
-            {
-                enemyHealth.TakeDamage(damage);
-                Debug.Log($"Dealt {damage} damage to {enemy.name}");
-            }
+            swordCollisionHandler.CheckForHitAtEvent(easyAttackDamage);
         }
     }
 
-    private void OnDrawGizmosSelected()
-    {
-        if (attackPoint != null)
-        {
-            Gizmos.color = Color.red;
-            Gizmos.DrawWireSphere(attackPoint.position, attackRange);
-        }
-    }
+    // Animation events
+    public void OnDrawSwordAttach() => AttachSwordToHand();
+    public void OnSheathSwordAttach() => AttachSwordToBelt();
 
-    // ========================================
-    // ANIMATION EVENTS (called from animations)
-    // ========================================
-    public void OnDrawSwordAttach()
-    {
-        AttachSwordToHand();
-    }
-
-    public void OnSheathSwordAttach()
-    {
-        AttachSwordToBelt();
-    }
-
-    public void OnAttackHit()
-    {
-        Debug.Log("Attack hit frame - called from animation event");
-    }
-
-    // ========================================
-    // PUBLIC GETTERS
-    // ========================================
+    // Public properties
     public bool IsSwordDrawn => isSwordDrawn;
     public bool IsAttacking => isAttacking;
     public bool CanAttack => canAttack;
-}
-
-// ========================================
-// INTERFACE for movement controllers
-// ========================================
-public interface IMovementController
-{
-    void SetMovementEnabled(bool enabled);
 }
