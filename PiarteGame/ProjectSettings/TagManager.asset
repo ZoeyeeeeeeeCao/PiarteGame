@@ -9,6 +9,8 @@ TagManager:
   - NarrowBeam
   - SwingableLedge
   - CarriageRig
+  - Enemy
+  - PlayerWeapon
   layers:
   - Default
   - TransparentFX

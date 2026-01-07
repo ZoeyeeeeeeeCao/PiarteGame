@@ -37,7 +37,7 @@ public class EnemyHealthController : MonoBehaviour
     private void Update()
     {
         // Debug testing: Press E to damage the enemy
-        if (enableDebugKeys && !isDead && Input.GetKeyDown(KeyCode.E))
+        if (enableDebugKeys && !isDead && Input.GetKeyDown(KeyCode.T))
         {
             ApplyDamage(damagePerHit);
         }
@@ -53,9 +53,6 @@ public class EnemyHealthController : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Reduces health and invokes the appropriate events.
-    /// </summary>
     public void ApplyDamage(float amount)
     {
         if (isDead) return;
