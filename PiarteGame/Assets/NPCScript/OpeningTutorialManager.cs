@@ -50,6 +50,7 @@ public class OpeningTutorialManager : MonoBehaviour
     private bool tutorialActive = false;
     private bool missionActive = false;
     private bool tutorialStarted = false;
+    private bool allMissionsCompleted = false;
     private float movementTimer = 0f;
     private Vector3 lastPlayerPosition;
 
@@ -86,10 +87,11 @@ public class OpeningTutorialManager : MonoBehaviour
         if (tutorialActive && Input.GetKeyDown(KeyCode.Return))
             NextSlide();
 
-        if (missionActive)
+        if (missionActive && !allMissionsCompleted)
             CheckMissionProgress();
 
-        HandleNPCMissionVisibility();
+        if (!allMissionsCompleted)
+            HandleNPCMissionVisibility();
     }
 
     void HandleNPCMissionVisibility()
@@ -113,7 +115,7 @@ public class OpeningTutorialManager : MonoBehaviour
             {
                 if (mission.missionText != null)
                 {
-                    // Hide NPC missions if a generic one (like "Collect 5 items") is overriding the HUD
+                    // Hide ALL NPC missions (even completed ones) when generic mission is active
                     bool shouldBeVisible = !anyGenericMissionActive;
 
                     if (mission.missionText.gameObject.activeSelf != shouldBeVisible)
@@ -206,7 +208,7 @@ public class OpeningTutorialManager : MonoBehaviour
     {
         missionActive = true;
 
-        // NEW: Play sound effect when mission text first appears (White stage)
+        // Play sound effect when mission text first appears (White stage)
         if (missionStartAudio != null && audioSource != null)
             audioSource.PlayOneShot(missionStartAudio);
 
@@ -228,6 +230,8 @@ public class OpeningTutorialManager : MonoBehaviour
     {
         if (missions == null) return;
 
+        bool allComplete = true;
+
         foreach (var mission in missions)
         {
             // Stage 2: When NPC is destroyed, change visual state and play Complete Audio
@@ -237,6 +241,7 @@ public class OpeningTutorialManager : MonoBehaviour
 
                 if (mission.missionText != null)
                 {
+                    // Change to yellow and add strikethrough (don't force visibility)
                     mission.missionText.color = completedColor;
                     mission.missionText.text = "<s>" + mission.missionDescription + "</s>";
 
@@ -245,8 +250,48 @@ public class OpeningTutorialManager : MonoBehaviour
                     {
                         audioSource.PlayOneShot(missionCompleteAudio);
                     }
+
+                    Debug.Log($"✅ Mission completed: {mission.missionDescription}");
+                }
+            }
+
+            // Check if this mission is still incomplete
+            if (!mission.isCompleted)
+            {
+                allComplete = false;
+            }
+        }
+
+        // If all missions complete, hide/destroy them after a delay
+        if (allComplete && !allMissionsCompleted)
+        {
+            allMissionsCompleted = true;
+            Debug.Log("🎉 All NPC missions completed! Hiding mission texts...");
+            StartCoroutine(HideAllMissionTexts());
+        }
+    }
+
+    IEnumerator HideAllMissionTexts()
+    {
+        // Wait 2 seconds so player can see all missions are yellow/crossed
+        yield return new WaitForSeconds(2f);
+
+        // Hide or destroy all mission texts
+        if (missions != null)
+        {
+            foreach (var mission in missions)
+            {
+                if (mission.missionText != null)
+                {
+                    // Option 1: Hide (can reuse later)
+                    mission.missionText.gameObject.SetActive(false);
+
+                    // Option 2: Destroy (uncomment if you prefer)
+                    // Destroy(mission.missionText.gameObject);
                 }
             }
         }
+
+        Debug.Log("✅ All NPC mission texts hidden!");
     }
 }

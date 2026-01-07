@@ -4,19 +4,20 @@ using System.Collections;
 
 public class HerbTutorialSystem : TutorialManagerBase
 {
-    [Header("Tutorial Slides (NEW)")]
+    [Header("Audio Settings")]
+    public AudioSource audioSource;
+    public AudioClip slideTransitionSound;
+    public AudioClip missionStartSound;
+
+    [Header("Tutorial Slides")]
     public GameObject tutorialUI;
-    [Tooltip("Drag your slide images here. You can add more than 1!")]
     public GameObject[] tutorialSlides;
     private int currentSlideIndex = 0;
     private bool tutorialActive = false;
 
-    // --- NEW: INTERMEDIATE DIALOGUE ---
     [Header("Intermediate Dialogue")]
-    [Tooltip("This plays right after the player finishes reading the slides.")]
     public Dialogue afterSlidesDialogue;
     private bool waitingForPostSlideDialogue = false;
-    // ----------------------------------
 
     [Header("Teleport Points")]
     public Transform tutorialTeleportPoint;
@@ -37,38 +38,34 @@ public class HerbTutorialSystem : TutorialManagerBase
     public GameObject npcToDestroy;
     public Dialogue completionDialogue;
 
-    // Internal State
     private DialogueManager dialogueManager;
     private bool missionActive = false;
     private bool missionComplete = false;
-    private bool waitingForCompletionDialogue = false; // Renamed for clarity
+    private bool waitingForCompletionDialogue = false;
 
     void Start()
     {
         if (player == null) player = GameObject.FindGameObjectWithTag("Player");
         dialogueManager = FindObjectOfType<DialogueManager>();
 
-        // Hide UIs at start
+        if (audioSource == null) audioSource = GetComponent<AudioSource>();
+
         if (missionUI != null) missionUI.SetActive(false);
         if (tutorialUI != null) tutorialUI.SetActive(false);
     }
 
     void Update()
     {
-        // 1. Handle Slide Navigation (Enter Key)
         if (tutorialActive && Input.GetKeyDown(KeyCode.Return))
         {
             NextTutorialSlide();
         }
 
-        // 2. Handle "After Slides" Dialogue (The Middle One)
         if (waitingForPostSlideDialogue && dialogueManager != null && !dialogueManager.IsDialogueActive())
         {
             waitingForPostSlideDialogue = false;
-            Debug.Log("🗣️ Post-Slide dialogue finished. Player is free to gather herbs.");
         }
 
-        // 3. Handle Completion Logic (The End One)
         if (waitingForCompletionDialogue && dialogueManager != null && !dialogueManager.IsDialogueActive())
         {
             waitingForCompletionDialogue = false;
@@ -76,61 +73,70 @@ public class HerbTutorialSystem : TutorialManagerBase
         }
     }
 
-    // --- BASE CLASS METHODS ---
     public override void OnDialogueComplete()
     {
         StartCoroutine(StartSequence());
     }
 
-    public override bool IsMissionActive()
-    {
-        return missionActive;
-    }
-    // --------------------------
+    public override bool IsMissionActive() => missionActive;
 
     IEnumerator StartSequence()
     {
+        // 1. Short pause after dialogue closes
         yield return new WaitForSeconds(0.5f);
 
-        // 1. Teleport
-        if (tutorialTeleportPoint != null)
+        // 2. TELEPORT
+        if (tutorialTeleportPoint != null && player != null)
+        {
+            // If using a CharacterController, disable it temporarily during teleport
+            CharacterController cc = player.GetComponent<CharacterController>();
+            if (cc != null) cc.enabled = false;
+
             player.transform.position = tutorialTeleportPoint.position;
 
-        // 2. Start Mission Logic
-        StartMission();
+            if (cc != null) cc.enabled = true;
+            Debug.Log("🚀 Player Teleported. Waiting for world to catch up...");
+        }
 
-        // 3. Show Slides (if any)
+        // 3. LONGER DELAY (1 full second)
+        // We wait long enough for the camera to follow and the player to "spawn" visually
+        yield return new WaitForSeconds(1.0f);
+
+        // 4. Start Tutorial UI and FREEZE
         if (tutorialUI != null && tutorialSlides != null && tutorialSlides.Length > 0)
         {
             ShowTutorialUI();
         }
+        else
+        {
+            StartMission();
+        }
     }
 
-    void StartMission()
-    {
-        missionActive = true;
-        herbsCollected = 0;
-
-        if (missionUI != null) missionUI.SetActive(true);
-        UpdateUI();
-    }
-
-    // --- SLIDE LOGIC ---
     void ShowTutorialUI()
     {
         tutorialActive = true;
         tutorialUI.SetActive(true);
+
+        // FREEZE THE SCREEN
+        Time.timeScale = 0f;
+        Debug.Log("⏸️ Game Frozen");
+
         currentSlideIndex = 0;
         ShowSlide(0);
     }
 
     void ShowSlide(int index)
     {
-        // Hide all slides first
         foreach (var s in tutorialSlides) s.SetActive(false);
 
-        // Show the correct one
-        if (index < tutorialSlides.Length) tutorialSlides[index].SetActive(true);
+        if (index < tutorialSlides.Length)
+        {
+            tutorialSlides[index].SetActive(true);
+
+            if (slideTransitionSound != null && audioSource != null)
+                audioSource.PlayOneShot(slideTransitionSound);
+        }
     }
 
     void NextTutorialSlide()
@@ -142,53 +148,58 @@ public class HerbTutorialSystem : TutorialManagerBase
         }
         else
         {
-            // All slides finished
+            // UNFREEZE
+            Time.timeScale = 1f;
             tutorialActive = false;
             tutorialUI.SetActive(false);
 
-            // --- TRIGGER INTERMEDIATE DIALOGUE ---
-            if (afterSlidesDialogue.dialogueLines != null && afterSlidesDialogue.dialogueLines.Length > 0)
+            StartMission();
+
+            if (afterSlidesDialogue != null && afterSlidesDialogue.dialogueLines.Length > 0)
             {
                 StartCoroutine(StartMiddleDialogueWithDelay());
             }
         }
     }
 
-    // NEW: Small delay ensures the "Enter" key press doesn't skip the animation
+    void StartMission()
+    {
+        missionActive = true;
+        herbsCollected = 0;
+
+        if (missionUI != null)
+        {
+            missionUI.SetActive(true);
+            if (missionStartSound != null && audioSource != null)
+                audioSource.PlayOneShot(missionStartSound);
+        }
+        UpdateUI();
+    }
+
     IEnumerator StartMiddleDialogueWithDelay()
     {
-        yield return new WaitForSeconds(0.1f);
-
-        Debug.Log("🗣️ Triggering Intermediate Herb Dialogue.");
+        // Use Realtime delay because we just un-froze
+        yield return new WaitForSecondsRealtime(0.2f);
         dialogueManager.StartDialogue(afterSlidesDialogue);
         waitingForPostSlideDialogue = true;
     }
-    // -------------------
 
     public void OnHerbCollected()
     {
         if (!missionActive || missionComplete) return;
-
         herbsCollected++;
         UpdateUI();
-
-        if (herbsCollected >= herbsToCollect)
-        {
-            CompleteMission();
-        }
+        if (herbsCollected >= herbsToCollect) CompleteMission();
     }
 
     void UpdateUI()
     {
         if (missionTitleText != null) missionTitleText.text = missionTitle;
-
         if (missionProgressText != null)
         {
             missionProgressText.text = $"{herbsCollected}/{herbsToCollect}";
-
             if (herbsCollected >= herbsToCollect)
                 missionProgressText.color = Color.yellow;
-
             Canvas.ForceUpdateCanvases();
         }
     }
@@ -197,11 +208,9 @@ public class HerbTutorialSystem : TutorialManagerBase
     {
         missionComplete = true;
         missionActive = false;
-
         if (missionUI != null) missionUI.SetActive(false);
 
-        // --- TRIGGER COMPLETION DIALOGUE ---
-        if (completionDialogue.dialogueLines != null && completionDialogue.dialogueLines.Length > 0)
+        if (completionDialogue != null && completionDialogue.dialogueLines.Length > 0)
         {
             dialogueManager.StartDialogue(completionDialogue);
             waitingForCompletionDialogue = true;
@@ -215,7 +224,6 @@ public class HerbTutorialSystem : TutorialManagerBase
     IEnumerator TeleportBackAndCleanup()
     {
         yield return new WaitForSeconds(0.5f);
-
         if (returnTeleportPoint != null)
             player.transform.position = returnTeleportPoint.position;
 
