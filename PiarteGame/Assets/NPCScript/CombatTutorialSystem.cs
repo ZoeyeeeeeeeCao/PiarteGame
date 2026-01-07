@@ -5,22 +5,23 @@ using System.Collections.Generic;
 
 public class CombatTutorialSystem : TutorialManagerBase
 {
+    [Header("Audio Settings")]
+    public AudioSource audioSource;
+    public AudioClip slideTransitionSound;
+    public AudioClip missionStartSound;
+
     [Header("Target Enemies (Drag Here!)")]
-    [Tooltip("Drag the specific enemies the player must kill.")]
     public List<EnemyTutorialTarget> targetEnemies;
 
-    [Header("Tutorial Slides (NEW)")]
+    [Header("Tutorial Slides")]
     public GameObject tutorialUI;
     public GameObject[] tutorialSlides;
     private int currentSlideIndex = 0;
     private bool tutorialActive = false;
 
-    // --- NEW: INTERMEDIATE DIALOGUE ---
-    [Header("Intermediate Dialogue")]
-    [Tooltip("This plays right after the player finishes reading the slides.")]
+    [Header("Intermediate Dialogue (Subtitles)")]
     public Dialogue afterSlidesDialogue;
     private bool waitingForPostSlideDialogue = false;
-    // ----------------------------------
 
     [Header("Teleport Points")]
     public Transform combatArenaPoint;
@@ -40,44 +41,37 @@ public class CombatTutorialSystem : TutorialManagerBase
     private int kills = 0;
     private DialogueManager dialogueManager;
     private bool missionActive = false;
-    private bool waitingForCompletionDialogue = false; // Renamed for clarity
+    private bool waitingForCompletionDialogue = false;
 
     void Start()
     {
         if (player == null) player = GameObject.FindGameObjectWithTag("Player");
         dialogueManager = FindObjectOfType<DialogueManager>();
 
-        // Hide UIs
+        if (audioSource == null) audioSource = GetComponent<AudioSource>();
+
         if (missionUI != null) missionUI.SetActive(false);
         if (tutorialUI != null) tutorialUI.SetActive(false);
 
-        // Auto-calculate target count based on the list size
         if (targetEnemies != null && targetEnemies.Count > 0)
         {
             enemiesToDefeat = targetEnemies.Count;
-        }
-        else
-        {
-            Debug.LogWarning("⚠️ Combat System: No enemies dragged into 'Target Enemies' list!");
         }
     }
 
     void Update()
     {
-        // 1. Handle Slide Navigation
+        // 1. Handle Slide Navigation (Works while Time.timeScale is 0)
         if (tutorialActive && Input.GetKeyDown(KeyCode.Return))
         {
             NextTutorialSlide();
         }
 
-        // 2. Handle "After Slides" Dialogue (The Middle One)
         if (waitingForPostSlideDialogue && dialogueManager != null && !dialogueManager.IsDialogueActive())
         {
             waitingForPostSlideDialogue = false;
-            Debug.Log("🗣️ Post-Slide dialogue finished. Combat Start!");
         }
 
-        // 3. Handle Completion Dialogue (The End One)
         if (waitingForCompletionDialogue && dialogueManager != null && !dialogueManager.IsDialogueActive())
         {
             waitingForCompletionDialogue = false;
@@ -92,16 +86,30 @@ public class CombatTutorialSystem : TutorialManagerBase
     {
         yield return new WaitForSeconds(0.5f);
 
-        // Teleport
-        if (combatArenaPoint != null) player.transform.position = combatArenaPoint.position;
+        // 1. TELEPORT FIRST
+        if (combatArenaPoint != null && player != null)
+        {
+            CharacterController cc = player.GetComponent<CharacterController>();
+            if (cc != null) cc.enabled = false;
 
-        // Start Mission
-        StartMission();
+            player.transform.position = combatArenaPoint.position;
+            player.transform.rotation = combatArenaPoint.rotation;
 
-        // Show Slides
+            if (cc != null) cc.enabled = true;
+            Debug.Log("🚀 Player Teleported to Arena");
+        }
+
+        // 2. LONGER DELAY (Ensures world settles before freeze)
+        yield return new WaitForSeconds(1.0f);
+
+        // 3. Show Slides (Freeze) OR Start Mission
         if (tutorialUI != null && tutorialSlides != null && tutorialSlides.Length > 0)
         {
             ShowTutorialUI();
+        }
+        else
+        {
+            StartMission();
         }
     }
 
@@ -109,7 +117,12 @@ public class CombatTutorialSystem : TutorialManagerBase
     {
         missionActive = true;
         kills = 0;
-        if (missionUI != null) missionUI.SetActive(true);
+        if (missionUI != null)
+        {
+            missionUI.SetActive(true);
+            if (missionStartSound != null && audioSource != null)
+                audioSource.PlayOneShot(missionStartSound);
+        }
         UpdateUI();
     }
 
@@ -118,6 +131,7 @@ public class CombatTutorialSystem : TutorialManagerBase
     {
         tutorialActive = true;
         tutorialUI.SetActive(true);
+        Time.timeScale = 0f;
         currentSlideIndex = 0;
         ShowSlide(0);
     }
@@ -125,7 +139,12 @@ public class CombatTutorialSystem : TutorialManagerBase
     void ShowSlide(int index)
     {
         foreach (var s in tutorialSlides) s.SetActive(false);
-        if (index < tutorialSlides.Length) tutorialSlides[index].SetActive(true);
+        if (index < tutorialSlides.Length)
+        {
+            tutorialSlides[index].SetActive(true);
+            if (slideTransitionSound != null && audioSource != null)
+                audioSource.PlayOneShot(slideTransitionSound);
+        }
     }
 
     void NextTutorialSlide()
@@ -137,39 +156,35 @@ public class CombatTutorialSystem : TutorialManagerBase
         }
         else
         {
-            // Slides Finished
+            Time.timeScale = 1f;
             tutorialActive = false;
             tutorialUI.SetActive(false);
 
-            // --- TRIGGER INTERMEDIATE DIALOGUE ---
-            if (afterSlidesDialogue.dialogueLines != null && afterSlidesDialogue.dialogueLines.Length > 0)
+            StartMission();
+
+            if (afterSlidesDialogue != null && afterSlidesDialogue.dialogueLines.Length > 0)
             {
-                StartCoroutine(StartMiddleDialogueWithDelay());
+                StartCoroutine(StartMiddleSubtitleWithDelay());
             }
         }
     }
 
-    // NEW: Small delay ensures the "Enter" key press doesn't skip the animation
-    IEnumerator StartMiddleDialogueWithDelay()
+    IEnumerator StartMiddleSubtitleWithDelay()
     {
-        yield return new WaitForSeconds(0.1f);
-
-        Debug.Log("🗣️ Triggering Intermediate Combat Dialogue.");
-        dialogueManager.StartDialogue(afterSlidesDialogue);
+        yield return new WaitForSecondsRealtime(0.1f);
+        // CHANGED: Triggering as Subtitle Mode (Hands-free)
+        dialogueManager.StartDialogue(afterSlidesDialogue, DialogueManager.DialogueMode.Subtitle);
         waitingForPostSlideDialogue = true;
     }
-    // -------------------
 
     public void OnEnemyKilled(EnemyTutorialTarget enemyDied)
     {
         if (!missionActive) return;
 
-        // Check if this enemy is in our "To Kill" list
         if (targetEnemies.Contains(enemyDied))
         {
             kills++;
-            targetEnemies.Remove(enemyDied); // Remove so it can't be counted twice
-
+            targetEnemies.Remove(enemyDied);
             UpdateUI();
 
             if (kills >= enemiesToDefeat) CompleteMission();
@@ -186,10 +201,10 @@ public class CombatTutorialSystem : TutorialManagerBase
         missionActive = false;
         if (missionUI != null) missionUI.SetActive(false);
 
-        // --- TRIGGER COMPLETION DIALOGUE ---
-        if (completionDialogue.dialogueLines != null && completionDialogue.dialogueLines.Length > 0)
+        if (completionDialogue != null && completionDialogue.dialogueLines.Length > 0)
         {
-            dialogueManager.StartDialogue(completionDialogue);
+            // CHANGED: Triggering as Subtitle Mode (Hands-free)
+            dialogueManager.StartDialogue(completionDialogue, DialogueManager.DialogueMode.Subtitle);
             waitingForCompletionDialogue = true;
         }
         else
