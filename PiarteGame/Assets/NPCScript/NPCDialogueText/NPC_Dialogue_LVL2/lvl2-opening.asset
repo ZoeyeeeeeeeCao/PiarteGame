@@ -14,6 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   npcName: Ashford
   dialogueLines:
-  - text: "Wait\u2026 undead? Could this be the unknown island they talked about?
-      I need to explore carefully."
-    audioClip: {fileID: 8300000, guid: cc8dbc4d36137ed4c8d0ba43033f4882, type: 3}
+  - text: "Ugh\u2026 my head\u2026 Where am I now\u2026?\r\n"
+    audioClip: {fileID: 8300000, guid: a022e8a46f9347041a40f2ff11b9c44b, type: 3}
