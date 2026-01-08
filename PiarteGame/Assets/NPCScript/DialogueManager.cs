@@ -88,6 +88,14 @@ public class DialogueManager : MonoBehaviour
 
     public void StartDialogue(Dialogue dialogue, DialogueMode mode = DialogueMode.Dialogue, bool animate = true)
     {
+        // --- FIX: STOP GLITCHING ---
+        // Stop any current typewriter effects or slide-out routines
+        StopAllCoroutines();
+
+        // Immediately clear old text so it doesn't flash
+        if (dialogueText != null) dialogueText.text = "";
+        // ---------------------------
+
         currentMode = mode;
         isDialogueActive = true;
         currentLines = dialogue.dialogueLines;
@@ -101,17 +109,14 @@ public class DialogueManager : MonoBehaviour
             spacePromptText.SetActive(currentMode == DialogueMode.Dialogue);
         }
 
-        // Disable player controls
         DisablePlayerControls();
 
-        // Slide in animation ONLY if animate is true
         if (animate)
         {
             StartCoroutine(SlideInAndStartDialogue());
         }
         else
         {
-            // No animation - box stays visible, just update text
             if (dialogueBox != null)
             {
                 dialogueBox.SetActive(true);
@@ -136,13 +141,11 @@ public class DialogueManager : MonoBehaviour
         dialogueBox.SetActive(true);
 
         float elapsed = 0f;
-
         while (elapsed < slideSpeed)
         {
             elapsed += Time.deltaTime;
             float t = elapsed / slideSpeed;
             t = t * t * (3f - 2f * t);
-
             dialogueBoxRect.anchoredPosition = Vector2.Lerp(hiddenPosition, visiblePosition, t);
             yield return null;
         }
@@ -156,15 +159,12 @@ public class DialogueManager : MonoBehaviour
         if (dialogueBox == null || dialogueBoxRect == null) yield break;
 
         isAnimating = true;
-
         float elapsed = 0f;
-
         while (elapsed < slideSpeed)
         {
             elapsed += Time.deltaTime;
             float t = elapsed / slideSpeed;
             t = t * t * (3f - 2f * t);
-
             dialogueBoxRect.anchoredPosition = Vector2.Lerp(visiblePosition, hiddenPosition, t);
             yield return null;
         }
@@ -177,8 +177,11 @@ public class DialogueManager : MonoBehaviour
     IEnumerator TypeLine()
     {
         isTyping = true;
-        Dialogue.DialogueLine currentLineData = currentLines[lineIndex];
+
+        // Ensure text is empty before starting typewriter
         dialogueText.text = "";
+
+        Dialogue.DialogueLine currentLineData = currentLines[lineIndex];
         string lineToType = currentLineData.text;
 
         bool hasSpecificClip = currentLineData.audioClip != null;
@@ -224,6 +227,7 @@ public class DialogueManager : MonoBehaviour
 
     void FinishLineInstantly()
     {
+        // Stop current typing coroutine
         StopAllCoroutines();
         dialogueText.text = currentLines[lineIndex].text;
         isTyping = false;
@@ -265,10 +269,15 @@ public class DialogueManager : MonoBehaviour
         }
         else
         {
-            // End of current dialogue part
             isDialogueActive = false;
             isTyping = false;
-            Debug.Log("📝 Dialogue part finished (box stays visible)");
+
+            if (currentMode == DialogueMode.Subtitle)
+            {
+                CloseDialogueBox();
+            }
+
+            Debug.Log("📝 Dialogue part finished");
         }
     }
 
@@ -286,12 +295,13 @@ public class DialogueManager : MonoBehaviour
             spacePromptText.SetActive(false);
 
         EnablePlayerControls();
-
-        Debug.Log("🎉 Dialogue box closed!");
     }
 
     public void EndDialogue(bool animate = true)
     {
+        // Stop typewriter immediately if manually ending
+        StopAllCoroutines();
+
         if (animate)
         {
             StartCoroutine(EndDialogueWithAnimation());
@@ -300,49 +310,34 @@ public class DialogueManager : MonoBehaviour
         {
             isDialogueActive = false;
             isTyping = false;
-
-            if (spacePromptText != null)
-                spacePromptText.SetActive(false);
-
-            Debug.Log("🎉 Dialogue closed (no animation)!");
+            if (dialogueBox != null) dialogueBox.SetActive(false);
+            if (spacePromptText != null) spacePromptText.SetActive(false);
+            EnablePlayerControls();
         }
     }
 
     IEnumerator EndDialogueWithAnimation()
     {
         isTyping = false;
-
         yield return new WaitForSeconds(closeDelay);
-
         yield return StartCoroutine(SlideOut());
-
         isDialogueActive = false;
-
-        if (spacePromptText != null)
-            spacePromptText.SetActive(false);
-
-        // Re-enable player controls after dialogue ends
+        if (spacePromptText != null) spacePromptText.SetActive(false);
         EnablePlayerControls();
-
-        Debug.Log("🎉 Dialogue closed!");
     }
 
     void DisablePlayerControls()
     {
-        if (playerController != null)
-            playerController.enabled = false;
+        if (currentMode == DialogueMode.Subtitle) return;
 
-        if (locomotionController != null)
-            locomotionController.enabled = false;
+        if (playerController != null) playerController.enabled = false;
+        if (locomotionController != null) locomotionController.enabled = false;
     }
 
     void EnablePlayerControls()
     {
-        if (playerController != null)
-            playerController.enabled = true;
-
-        if (locomotionController != null)
-            locomotionController.enabled = true;
+        if (playerController != null) playerController.enabled = true;
+        if (locomotionController != null) locomotionController.enabled = true;
     }
 
     public bool IsDialogueActive() => isDialogueActive;

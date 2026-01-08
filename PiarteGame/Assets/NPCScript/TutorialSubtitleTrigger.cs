@@ -18,12 +18,14 @@ public class TutorialSubtitleTrigger : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        // Check if the player entered and we haven't triggered yet
         if (other.CompareTag("Player") && !hasTriggered)
         {
             if (dialogueManager != null)
             {
-                // Play as Subtitle (Auto-advancing, no Enter key)
+                // FIX: Stop current dialogue to clear old text buffer and prevent glitches
+                dialogueManager.EndDialogue();
+
+                // Play as Subtitle (Auto-advancing)
                 dialogueManager.StartDialogue(dialogue, DialogueManager.DialogueMode.Subtitle);
 
                 if (triggerOnlyOnce) hasTriggered = true;
