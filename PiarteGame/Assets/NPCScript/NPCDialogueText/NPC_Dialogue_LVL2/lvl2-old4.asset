@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be99e75ec8c1d44449c01afbde21cbcb, type: 3}
+  m_Name: lvl2-old4
+  m_EditorClassIdentifier: 
+  npcName: Old man
+  dialogueLines:
+  - text: "You\u2019re just another fool chasing death. Leave. Now.\r\n"
+    audioClip: {fileID: 8300000, guid: ef309fba7a78f884791a62cfa4036dae, type: 3}
+  - text: " \u2026That light.\r\n Is that\u2026 a relic stone?"
+    audioClip: {fileID: 8300000, guid: 5e8ae0bab6326544383cdbe73b3d917a, type: 3}
