@@ -114,8 +114,11 @@ public class AnswerDoor : MonoBehaviour
         {
             if (objectToDestroy != null)
             {
-                Destroy(objectToDestroy);
+                var rev = objectToDestroy.GetComponent<RevertibleObject>();
+                if (rev != null) rev.FakeDestroy();
+                else objectToDestroy.SetActive(false); // ×îÉÙ±ðDestroy
             }
+
             else
             {
                 Debug.LogWarning($"{name}: Wrong door missing objectToDestroy.");
