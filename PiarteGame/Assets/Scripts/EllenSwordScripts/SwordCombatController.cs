@@ -32,6 +32,11 @@ public class SwordCombatController : MonoBehaviour
     [SerializeField] private float rotationSpeed = 1080f; // Faster rotation
     [SerializeField] private float animationSpeedMultiplier = 1.3f; // Speed up animations!
 
+    [Header("Camera Rotation During Attack")]
+    [SerializeField] private bool enableCameraRotationDuringAttack = true;
+    [SerializeField] private float attackRotationSpeed = 720f;
+    [SerializeField] private bool updateAttackDirectionWithCamera = true;
+
     [Header("Queue System")]
     [SerializeField] private int maxQueueSize = 1;
     [SerializeField] private float queueTimeout = 1.0f;
@@ -84,6 +89,7 @@ public class SwordCombatController : MonoBehaviour
     private bool canAttack = true;
     private bool isDrawingOrSheathing = false;
     private bool inComboWindow = false;
+    private bool isRotatingDuringAttack = false;
 
     // Attack tracking
     private int attackCounter = 0;
@@ -94,6 +100,7 @@ public class SwordCombatController : MonoBehaviour
     private Coroutine queueTimeoutCoroutine;
     private Coroutine currentLayerTransition = null;
     private Coroutine currentAttackCoroutine = null;
+    private Coroutine cameraRotationCoroutine = null;
 
     // Animation hashes
     private int drawSwordHash;
@@ -235,7 +242,7 @@ public class SwordCombatController : MonoBehaviour
             weaponTrail.StopTrail();
         }
 
-        Debug.Log("Combat System initialized - FLUID COMBAT MODE");
+        Debug.Log("Combat System initialized - FLUID COMBAT MODE with CAMERA ROTATION");
     }
 
     private void Update()
@@ -246,14 +253,14 @@ public class SwordCombatController : MonoBehaviour
 
     private void HandleInput()
     {
-        if (Input.GetKeyDown(KeyCode.E) && !isAttacking && !isDrawingOrSheathing)
+        if (Input.GetKeyDown(KeyCode.X) && !isAttacking && !isDrawingOrSheathing)
         {
             ToggleSword();
         }
 
         if (isSwordDrawn && !isDrawingOrSheathing)
         {
-            if (Input.GetKeyDown(KeyCode.H))
+            if (Input.GetKeyDown(KeyCode.R))
             {
                 if (attackCounter >= hardAttackRequirement)
                 {
@@ -353,7 +360,7 @@ public class SwordCombatController : MonoBehaviour
         // Faster layer transition for smoother attacks
         StartSmoothLayerTransition(swordMaskLayerIndex, 0f, 0.05f);
 
-        // ROTATE CHARACTER TO FACE CAMERA DIRECTION - FASTER
+        // INITIAL ROTATION TO FACE CAMERA DIRECTION - FASTER
         if (rotateTowardsCameraOnAttack && cameraController != null)
         {
             Quaternion targetRotation = cameraController.PlanarRotation;
@@ -384,6 +391,16 @@ public class SwordCombatController : MonoBehaviour
 
         animator.SetTrigger(animationHash);
         yield return null;
+
+        // START CONTINUOUS CAMERA ROTATION DURING ATTACK
+        if (enableCameraRotationDuringAttack && cameraController != null)
+        {
+            if (cameraRotationCoroutine != null)
+            {
+                StopCoroutine(cameraRotationCoroutine);
+            }
+            cameraRotationCoroutine = StartCoroutine(ContinuousCameraRotation(duration));
+        }
 
         // Calculate actual collision timing based on animation duration
         float collisionStartTime = duration * collisionWindowStart;
@@ -443,6 +460,13 @@ public class SwordCombatController : MonoBehaviour
         yield return new WaitForSeconds(comboWindow - customTrailDuration);
         CloseComboWindow();
 
+        // STOP CAMERA ROTATION
+        if (cameraRotationCoroutine != null)
+        {
+            StopCoroutine(cameraRotationCoroutine);
+            cameraRotationCoroutine = null;
+        }
+
         bool hasQueuedAttack = attackQueue.Count > 0;
         float recoveryTime = hasQueuedAttack ? comboExecutionDelay : attackCooldown;
         yield return new WaitForSeconds(recoveryTime);
@@ -473,6 +497,34 @@ public class SwordCombatController : MonoBehaviour
         {
             attackQueue.Clear();
         }
+    }
+
+    private IEnumerator ContinuousCameraRotation(float duration)
+    {
+        isRotatingDuringAttack = true;
+        float elapsed = 0f;
+
+        Debug.Log("🎥 Started continuous camera rotation during attack");
+
+        while (elapsed < duration && cameraController != null)
+        {
+            // Get current camera rotation
+            Quaternion targetRotation = cameraController.PlanarRotation;
+
+            // Smoothly rotate player to match camera
+            transform.rotation = Quaternion.RotateTowards(
+                transform.rotation,
+                targetRotation,
+                attackRotationSpeed * Time.deltaTime
+            );
+
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        isRotatingDuringAttack = false;
+        cameraRotationCoroutine = null;
+        Debug.Log("🎥 Stopped camera rotation");
     }
 
     private IEnumerator QueueTimeoutCheck()
@@ -661,4 +713,5 @@ public class SwordCombatController : MonoBehaviour
     public bool IsSwordDrawn => isSwordDrawn;
     public bool IsAttacking => isAttacking;
     public bool CanAttack => canAttack;
+    public bool IsRotatingDuringAttack => isRotatingDuringAttack;
 }

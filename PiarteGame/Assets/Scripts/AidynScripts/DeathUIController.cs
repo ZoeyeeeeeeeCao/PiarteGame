@@ -13,6 +13,17 @@ public class DeathUIController : MonoBehaviour
     [Header("Pause Game When Shown")]
     [SerializeField] private bool pauseGame = true;
 
+    // =========================
+    // Gameplay UI to hide while death panel is shown (all optional)
+    // =========================
+    [Header("Gameplay UI (Optional)")]
+    [SerializeField] private GameObject questCanvas;        // 任务栏
+    [SerializeField] private GameObject conversationCanvas; // 对话Canvas
+
+    // ⭐ 新增：记录“死亡前是否是开启状态”
+    private bool questCanvasWasActiveBeforeDeath;
+    private bool conversationCanvasWasActiveBeforeDeath;
+
     private Coroutine showRoutine;
     private bool subscribed;
 
@@ -76,6 +87,21 @@ public class DeathUIController : MonoBehaviour
         if (deathPanel != null)
             deathPanel.SetActive(true);
 
+        // ⭐ 在隐藏之前，先记录当前是否是开启状态
+        if (questCanvas != null)
+        {
+            questCanvasWasActiveBeforeDeath = questCanvas.activeSelf;
+            if (questCanvasWasActiveBeforeDeath)
+                questCanvas.SetActive(false);
+        }
+
+        if (conversationCanvas != null)
+        {
+            conversationCanvasWasActiveBeforeDeath = conversationCanvas.activeSelf;
+            if (conversationCanvasWasActiveBeforeDeath)
+                conversationCanvas.SetActive(false);
+        }
+
         // ✅ ENABLE CURSOR FOR UI
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
@@ -98,6 +124,32 @@ public class DeathUIController : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
+        var cp = LevelCheckpointManager.Instance;
+        if (cp != null && cp.HasCheckpoint)
+        {
+            // 关闭死亡UI
+            if (deathPanel != null)
+                deathPanel.SetActive(false);
+
+            // ✅ 只恢复那些“死亡前本来就是开的” Gameplay UI
+            if (questCanvas != null && questCanvasWasActiveBeforeDeath)
+                questCanvas.SetActive(true);
+
+            if (conversationCanvas != null && conversationCanvasWasActiveBeforeDeath)
+                conversationCanvas.SetActive(true);
+
+            // 传送到 checkpoint + 恢复可回滚物体
+            cp.RespawnToCheckpoint();
+
+            // 通知玩家把 Collider 打开（触发器系统）
+            if (PlayerTriggerResetOnDeath.Instance != null)
+                PlayerTriggerResetOnDeath.Instance.OnRespawn();
+
+            Debug.Log("✅ Restart -> Respawn to checkpoint (no scene reload)");
+            return;
+        }
+
+        // 没有 checkpoint：走原逻辑 reload
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 }

@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be99e75ec8c1d44449c01afbde21cbcb, type: 3}
+  m_Name: lvl2-old3
+  m_EditorClassIdentifier: 
+  npcName: Old man
+  dialogueLines:
+  - text: 'Relic stones? Hah. Countless pirates came chasing that legend. Every single
+      one of them vanished. If you value your life, forget it and leave.
+
+'
+    audioClip: {fileID: 8300000, guid: 8b94f40682047004b9f0a337b0d5a8fb, type: 3}

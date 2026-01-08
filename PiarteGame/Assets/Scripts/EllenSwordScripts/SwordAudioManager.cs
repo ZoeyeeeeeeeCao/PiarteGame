@@ -14,7 +14,8 @@ public class SwordAudioManager : MonoBehaviour
     [SerializeField] private AudioClip drawSwordSound;
     [Tooltip("Sound when sheathing the sword")]
     [SerializeField] private AudioClip sheathSwordSound;
-    [SerializeField] private float drawSheathVolume = 0.7f;
+    [SerializeField] private float drawVolume = 0.7f;
+    [SerializeField] private float sheathVolume = 0.3f;
 
     [Header("Swing Sounds (Wind Swoosh)")]
     [Tooltip("Array of wind/swoosh sounds for sword swings")]
@@ -40,7 +41,7 @@ public class SwordAudioManager : MonoBehaviour
     [SerializeField] private float minDistance = 1f;
     [SerializeField] private float maxDistance = 15f;
 
-    private void Start()
+    private void Awake()
     {
         InitializeAudioSource();
     }
@@ -88,19 +89,20 @@ public class SwordAudioManager : MonoBehaviour
 
         if (audioSource == null)
         {
-            Debug.LogError("❌ AudioSource is NULL! Cannot play draw sound.");
+            Debug.LogError("❌ AudioSource is NULL!");
             return;
+        }
+
+        if (!audioSource.enabled)
+        {
+            audioSource.enabled = true;
         }
 
         if (drawSwordSound != null)
         {
             audioSource.pitch = 1f;
-            audioSource.PlayOneShot(drawSwordSound, drawSheathVolume);
-            Debug.Log($"✅ Playing draw sword sound: {drawSwordSound.name} at volume {drawSheathVolume}");
-        }
-        else
-        {
-            Debug.LogWarning("⚠️ Draw sword sound not assigned in Inspector!");
+            audioSource.PlayOneShot(drawSwordSound, drawVolume);
+            Debug.Log($"✅ Playing draw sword sound: {drawSwordSound.name}");
         }
     }
 
@@ -112,7 +114,7 @@ public class SwordAudioManager : MonoBehaviour
         if (sheathSwordSound != null)
         {
             audioSource.pitch = 1f;
-            audioSource.PlayOneShot(sheathSwordSound, drawSheathVolume);
+            audioSource.PlayOneShot(sheathSwordSound, sheathVolume);
             Debug.Log("🔊 Playing sheath sword sound");
         }
         else
