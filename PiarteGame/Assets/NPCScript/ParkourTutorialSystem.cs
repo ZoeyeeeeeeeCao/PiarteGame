@@ -56,13 +56,11 @@ public class ParkourTutorialSystem : TutorialManagerBase
 
     void Update()
     {
-        // 1. Handle Slide Navigation (Works while frozen)
         if (tutorialActive && Input.GetKeyDown(KeyCode.Return))
         {
             NextTutorialSlide();
         }
 
-        // 2. Handle Dialogue checks
         if (waitingForPostSlideDialogue && dialogueManager != null && !dialogueManager.IsDialogueActive())
         {
             waitingForPostSlideDialogue = false;
@@ -176,7 +174,6 @@ public class ParkourTutorialSystem : TutorialManagerBase
     IEnumerator StartMiddleSubtitleWithDelay()
     {
         yield return new WaitForSecondsRealtime(0.1f);
-        // CHANGED: Mode is now Subtitle (No Enter key required)
         dialogueManager.StartDialogue(afterSlidesDialogue, DialogueManager.DialogueMode.Subtitle);
         waitingForPostSlideDialogue = true;
     }
@@ -202,10 +199,17 @@ public class ParkourTutorialSystem : TutorialManagerBase
         }
     }
 
+    // UPDATED: Now shows "Reach Checkpoint (Current/Total)"
     void UpdateUI()
     {
         if (progressText != null)
-            progressText.text = $"Checkpoint {currentTargetIndex}/{checkpointObjects.Length}";
+        {
+            progressText.text = $"Reach Checkpoint ({currentTargetIndex}/{checkpointObjects.Length})";
+
+            // Optional: Change color to yellow when all are reached
+            if (currentTargetIndex >= checkpointObjects.Length)
+                progressText.color = Color.yellow;
+        }
     }
 
     void CompleteMission()
@@ -215,7 +219,6 @@ public class ParkourTutorialSystem : TutorialManagerBase
 
         if (completionDialogue.dialogueLines != null && completionDialogue.dialogueLines.Length > 0)
         {
-            // CHANGED: Mode is now Subtitle (No Enter key required)
             dialogueManager.StartDialogue(completionDialogue, DialogueManager.DialogueMode.Subtitle);
             waitingForCompletionDialogue = true;
         }

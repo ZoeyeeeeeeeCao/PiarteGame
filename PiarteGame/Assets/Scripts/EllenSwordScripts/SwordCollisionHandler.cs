@@ -5,6 +5,7 @@ using UnityEngine;
 /// <summary>
 /// Attach this script to your SWORD prefab (not the player).
 /// Handles all collision detection, damage dealing, and VFX spawning.
+/// NOW WITH HARD ATTACK AOE DAMAGE!
 /// </summary>
 public class SwordCollisionHandler : MonoBehaviour
 {
@@ -18,6 +19,15 @@ public class SwordCollisionHandler : MonoBehaviour
     [SerializeField] private Transform swordTipTransform;
     [Tooltip("Bottom point of the blade (for VFX positioning)")]
     [SerializeField] private Transform swordBottomTransform;
+
+    [Header("Hard Attack AOE Settings")]
+    [Tooltip("Radius around player for hard attack AOE damage")]
+    [SerializeField] private float hardAttackAOERadius = 2f;
+    [Tooltip("Damage dealt to enemies hit directly by the sword")]
+    [SerializeField] private int hardAttackDirectDamage = 40;
+    [Tooltip("Damage dealt to enemies in AOE range but not directly hit")]
+    [SerializeField] private int hardAttackAOEDamage = 20;
+    [SerializeField] private bool showAOEDebugGizmos = true;
 
     [Header("Contact VFX (Along Blade)")]
     [SerializeField] private GameObject[] enemyContactVFXPrefabs;
@@ -42,6 +52,8 @@ public class SwordCollisionHandler : MonoBehaviour
     [SerializeField] private float hitShakeDuration = 0.15f;
     [SerializeField] private float hitShakeMagnitude = 0.08f;
     [SerializeField] private float hitShakeRotation = 1.5f;
+    [SerializeField] private float hardAttackShakeDuration = 0.3f;
+    [SerializeField] private float hardAttackShakeMagnitude = 0.2f;
 
     [Header("Hit VFX on All Collisions")]
     [Tooltip("Spawn VFX when hitting any object with a collider")]
@@ -55,11 +67,34 @@ public class SwordCollisionHandler : MonoBehaviour
     [SerializeField] private float hardKnockbackForce = 10f;
     [SerializeField] private float hardAttackSpreadAngle = 15f;
 
+    [Header("Player Pull Settings")]
+    [SerializeField] private bool enablePlayerPull = true;
+    [SerializeField] private float normalPullDistance = 0.8f;
+    [SerializeField] private float hardPullDistance = 1.5f;
+    [SerializeField] private float pullSpeed = 15f;
+    [SerializeField] private float minDistanceToEnemy = 2f;
+    [SerializeField] private bool pullOnEveryHit = true;
+    [Tooltip("If true, pulls player slightly at the start of each attack towards nearest enemy")]
+    [SerializeField] private bool autoPullOnAttackStart = true;
+    [SerializeField] private float autoPullDistance = 0.5f;
+    [SerializeField] private float autoPullMaxRange = 5f;
+
+    [Header("Swing VFX (When Enemy In Range)")]
+    [Tooltip("VFX that spawns when swinging near an enemy")]
+    [SerializeField] private GameObject[] swingVFXPrefabs;
+    [SerializeField] private Transform swingVFXSpawnPoint;
+    [SerializeField] private float swingVFXLifetime = 1f;
+    [SerializeField] private float swingVFXDetectionRadius = 3f;
+    [SerializeField] private bool spawnSwingVFXOnAllSwings = false;
+
     // State tracking
     private bool isCollisionActive = false;
     private int currentAttackDamage = 0;
     private bool isHardAttack = false;
     private HashSet<Collider> hitTargetsThisAttack = new HashSet<Collider>();
+    private HashSet<Collider> aoeHitTargets = new HashSet<Collider>();
+    private CharacterController characterController;
+    private Collider lastTargetedEnemy = null;
 
     private void Start()
     {
@@ -67,15 +102,18 @@ public class SwordCollisionHandler : MonoBehaviour
 
         if (playerTransform == null)
         {
-            // Try to find player transform automatically
             GameObject player = GameObject.FindGameObjectWithTag("Player");
             if (player != null)
             {
                 playerTransform = player.transform;
+                characterController = player.GetComponent<CharacterController>();
             }
         }
+        else
+        {
+            characterController = playerTransform.GetComponent<CharacterController>();
+        }
 
-        // Try to find audio manager if not assigned
         if (audioManager == null)
         {
             audioManager = GetComponent<SwordAudioManager>();
@@ -88,11 +126,22 @@ public class SwordCollisionHandler : MonoBehaviour
 
     private void Update()
     {
-        // Debug: Show when collision is active
         if (debugCollisions && isCollisionActive)
         {
-            string attackType = isHardAttack ? "HARD ATTACK" : "Normal";
+            string attackType = isHardAttack ? "HARD ATTACK (AOE)" : "Normal";
             Debug.Log($"⚔️ COLLISION ACTIVE - Waiting for hits... (Damage: {currentAttackDamage}, Type: {attackType})");
+        }
+    }
+
+    private void OnDrawGizmos()
+    {
+        if (!showAOEDebugGizmos || playerTransform == null) return;
+
+        // Draw AOE radius for hard attacks
+        if (isHardAttack && isCollisionActive)
+        {
+            Gizmos.color = new Color(1f, 0f, 0f, 0.3f);
+            Gizmos.DrawWireSphere(playerTransform.position, hardAttackAOERadius);
         }
     }
 
@@ -116,7 +165,7 @@ public class SwordCollisionHandler : MonoBehaviour
         }
 
         swordCollider.enabled = false;
-        Debug.Log("✅ Sword collision handler initialized");
+        Debug.Log("✅ Sword collision handler initialized with AOE system");
     }
 
     public void EnableCollision(int damage, bool hardAttack = false)
@@ -131,10 +180,13 @@ public class SwordCollisionHandler : MonoBehaviour
         currentAttackDamage = damage;
         isHardAttack = hardAttack;
         hitTargetsThisAttack.Clear();
+        aoeHitTargets.Clear();
         swordCollider.enabled = true;
 
-        string attackType = hardAttack ? "HARD ATTACK" : "Normal Attack";
+        string attackType = hardAttack ? "HARD ATTACK (AOE)" : "Normal Attack";
         Debug.Log($"⚔️ COLLISION ENABLED - Damage: {damage} ({attackType})");
+
+        CheckAndSpawnSwingVFX();
     }
 
     public void DisableCollision()
@@ -148,7 +200,7 @@ public class SwordCollisionHandler : MonoBehaviour
 
         if (hitTargetsThisAttack.Count > 0)
         {
-            Debug.Log($"🛡️ COLLISION DISABLED - Hit {hitTargetsThisAttack.Count} targets this attack");
+            Debug.Log($"🛡️ COLLISION DISABLED - Hit {hitTargetsThisAttack.Count} direct targets, {aoeHitTargets.Count} AOE targets");
         }
         else
         {
@@ -156,26 +208,121 @@ public class SwordCollisionHandler : MonoBehaviour
         }
 
         hitTargetsThisAttack.Clear();
+        aoeHitTargets.Clear();
+    }
+
+    private void ApplyHardAttackAOE()
+    {
+        if (!isHardAttack || playerTransform == null) return;
+
+        Vector3 playerPos = playerTransform.position;
+        Collider[] enemiesInRange = Physics.OverlapSphere(playerPos, hardAttackAOERadius, enemyLayer);
+
+        Debug.Log($"💥 HARD ATTACK AOE: Found {enemiesInRange.Length} enemies in {hardAttackAOERadius}m radius");
+
+        foreach (Collider enemyCol in enemiesInRange)
+        {
+            if (enemyCol == null || enemyCol.gameObject == null) continue;
+
+            EnemyHealth enemyHealth = enemyCol.GetComponent<EnemyHealth>();
+            if (enemyHealth == null || enemyHealth.IsDead) continue;
+
+            bool isDirectHit = hitTargetsThisAttack.Contains(enemyCol);
+
+            if (isDirectHit)
+            {
+                Debug.Log($"⚔️ Direct sword hit on {enemyCol.name} - {hardAttackDirectDamage} damage");
+            }
+            else
+            {
+                aoeHitTargets.Add(enemyCol);
+
+                enemyHealth.TakeDamage(hardAttackAOEDamage);
+                Debug.Log($"🌊 AOE damage to {enemyCol.name} - {hardAttackAOEDamage} damage");
+
+                if (enableKnockback)
+                {
+                    EnemyKnockback knockback = enemyCol.GetComponent<EnemyKnockback>();
+                    if (knockback != null)
+                    {
+                        knockback.ApplyHardKnockback(playerPos, playerTransform.forward);
+                    }
+                }
+
+                Vector3 hitPos = enemyCol.ClosestPoint(playerPos);
+                Vector3 hitDir = (hitPos - playerPos).normalized;
+                SpawnContactVFXAlongBlade(enemyContactVFXPrefabs, hitPos, hitDir);
+            }
+        }
+
+        if (useFS_CameraShakeBridgeOnHit && FS_FS_CameraShakeBridgeBridge.Instance != null)
+        {
+            FS_FS_CameraShakeBridgeBridge.Instance.Shake(hardAttackShakeDuration, hardAttackShakeMagnitude, hitShakeRotation * 2f);
+        }
+
+        SpawnImpactWaveVFX(enemyImpactWaveVFXPrefabs);
+    }
+
+    private void PullPlayerTowardsEnemy(Vector3 enemyPosition, bool isFromHit)
+    {
+        if (!enablePlayerPull || playerTransform == null) return;
+
+        float distanceToEnemy = Vector3.Distance(playerTransform.position, enemyPosition);
+
+        if (distanceToEnemy > minDistanceToEnemy)
+        {
+            float pullDistance = isHardAttack ? hardPullDistance : normalPullDistance;
+            Vector3 directionToEnemy = (enemyPosition - playerTransform.position).normalized;
+
+            directionToEnemy.y = 0;
+            directionToEnemy.Normalize();
+
+            Vector3 moveVector = directionToEnemy * pullDistance;
+
+            if (characterController != null)
+            {
+                characterController.Move(moveVector);
+                Debug.Log($"🧲 Pulled player {pullDistance}m towards enemy using CharacterController");
+            }
+            else
+            {
+                Vector3 targetPosition = playerTransform.position + moveVector;
+                playerTransform.position = Vector3.Lerp(playerTransform.position, targetPosition, pullSpeed * Time.deltaTime);
+                Debug.Log($"🧲 Pulled player {pullDistance}m towards enemy using Transform");
+            }
+        }
     }
 
     private void HandleEnemyHit(Collider enemyCollider, Vector3 hitPosition, Vector3 hitDirection)
     {
-        string attackType = isHardAttack ? "HARD ATTACK" : "normal attack";
+        string attackType = isHardAttack ? "HARD ATTACK (Direct)" : "normal attack";
         Debug.Log($"⚔️ SWORD HIT ENEMY: {enemyCollider.gameObject.name} with {attackType}!");
 
-        // Deal damage
         EnemyHealth enemyHealth = enemyCollider.GetComponent<EnemyHealth>();
+        bool enemyIsAlive = true;
+
         if (enemyHealth != null)
         {
-            enemyHealth.TakeDamage(currentAttackDamage);
-            Debug.Log($"💔 Dealt {currentAttackDamage} damage to {enemyCollider.gameObject.name}");
+            int damageToApply = isHardAttack ? hardAttackDirectDamage : currentAttackDamage;
+            enemyHealth.TakeDamage(damageToApply);
+            Debug.Log($"💔 Dealt {damageToApply} damage to {enemyCollider.gameObject.name}");
+
+            enemyIsAlive = !enemyHealth.IsDead;
         }
         else
         {
             Debug.LogWarning($"⚠️ {enemyCollider.gameObject.name} is on enemy layer but has no EnemyHealth component!");
         }
 
-        // Apply knockback
+        if (enemyIsAlive && pullOnEveryHit)
+        {
+            PullPlayerTowardsEnemy(enemyCollider.transform.position, true);
+        }
+        else if (debugCollisions && !enemyIsAlive)
+        {
+            Debug.Log("❌ Enemy died - skipping pull");
+        }
+
         if (enableKnockback && playerTransform != null)
         {
             EnemyKnockback knockback = enemyCollider.GetComponent<EnemyKnockback>();
@@ -183,13 +330,11 @@ public class SwordCollisionHandler : MonoBehaviour
             {
                 if (isHardAttack)
                 {
-                    // Hard attack: push enemies back hard with spread
                     knockback.ApplyHardKnockback(playerTransform.position, playerTransform.forward);
                     Debug.Log($"💥💥 Applied HARD knockback to {enemyCollider.gameObject.name}");
                 }
                 else
                 {
-                    // Normal attack: light knockback
                     knockback.ApplyNormalKnockback(playerTransform.position);
                     Debug.Log($"💥 Applied normal knockback to {enemyCollider.gameObject.name}");
                 }
@@ -200,19 +345,16 @@ public class SwordCollisionHandler : MonoBehaviour
             }
         }
 
-        // Camera shake
         if (useFS_CameraShakeBridgeOnHit && FS_FS_CameraShakeBridgeBridge.Instance != null)
         {
             FS_FS_CameraShakeBridgeBridge.Instance.Shake(hitShakeDuration, hitShakeMagnitude, hitShakeRotation);
         }
 
-        // Play hit sound
         if (audioManager != null)
         {
             audioManager.PlayHitSound();
         }
 
-        // Spawn VFX
         SpawnContactVFXAlongBlade(enemyContactVFXPrefabs, hitPosition, hitDirection);
         SpawnImpactWaveVFX(enemyImpactWaveVFXPrefabs);
     }
@@ -222,13 +364,11 @@ public class SwordCollisionHandler : MonoBehaviour
         if (debugCollisions)
             Debug.Log($"💥 SWORD HIT OBJECT: {otherCollider.gameObject.name}");
 
-        // Spawn general VFX
         if (spawnVFXOnAllCollisions)
         {
             SpawnContactVFXAlongBlade(generalContactVFXPrefabs, hitPosition, hitDirection);
             SpawnImpactWaveVFX(generalImpactWaveVFXPrefabs);
 
-            // Spawn generic hit VFX at collision point
             if (genericHitVFXPrefabs != null && genericHitVFXPrefabs.Length > 0)
             {
                 SpawnGenericHitVFX(hitPosition, hitDirection);
@@ -242,7 +382,6 @@ public class SwordCollisionHandler : MonoBehaviour
 
         if (swordTipTransform == null || swordBottomTransform == null)
         {
-            // Fallback: spawn at hit point only
             SpawnSingleVFX(vfxArray, hitPosition, hitDirection, vfxSizeMultiplier, contactVFXLifetime);
             return;
         }
@@ -252,7 +391,6 @@ public class SwordCollisionHandler : MonoBehaviour
         Vector3 bladeDirection = (tipPos - bottomPos).normalized;
         float bladeLength = Vector3.Distance(tipPos, bottomPos);
 
-        // Ensure blade direction is valid
         if (bladeDirection.magnitude < 0.01f)
         {
             bladeDirection = Vector3.up;
@@ -265,13 +403,11 @@ public class SwordCollisionHandler : MonoBehaviour
 
         if (vfxPrefab == null) return;
 
-        // Spawn VFX along the blade
         for (int i = 0; i < vfxSpawnCount; i++)
         {
             float t = vfxSpawnCount > 1 ? (float)i / (vfxSpawnCount - 1) : 0.5f;
             Vector3 spawnPosition = Vector3.Lerp(bottomPos, tipPos, t);
 
-            // Ensure hit direction is valid
             Vector3 safeHitDirection = hitDirection.magnitude > 0.01f ? hitDirection : Vector3.forward;
             Quaternion vfxRotation = Quaternion.LookRotation(-safeHitDirection, bladeDirection);
 
@@ -293,7 +429,6 @@ public class SwordCollisionHandler : MonoBehaviour
 
         if (vfxPrefab != null)
         {
-            // Ensure direction is valid
             Vector3 safeDirection = direction.magnitude > 0.01f ? direction : Vector3.forward;
             Quaternion vfxRotation = Quaternion.LookRotation(-safeDirection);
             GameObject vfx = Instantiate(vfxPrefab, position, vfxRotation);
@@ -306,32 +441,41 @@ public class SwordCollisionHandler : MonoBehaviour
     {
         if (swordTipTransform == null || swordBottomTransform == null) return;
 
-        // 1. Define the sword's space as a Capsule (more accurate for a blade)
         Vector3 point1 = swordTipTransform.position;
         Vector3 point2 = swordBottomTransform.position;
-        float radius = 0.5f; // Adjust this for how "thick" your hit detection should be
+        float radius = 0.5f;
 
-        // 2. Look for any colliders inside that capsule RIGHT NOW
         Collider[] hitColliders = Physics.OverlapCapsule(point1, point2, radius, enemyLayer);
 
         foreach (Collider col in hitColliders)
         {
-            // Don't hit the same enemy twice in one swing
+            if (col == null || col.gameObject == null) continue;
             if (hitTargetsThisAttack.Contains(col)) continue;
+
+            EnemyHealth health = col.GetComponent<EnemyHealth>();
+            if (health != null && health.IsDead) continue;
 
             hitTargetsThisAttack.Add(col);
 
-            // 3. Logic for the HIT VFX and Damage
             Vector3 hitPoint = col.ClosestPoint(point1);
             Vector3 hitDirection = (hitPoint - transform.position).normalized;
 
             Debug.Log($"💥 HIT DETECTED VIA EVENT on {col.name}! Spawning Hit VFX.");
 
-            // Deal Damage
-            EnemyHealth health = col.GetComponent<EnemyHealth>();
-            if (health != null) health.TakeDamage(damage);
+            bool enemyIsAlive = true;
 
-            // Apply knockback
+            if (health != null)
+            {
+                int damageToApply = isHardAttack ? hardAttackDirectDamage : damage;
+                health.TakeDamage(damageToApply);
+                enemyIsAlive = !health.IsDead;
+            }
+
+            if (enemyIsAlive && pullOnEveryHit)
+            {
+                PullPlayerTowardsEnemy(col.transform.position, true);
+            }
+
             if (enableKnockback && playerTransform != null)
             {
                 EnemyKnockback knockback = col.GetComponent<EnemyKnockback>();
@@ -348,48 +492,50 @@ public class SwordCollisionHandler : MonoBehaviour
                 }
             }
 
-            // Play the Camera Shake
             if (useFS_CameraShakeBridgeOnHit && CameraNewShake.Instance != null)
             {
                 CameraNewShake.Instance.Shake(hitShakeDuration, hitShakeMagnitude, hitShakeRotation);
             }
 
-            // Play hit sound
             if (audioManager != null)
             {
                 audioManager.PlayHitSound();
             }
 
-            // Spawn the ACTUAL HIT EFFECTS (Sparks/Impacts)
             SpawnContactVFXAlongBlade(enemyContactVFXPrefabs, hitPoint, hitDirection);
             SpawnImpactWaveVFX(enemyImpactWaveVFXPrefabs);
+        }
+
+        if (isHardAttack)
+        {
+            ApplyHardAttackAOE();
         }
     }
 
     public void ForceInstantHitCheck(int damage)
     {
-        // 1. Create a "hit zone" around the sword tip and base
         Vector3 center = (swordTipTransform.position + swordBottomTransform.position) / 2f;
         float radius = Vector3.Distance(swordTipTransform.position, swordBottomTransform.position) / 2f;
 
-        // 2. Look for enemies in that zone RIGHT NOW
         Collider[] hitEnemies = Physics.OverlapSphere(center, radius + 0.5f, enemyLayer);
 
         foreach (Collider col in hitEnemies)
         {
-            // Avoid hitting the same enemy twice in one swing
             if (hitTargetsThisAttack.Contains(col)) continue;
 
             hitTargetsThisAttack.Add(col);
 
-            // 3. THIS IS THE HIT VFX LOGIC
             Vector3 hitPoint = col.ClosestPoint(center);
             Vector3 direction = (hitPoint - center).normalized;
 
             Debug.Log($"🎯 EVENT HIT: Found enemy {col.name}. Triggering HIT VFX!");
 
-            // This calls your existing HandleEnemyHit logic (Damage, Camera Shake, and HIT VFX)
             HandleEnemyHit(col, hitPoint, direction);
+        }
+
+        if (isHardAttack)
+        {
+            ApplyHardAttackAOE();
         }
     }
 
@@ -425,7 +571,6 @@ public class SwordCollisionHandler : MonoBehaviour
 
         if (vfxPrefab != null)
         {
-            // Ensure direction is valid
             Vector3 safeDirection = hitDirection.magnitude > 0.01f ? hitDirection : Vector3.forward;
             Quaternion vfxRotation = Quaternion.LookRotation(-safeDirection);
             GameObject vfx = Instantiate(vfxPrefab, hitPosition, vfxRotation);
@@ -436,7 +581,61 @@ public class SwordCollisionHandler : MonoBehaviour
         }
     }
 
-    // Public getters
+    private void CheckAndSpawnSwingVFX()
+    {
+        if (swingVFXPrefabs == null || swingVFXPrefabs.Length == 0) return;
+
+        bool enemiesNearby = false;
+
+        if (swordTipTransform != null && swordBottomTransform != null)
+        {
+            Vector3 center = (swordTipTransform.position + swordBottomTransform.position) / 2f;
+            Collider[] nearbyEnemies = Physics.OverlapSphere(center, swingVFXDetectionRadius, enemyLayer);
+            enemiesNearby = nearbyEnemies.Length > 0;
+
+            if (debugCollisions && enemiesNearby)
+            {
+                Debug.Log($"👁️ Detected {nearbyEnemies.Length} enemies in swing range!");
+            }
+        }
+
+        if (enemiesNearby || spawnSwingVFXOnAllSwings)
+        {
+            SpawnSwingVFX();
+        }
+    }
+
+    private void SpawnSwingVFX()
+    {
+        if (swingVFXPrefabs == null || swingVFXPrefabs.Length == 0) return;
+
+        Transform spawnPoint = swingVFXSpawnPoint != null ? swingVFXSpawnPoint : swordTipTransform;
+
+        if (spawnPoint == null)
+        {
+            Debug.LogWarning("⚠️ No spawn point for swing VFX. Assign swingVFXSpawnPoint or swordTipTransform.");
+            return;
+        }
+
+        int randomIndex = Random.Range(0, swingVFXPrefabs.Length);
+        GameObject vfxPrefab = swingVFXPrefabs[randomIndex];
+
+        if (vfxPrefab != null)
+        {
+            GameObject vfx = Instantiate(vfxPrefab, spawnPoint.position, spawnPoint.rotation);
+            vfx.transform.SetParent(spawnPoint);
+            Destroy(vfx, swingVFXLifetime);
+
+            if (debugCollisions)
+                Debug.Log($"💨 Spawned swing VFX: {vfxPrefab.name}");
+        }
+    }
+
+    public void TriggerSwingVFX()
+    {
+        CheckAndSpawnSwingVFX();
+    }
+
     public bool IsCollisionActive => isCollisionActive;
     public int CurrentDamage => currentAttackDamage;
     public int HitCountThisAttack => hitTargetsThisAttack.Count;

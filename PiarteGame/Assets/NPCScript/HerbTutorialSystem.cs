@@ -15,7 +15,7 @@ public class HerbTutorialSystem : TutorialManagerBase
     private int currentSlideIndex = 0;
     private bool tutorialActive = false;
 
-    [Header("Intermediate Dialogue (Subtitle)")]
+    [Header("Intermediate Subtitle")]
     public Dialogue afterSlidesDialogue;
     private bool waitingForPostSlideDialogue = false;
 
@@ -47,7 +47,6 @@ public class HerbTutorialSystem : TutorialManagerBase
     {
         if (player == null) player = GameObject.FindGameObjectWithTag("Player");
         dialogueManager = FindObjectOfType<DialogueManager>();
-
         if (audioSource == null) audioSource = GetComponent<AudioSource>();
 
         if (missionUI != null) missionUI.SetActive(false);
@@ -57,15 +56,10 @@ public class HerbTutorialSystem : TutorialManagerBase
     void Update()
     {
         if (tutorialActive && Input.GetKeyDown(KeyCode.Return))
-        {
             NextTutorialSlide();
-        }
 
-        // Handle logical flags for flow control
         if (waitingForPostSlideDialogue && dialogueManager != null && !dialogueManager.IsDialogueActive())
-        {
             waitingForPostSlideDialogue = false;
-        }
 
         if (waitingForCompletionDialogue && dialogueManager != null && !dialogueManager.IsDialogueActive())
         {
@@ -74,37 +68,25 @@ public class HerbTutorialSystem : TutorialManagerBase
         }
     }
 
-    public override void OnDialogueComplete()
-    {
-        StartCoroutine(StartSequence());
-    }
-
+    public override void OnDialogueComplete() => StartCoroutine(StartSequence());
     public override bool IsMissionActive() => missionActive;
 
     IEnumerator StartSequence()
     {
         yield return new WaitForSeconds(0.5f);
-
         if (tutorialTeleportPoint != null && player != null)
         {
             CharacterController cc = player.GetComponent<CharacterController>();
             if (cc != null) cc.enabled = false;
-
             player.transform.position = tutorialTeleportPoint.position;
-
             if (cc != null) cc.enabled = true;
         }
-
         yield return new WaitForSeconds(1.0f);
 
         if (tutorialUI != null && tutorialSlides != null && tutorialSlides.Length > 0)
-        {
             ShowTutorialUI();
-        }
         else
-        {
             StartMission();
-        }
     }
 
     void ShowTutorialUI()
@@ -131,21 +113,15 @@ public class HerbTutorialSystem : TutorialManagerBase
     {
         currentSlideIndex++;
         if (currentSlideIndex < tutorialSlides.Length)
-        {
             ShowSlide(currentSlideIndex);
-        }
         else
         {
             Time.timeScale = 1f;
             tutorialActive = false;
             tutorialUI.SetActive(false);
-
             StartMission();
-
             if (afterSlidesDialogue != null && afterSlidesDialogue.dialogueLines.Length > 0)
-            {
-                StartCoroutine(StartMiddleSubtitleWithDelay());
-            }
+                StartCoroutine(StartSubtitleWithDelay(afterSlidesDialogue, true));
         }
     }
 
@@ -162,14 +138,6 @@ public class HerbTutorialSystem : TutorialManagerBase
         UpdateUI();
     }
 
-    IEnumerator StartMiddleSubtitleWithDelay()
-    {
-        yield return new WaitForSecondsRealtime(0.2f);
-        // FIX: Start as Subtitle (Auto-advancing)
-        dialogueManager.StartDialogue(afterSlidesDialogue, DialogueManager.DialogueMode.Subtitle);
-        waitingForPostSlideDialogue = true;
-    }
-
     public void OnHerbCollected()
     {
         if (!missionActive || missionComplete) return;
@@ -183,7 +151,8 @@ public class HerbTutorialSystem : TutorialManagerBase
         if (missionTitleText != null) missionTitleText.text = missionTitle;
         if (missionProgressText != null)
         {
-            missionProgressText.text = $"{herbsCollected}/{herbsToCollect}";
+            // Fixed the string format here
+            missionProgressText.text = $"Gather herbs ({herbsCollected}/{herbsToCollect})";
             if (herbsCollected >= herbsToCollect)
                 missionProgressText.color = Color.yellow;
             Canvas.ForceUpdateCanvases();
@@ -198,23 +167,24 @@ public class HerbTutorialSystem : TutorialManagerBase
 
         if (completionDialogue != null && completionDialogue.dialogueLines.Length > 0)
         {
-            // FIX: Start as Subtitle (Auto-advancing)
             dialogueManager.StartDialogue(completionDialogue, DialogueManager.DialogueMode.Subtitle);
             waitingForCompletionDialogue = true;
         }
         else
-        {
             StartCoroutine(TeleportBackAndCleanup());
-        }
+    }
+
+    IEnumerator StartSubtitleWithDelay(Dialogue dial, bool isPostSlide)
+    {
+        yield return new WaitForSecondsRealtime(0.2f);
+        dialogueManager.StartDialogue(dial, DialogueManager.DialogueMode.Subtitle);
+        if (isPostSlide) waitingForPostSlideDialogue = true;
     }
 
     IEnumerator TeleportBackAndCleanup()
     {
         yield return new WaitForSeconds(0.5f);
-        if (returnTeleportPoint != null)
-            player.transform.position = returnTeleportPoint.position;
-
-        if (npcToDestroy != null)
-            Destroy(npcToDestroy);
+        if (returnTeleportPoint != null) player.transform.position = returnTeleportPoint.position;
+        if (npcToDestroy != null) Destroy(npcToDestroy);
     }
 }
