@@ -54,9 +54,11 @@ public class TwoWayInteraction : MonoBehaviour
     private bool playerInRange = false;
     private bool isTalking = false;
     private int currentLineIndex = 0;
-
-    // NEW FLAG: Tracks if we have already finished this specific interaction
     private bool interactionFinished = false;
+
+    // NEW: Variables to store start transformation
+    private Quaternion originalRotation;
+    private Vector3 originalPosition;
 
     void Start()
     {
@@ -73,12 +75,10 @@ public class TwoWayInteraction : MonoBehaviour
 
     void Update()
     {
-        // Don't even check for player if we are already done forever
         if (interactionFinished) return;
 
         CheckForPlayer();
 
-        // CHANGED: Added "!interactionFinished" to the check
         if (playerInRange && !isTalking && !interactionFinished && Input.GetKeyDown(KeyCode.E))
         {
             StartConversation();
@@ -95,9 +95,14 @@ public class TwoWayInteraction : MonoBehaviour
         currentLineIndex = -1;
 
         if (dialoguePanel != null) dialoguePanel.SetActive(true);
-
-        // Hide the particle (and it will stay hidden forever now)
         if (particleEffect != null) particleEffect.SetActive(false);
+
+        // --- 1. SAVE ORIGINAL POS & ROT ---
+        originalRotation = transform.rotation;
+        originalPosition = transform.position;
+
+        // --- 2. FACE THE PLAYER ---
+        StartCoroutine(SmoothLookAt(GameObject.FindGameObjectWithTag(playerTag).transform.position));
 
         if (shouldStandUp && npcAnimator != null)
         {
@@ -144,16 +149,14 @@ public class TwoWayInteraction : MonoBehaviour
 
     IEnumerator EndSequence()
     {
-        // --- NEW: LOCK THE INTERACTION ---
-        interactionFinished = true; // This ensures it can never run again
-        // ---------------------------------
+        interactionFinished = true;
 
         if (countsTowardsMission && !hasCounted)
         {
             hasCounted = true;
             if (MissionManager.Instance != null)
             {
-                MissionManager.Instance.AddProgress();
+                MissionManager.Instance.AddProgressToCurrent();
             }
         }
 
@@ -174,8 +177,56 @@ public class TwoWayInteraction : MonoBehaviour
             npcAnimator.SetBool(standParameter, false);
         }
 
+        // --- 3. RESET POSITION AND ROTATION ---
+        StartCoroutine(ResetNPC());
+
         isTalking = false;
         Debug.Log("Cutscene Ended. Interaction Locked.");
+    }
+
+    // Helper to rotate to player
+    IEnumerator SmoothLookAt(Vector3 targetPosition)
+    {
+        Vector3 direction = targetPosition - transform.position;
+        direction.y = 0;
+
+        if (direction != Vector3.zero)
+        {
+            Quaternion targetRot = Quaternion.LookRotation(direction);
+            float time = 0;
+            while (time < 1f)
+            {
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, time * 2 * Time.deltaTime);
+                time += Time.deltaTime;
+                yield return null;
+            }
+        }
+    }
+
+    // NEW Helper to return to original spot
+    IEnumerator ResetNPC()
+    {
+        float time = 0;
+        float duration = 1.5f; // How long it takes to sit back down properly
+
+        Vector3 startPos = transform.position;
+        Quaternion startRot = transform.rotation;
+
+        while (time < duration)
+        {
+            // Smoothly move Position back
+            transform.position = Vector3.Lerp(startPos, originalPosition, time / duration);
+
+            // Smoothly move Rotation back
+            transform.rotation = Quaternion.Slerp(startRot, originalRotation, time / duration);
+
+            time += Time.deltaTime;
+            yield return null;
+        }
+
+        // Force exact finish to prevent floating point errors
+        transform.position = originalPosition;
+        transform.rotation = originalRotation;
     }
 
     void CheckForPlayer()
@@ -196,7 +247,6 @@ public class TwoWayInteraction : MonoBehaviour
 
     void OnDrawGizmosSelected()
     {
-        // If finished, draw it Red to show it's disabled
         Gizmos.color = interactionFinished ? Color.red : Color.green;
         Gizmos.DrawWireSphere(transform.position, detectionRadius);
     }
