@@ -23,6 +23,10 @@ public class EnemyHealth : MonoBehaviour
 
     private bool isDead = false;
 
+    // Public property to access current health
+    public int CurrentHealth => currentHealth;
+    public bool IsDead => isDead;
+
     private void Start()
     {
         currentHealth = maxHealth;

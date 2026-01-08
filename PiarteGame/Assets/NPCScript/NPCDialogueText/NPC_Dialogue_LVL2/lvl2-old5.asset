@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be99e75ec8c1d44449c01afbde21cbcb, type: 3}
+  m_Name: lvl2-old5
+  m_EditorClassIdentifier: 
+  npcName: Old man
+  dialogueLines:
+  - text: "Interesting\u2026 Perhaps fate hasn\u2019t abandoned this island after
+      all."
+    audioClip: {fileID: 8300000, guid: d22da686bfcff4040933615ea5ad2a10, type: 3}
+  - text: "Very well. The stone you seek lies at the mountain\u2019s summit, sealed
+      behind an ancient door. "
+    audioClip: {fileID: 8300000, guid: 9cff2901ae4389c4fbbdd350823685d8, type: 3}
+  - text: "I hope you\u2019re strong enough to survive what waits above.\n Few ever
+      are."
+    audioClip: {fileID: 8300000, guid: 3920ee00464994d438c7447bc0b501a5, type: 3}
