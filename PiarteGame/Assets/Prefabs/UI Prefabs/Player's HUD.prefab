@@ -150,10 +150,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0cd44c1031e13a943bb63640046fad76, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_UiScaleMode: 0
+  m_UiScaleMode: 1
   m_ReferencePixelsPerUnit: 100
   m_ScaleFactor: 1
-  m_ReferenceResolution: {x: 800, y: 600}
+  m_ReferenceResolution: {x: 1920, y: 1080}
   m_ScreenMatchMode: 0
   m_MatchWidthOrHeight: 0
   m_PhysicalUnit: 3
@@ -191,9 +191,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   compassTape: {fileID: 4090869266158488903}
+  cameraTransform: {fileID: 0}
   playerTransform: {fileID: 0}
   viewScale: 1
   smoothSpeed: 10
+  questMarkerPrefab: {fileID: 3729151891246621216, guid: 022d2c3b830862a439bbd8bb6e2185b9, type: 3}
+  markerContainer: {fileID: 0}
+  markerMask: {fileID: 0}
+  markerMaxSize: 200
+  markerMinSize: 30
+  nearDistance: 1
+  farDistance: 100
+  markerColor: {r: 1, g: 1, b: 1, a: 1}
+  fadeSpeed: 8
+  fadeEdgeThreshold: 0.1
 --- !u!1 &1951075621119386490
 GameObject:
   m_ObjectHideFlags: 0
@@ -297,7 +308,7 @@ RectTransform:
   m_GameObject: {fileID: 2197415981439203186}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.84357244, y: 0.84357244, z: 0.84357244}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2402643630396280668}
@@ -362,7 +373,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3312d7739989d2b4e91e6319e9a96d76, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_Padding: {x: 50, y: 0, z: 50, w: 0}
+  m_Padding: {x: 0, y: 0, z: 0, w: 0}
   m_Softness: {x: 0, y: 0}
 --- !u!1 &5671651100291852207
 GameObject:
@@ -466,14 +477,14 @@ RectTransform:
   m_GameObject: {fileID: 6286979455462423286}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.8167603, y: 0.45888472, z: 0.35755393}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 3742667382324695680}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 359, y: 2}
+  m_AnchoredPosition: {x: 163, y: 2}
   m_SizeDelta: {x: 1808.3192, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &5080702456450586203
