@@ -13871,9 +13871,37 @@ PrefabInstance:
       value: Player's HUD
       objectReference: {fileID: 0}
     - target: {fileID: 5288879641449270210, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
+      propertyPath: nearDistance
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 5288879641449270210, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
+      propertyPath: markerColor.b
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5288879641449270210, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
+      propertyPath: markerColor.g
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5288879641449270210, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
+      propertyPath: markerMaxSize
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5288879641449270210, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
+      propertyPath: markerMinSize
+      value: 0.3
+      objectReference: {fileID: 0}
+    - target: {fileID: 5288879641449270210, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
+      propertyPath: markerContainer
+      value: 
+      objectReference: {fileID: 5763603507181786100}
+    - target: {fileID: 5288879641449270210, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
       propertyPath: playerTransform
       value: 
       objectReference: {fileID: 590772296}
+    - target: {fileID: 5288879641449270210, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
+      propertyPath: questMarkerPrefab
+      value: 
+      objectReference: {fileID: 3729151891246621216, guid: 022d2c3b830862a439bbd8bb6e2185b9, type: 3}
     - target: {fileID: 7622673159634153883, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
       propertyPath: m_Pivot.x
       value: 0
@@ -13959,6 +13987,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
+--- !u!224 &5763603507181786100 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 8676298256461621981, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
+  m_PrefabInstance: {fileID: 5763603507181786099}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &5779004006866802961
 GameObject:
   m_ObjectHideFlags: 0
