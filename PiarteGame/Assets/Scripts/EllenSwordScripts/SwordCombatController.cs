@@ -253,14 +253,14 @@ public class SwordCombatController : MonoBehaviour
 
     private void HandleInput()
     {
-        if (Input.GetKeyDown(KeyCode.F) && !isAttacking && !isDrawingOrSheathing)
+        if (Input.GetKeyDown(KeyCode.X) && !isAttacking && !isDrawingOrSheathing)
         {
             ToggleSword();
         }
 
         if (isSwordDrawn && !isDrawingOrSheathing)
         {
-            if (Input.GetKeyDown(KeyCode.C))
+            if (Input.GetKeyDown(KeyCode.R))
             {
                 if (attackCounter >= hardAttackRequirement)
                 {

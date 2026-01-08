@@ -3242,6 +3242,7 @@ GameObject:
   - component: {fileID: 1572630074887716013}
   - component: {fileID: 2919523169762050373}
   - component: {fileID: 111394079211492908}
+  - component: {fileID: 8741837729209862941}
   m_Layer: 10
   m_Name: Player
   m_TagString: Player
@@ -3889,6 +3890,18 @@ MonoBehaviour:
   use3DSound: 1
   minDistance: 1
   maxDistance: 15
+--- !u!114 &8741837729209862941
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3035561487057845852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a8a87356a0f3294991515cf4d6150a4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &3049322881435568984
 GameObject:
   m_ObjectHideFlags: 0
@@ -8633,6 +8646,8 @@ MonoBehaviour:
   deathPanel: {fileID: 7906912763564883126}
   showDelay: 0
   pauseGame: 1
+  questCanvas: {fileID: 0}
+  conversationCanvas: {fileID: 0}
 --- !u!1 &7084844674966329063
 GameObject:
   m_ObjectHideFlags: 0
