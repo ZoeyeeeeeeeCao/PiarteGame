@@ -6,7 +6,7 @@ AnimatorOverrideController:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: TwoHandAttack
+  m_Name: TwoHandAttackNVIllager
   m_Controller: {fileID: 9100000, guid: 195a369762526dc4d8dd29637a069d93, type: 2}
   m_Clips:
   - m_OriginalClip: {fileID: -203655887218126122, guid: 2e016a2abd809ee4db478d863c6e30e3, type: 3}
@@ -19,3 +19,5 @@ AnimatorOverrideController:
     m_OverrideClip: {fileID: -203655887218126122, guid: 471a68f5699ae2049a55a8567d61346d, type: 3}
   - m_OriginalClip: {fileID: -203655887218126122, guid: b3a82517b64161c478b0bf422abb2c51, type: 3}
     m_OverrideClip: {fileID: -203655887218126122, guid: 389b080b16ae29e44afb09ae91c0ecc3, type: 3}
+  - m_OriginalClip: {fileID: 7400000, guid: 022f5a4dee49cec43bf43097b534ad2f, type: 2}
+    m_OverrideClip: {fileID: -203655887218126122, guid: 0cc45d7441f61b84dad56a8902ff734b, type: 3}
