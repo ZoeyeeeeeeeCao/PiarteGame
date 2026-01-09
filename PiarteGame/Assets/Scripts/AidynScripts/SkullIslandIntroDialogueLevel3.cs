@@ -293,7 +293,7 @@ public class SkullIslandIntroDialogueLevel3 : MonoBehaviour
                 tribalAnimator.SetTrigger(whistleTrigger);
         }
 
-        string speakerName = line.speaker == SpeakerLevel3.Tribal ? "Tribal Guard" : "Ashford";
+        string speakerName = line.speaker == SpeakerLevel3.Tribal ? "Guard" : "Ashford";
         dialogueUI.SetLine(speakerName, line.text);
 
         // Voice
