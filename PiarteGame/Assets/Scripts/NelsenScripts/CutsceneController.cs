@@ -10,13 +10,14 @@ public class CutsceneController : MonoBehaviour
     [Tooltip("The main gameplay camera (e.g., Third Person Camera) to disable during the cutscene.")]
     //public GameObject thirdPersonCamera;
     public GameObject mainCamera;
+    public GameObject Player;
 
     [SerializeField] public WindTurbineController windController;
 
     private void Start()
     {
         mainCamera.SetActive(false);
-    }
+}
     private void OnEnable()
     {
         // Subscribe to the stopped event to know when the cutscene ends
@@ -48,6 +49,7 @@ public class CutsceneController : MonoBehaviour
 
         // 1. Hide the gameplay camera
         mainCamera.SetActive(true);
+        Player.SetActive(false);
         //thirdPersonCamera.SetActive(false);
 
 
@@ -63,6 +65,7 @@ public class CutsceneController : MonoBehaviour
         if (director == cutsceneDirector)
         {
             // 3. Reactivate the gameplay camera when the timeline ends
+            Player.SetActive(true);
             mainCamera.SetActive(false);
             //thirdPersonCamera.SetActive(true);
             windController.ActivateWind();
