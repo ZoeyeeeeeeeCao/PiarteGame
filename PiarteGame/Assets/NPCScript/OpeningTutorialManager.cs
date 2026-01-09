@@ -12,6 +12,11 @@ public class OpeningTutorialManager : MonoBehaviour
         [Tooltip("The actual TextMeshPro component for this mission")]
         public TextMeshProUGUI missionText;
         public string missionDescription = "Talk to NPC";
+
+        // NEW: Add Quest ID for compass
+        [Tooltip("The Quest ID that matches the compass questPoint")]
+        public string compassQuestID = "";
+
         [HideInInspector]
         public bool isCompleted = false;
     }
@@ -34,7 +39,7 @@ public class OpeningTutorialManager : MonoBehaviour
 
     [Header("NPC Mission System")]
     [Tooltip("The main background panel/box for the NPC missions")]
-    public GameObject missionBoxUI; // NEW: Added this to control the box together
+    public GameObject missionBoxUI;
     public MissionObjective[] missions;
     public Color completedColor = new Color(1f, 0.84f, 0f); // Yellow
 
@@ -48,6 +53,10 @@ public class OpeningTutorialManager : MonoBehaviour
     [Header("Movement Detection")]
     public float movementTimeRequired = 1.5f;
     public float minMovementSpeed = 0.1f;
+
+    // NEW: Add reference to compass
+    [Header("Compass Integration")]
+    public Compass compass;
 
     private bool tutorialActive = false;
     private bool missionActive = false;
@@ -68,6 +77,10 @@ public class OpeningTutorialManager : MonoBehaviour
 
         if (player != null)
             lastPlayerPosition = player.transform.position;
+
+        // NEW: Find compass if not assigned
+        if (compass == null)
+            compass = FindObjectOfType<Compass>();
 
         // Hide Mission Box and NPC mission HUD elements initially
         if (missionBoxUI != null) missionBoxUI.SetActive(false);
@@ -115,7 +128,6 @@ public class OpeningTutorialManager : MonoBehaviour
 
         if (missions != null && missionActive)
         {
-            // If generic mission is active, hide the whole box and all mission lines
             bool showOverallUI = !anyGenericMissionActive;
 
             if (missionBoxUI != null && missionBoxUI.activeSelf != showOverallUI)
@@ -128,6 +140,29 @@ public class OpeningTutorialManager : MonoBehaviour
                     if (mission.missionText.gameObject.activeSelf != showOverallUI)
                     {
                         mission.missionText.gameObject.SetActive(showOverallUI);
+                    }
+                }
+            }
+
+            // NEW: Hide compass markers when generic mission is active
+            if (compass != null && anyGenericMissionActive)
+            {
+                foreach (var mission in missions)
+                {
+                    if (!string.IsNullOrEmpty(mission.compassQuestID))
+                    {
+                        compass.HideMarker(mission.compassQuestID);
+                    }
+                }
+            }
+            else if (compass != null && !anyGenericMissionActive)
+            {
+                // Show markers again when generic mission ends
+                foreach (var mission in missions)
+                {
+                    if (!mission.isCompleted && !string.IsNullOrEmpty(mission.compassQuestID))
+                    {
+                        compass.ShowMarker(mission.compassQuestID);
                     }
                 }
             }
@@ -208,7 +243,6 @@ public class OpeningTutorialManager : MonoBehaviour
         yield return new WaitForSeconds(0.1f);
         if (welcomeDialogue != null && dialogueManager != null)
         {
-            // CHANGED: Triggered as Subtitle (Auto-advancing, no Enter required)
             dialogueManager.StartDialogue(welcomeDialogue, DialogueManager.DialogueMode.Subtitle);
         }
     }
@@ -217,7 +251,6 @@ public class OpeningTutorialManager : MonoBehaviour
     {
         missionActive = true;
 
-        // Show the mission box/background
         if (missionBoxUI != null) missionBoxUI.SetActive(true);
 
         if (missionStartAudio != null && audioSource != null)
@@ -232,6 +265,12 @@ public class OpeningTutorialManager : MonoBehaviour
                     m.missionText.gameObject.SetActive(true);
                     m.missionText.text = m.missionDescription;
                     m.missionText.color = Color.white;
+                }
+
+                // NEW: Show compass marker when mission starts
+                if (compass != null && !string.IsNullOrEmpty(m.compassQuestID))
+                {
+                    compass.ShowMarker(m.compassQuestID);
                 }
             }
         }
@@ -259,6 +298,12 @@ public class OpeningTutorialManager : MonoBehaviour
                         audioSource.PlayOneShot(missionCompleteAudio);
                     }
                 }
+
+                // NEW: Hide compass marker when mission completes
+                if (compass != null && !string.IsNullOrEmpty(mission.compassQuestID))
+                {
+                    compass.HideMarker(mission.compassQuestID);
+                }
             }
 
             if (!mission.isCompleted)
@@ -278,7 +323,6 @@ public class OpeningTutorialManager : MonoBehaviour
     {
         yield return new WaitForSeconds(2f);
 
-        // Hide the whole box and texts together
         if (missionBoxUI != null) missionBoxUI.SetActive(false);
 
         if (missions != null)

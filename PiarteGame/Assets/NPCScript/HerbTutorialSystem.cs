@@ -38,6 +38,17 @@ public class HerbTutorialSystem : TutorialManagerBase
     public GameObject npcToDestroy;
     public Dialogue completionDialogue;
 
+    // NEW: Compass Integration
+    [Header("Compass Integration")]
+    [Tooltip("Reference to the Compass script")]
+    public Compass compass;
+
+    [Tooltip("Quest ID that matches the compass questPoint - e.g., 'Herb_Tutorial'")]
+    public string compassQuestID = "Herb_Tutorial";
+
+    [Tooltip("Show marker during herb collection?")]
+    public bool showMarkerDuringCollection = true;
+
     private DialogueManager dialogueManager;
     private bool missionActive = false;
     private bool missionComplete = false;
@@ -48,6 +59,10 @@ public class HerbTutorialSystem : TutorialManagerBase
         if (player == null) player = GameObject.FindGameObjectWithTag("Player");
         dialogueManager = FindObjectOfType<DialogueManager>();
         if (audioSource == null) audioSource = GetComponent<AudioSource>();
+
+        // NEW: Find compass if not assigned
+        if (compass == null)
+            compass = FindObjectOfType<Compass>();
 
         if (missionUI != null) missionUI.SetActive(false);
         if (tutorialUI != null) tutorialUI.SetActive(false);
@@ -96,6 +111,12 @@ public class HerbTutorialSystem : TutorialManagerBase
         Time.timeScale = 0f;
         currentSlideIndex = 0;
         ShowSlide(0);
+
+        // NEW: Hide compass marker during tutorial slides
+        if (compass != null && !string.IsNullOrEmpty(compassQuestID))
+        {
+            compass.HideMarker(compassQuestID);
+        }
     }
 
     void ShowSlide(int index)
@@ -135,6 +156,13 @@ public class HerbTutorialSystem : TutorialManagerBase
             if (missionStartSound != null && audioSource != null)
                 audioSource.PlayOneShot(missionStartSound);
         }
+
+        // NEW: Show compass marker when mission starts (if enabled)
+        if (compass != null && !string.IsNullOrEmpty(compassQuestID) && showMarkerDuringCollection)
+        {
+            compass.ShowMarker(compassQuestID);
+        }
+
         UpdateUI();
     }
 
@@ -151,7 +179,6 @@ public class HerbTutorialSystem : TutorialManagerBase
         if (missionTitleText != null) missionTitleText.text = missionTitle;
         if (missionProgressText != null)
         {
-            // Fixed the string format here
             missionProgressText.text = $"Gather herbs ({herbsCollected}/{herbsToCollect})";
             if (herbsCollected >= herbsToCollect)
                 missionProgressText.color = Color.yellow;
@@ -164,6 +191,12 @@ public class HerbTutorialSystem : TutorialManagerBase
         missionComplete = true;
         missionActive = false;
         if (missionUI != null) missionUI.SetActive(false);
+
+        // NEW: Hide compass marker when mission completes
+        if (compass != null && !string.IsNullOrEmpty(compassQuestID))
+        {
+            compass.HideMarker(compassQuestID);
+        }
 
         if (completionDialogue != null && completionDialogue.dialogueLines.Length > 0)
         {
@@ -186,5 +219,11 @@ public class HerbTutorialSystem : TutorialManagerBase
         yield return new WaitForSeconds(0.5f);
         if (returnTeleportPoint != null) player.transform.position = returnTeleportPoint.position;
         if (npcToDestroy != null) Destroy(npcToDestroy);
+
+        // NEW: Make sure marker is hidden after cleanup
+        if (compass != null && !string.IsNullOrEmpty(compassQuestID))
+        {
+            compass.HideMarker(compassQuestID);
+        }
     }
 }
