@@ -25,7 +25,7 @@ public class FaceCamera : MonoBehaviour
         if (targetCamera == null) return;
 
         // Maintain the position offset above the parent
-        transform.position = transform.parent.position + _offsetFromParent;
+        //transform.position = transform.parent.position + _offsetFromParent;
 
         // Make the canvas face the camera
         Vector3 directionToCamera = targetCamera.transform.position - transform.position;
