@@ -5,13 +5,14 @@ using UnityEngine;
 /// <summary>
 /// Attach this script to your SWORD prefab (not the player).
 /// Handles all collision detection, damage dealing, and VFX spawning.
-/// NOW WITH HARD ATTACK AOE DAMAGE!
+/// NOW USES ENEMY TAG INSTEAD OF LAYER!
 /// </summary>
 public class SwordCollisionHandler : MonoBehaviour
 {
     [Header("Collision Setup")]
     [SerializeField] private Collider swordCollider;
-    [SerializeField] private LayerMask enemyLayer;
+    [Tooltip("Tag used to identify enemies (e.g., 'Enemy')")]
+    [SerializeField] private string enemyTag = "Enemy";
     [SerializeField] private bool debugCollisions = true;
 
     [Header("Sword Blade Points")]
@@ -165,7 +166,7 @@ public class SwordCollisionHandler : MonoBehaviour
         }
 
         swordCollider.enabled = false;
-        Debug.Log("✅ Sword collision handler initialized with AOE system");
+        Debug.Log($"✅ Sword collision handler initialized with TAG system (Enemy Tag: '{enemyTag}')");
     }
 
     public void EnableCollision(int damage, bool hardAttack = false)
@@ -211,38 +212,72 @@ public class SwordCollisionHandler : MonoBehaviour
         aoeHitTargets.Clear();
     }
 
+    private void OnTriggerEnter(Collider other)
+    {
+        if (!isCollisionActive) return;
+        if (hitTargetsThisAttack.Contains(other)) return;
+
+        // ✅ CHECK TAG INSTEAD OF LAYER
+        bool isEnemy = other.CompareTag(enemyTag);
+
+        if (isEnemy)
+        {
+            hitTargetsThisAttack.Add(other);
+            Vector3 hitPoint = other.ClosestPoint(transform.position);
+            Vector3 hitDirection = (hitPoint - transform.position).normalized;
+            HandleEnemyHit(other, hitPoint, hitDirection);
+        }
+        else if (spawnVFXOnAllCollisions)
+        {
+            Vector3 hitPoint = other.ClosestPoint(transform.position);
+            Vector3 hitDirection = (hitPoint - transform.position).normalized;
+            HandleGeneralCollision(other, hitPoint, hitDirection);
+        }
+    }
+
     private void ApplyHardAttackAOE()
     {
         if (!isHardAttack || playerTransform == null) return;
 
         Vector3 playerPos = playerTransform.position;
-        Collider[] enemiesInRange = Physics.OverlapSphere(playerPos, hardAttackAOERadius, enemyLayer);
 
-        Debug.Log($"💥 HARD ATTACK AOE: Found {enemiesInRange.Length} enemies in {hardAttackAOERadius}m radius");
+        // ✅ FIND ALL ENEMIES BY TAG
+        GameObject[] allEnemies = GameObject.FindGameObjectsWithTag(enemyTag);
 
-        foreach (Collider enemyCol in enemiesInRange)
+        Debug.Log($"💥 HARD ATTACK AOE: Found {allEnemies.Length} enemies with tag '{enemyTag}'");
+
+        foreach (GameObject enemyObj in allEnemies)
         {
-            if (enemyCol == null || enemyCol.gameObject == null) continue;
+            if (enemyObj == null) continue;
 
-            EnemyHealth enemyHealth = enemyCol.GetComponent<EnemyHealth>();
-            if (enemyHealth == null || enemyHealth.IsDead) continue;
+            float distance = Vector3.Distance(playerPos, enemyObj.transform.position);
+
+            // Check if within AOE radius
+            if (distance > hardAttackAOERadius) continue;
+
+            Collider enemyCol = enemyObj.GetComponent<Collider>();
+            if (enemyCol == null) continue;
+
+            EnemyHealthController enemyHealth = enemyObj.GetComponent<EnemyHealthController>();
+            if (enemyHealth == null) continue;
+            if (enemyHealth.GetHealth() <= 0) continue;
 
             bool isDirectHit = hitTargetsThisAttack.Contains(enemyCol);
 
             if (isDirectHit)
             {
-                Debug.Log($"⚔️ Direct sword hit on {enemyCol.name} - {hardAttackDirectDamage} damage");
+                Debug.Log($"⚔️ Direct sword hit on {enemyObj.name} - {hardAttackDirectDamage} damage");
             }
             else
             {
                 aoeHitTargets.Add(enemyCol);
 
-                enemyHealth.TakeDamage(hardAttackAOEDamage);
-                Debug.Log($"🌊 AOE damage to {enemyCol.name} - {hardAttackAOEDamage} damage");
+                enemyHealth.ApplyDamage(hardAttackAOEDamage);
+                Debug.Log($"🌊 AOE damage to {enemyObj.name} - {hardAttackAOEDamage} damage (Distance: {distance:F2}m)");
 
                 if (enableKnockback)
                 {
-                    EnemyKnockback knockback = enemyCol.GetComponent<EnemyKnockback>();
+                    EnemyKnockback knockback = enemyObj.GetComponent<EnemyKnockback>();
                     if (knockback != null)
                     {
                         knockback.ApplyHardKnockback(playerPos, playerTransform.forward);
@@ -298,20 +333,21 @@ public class SwordCollisionHandler : MonoBehaviour
         string attackType = isHardAttack ? "HARD ATTACK (Direct)" : "normal attack";
         Debug.Log($"⚔️ SWORD HIT ENEMY: {enemyCollider.gameObject.name} with {attackType}!");
 
-        EnemyHealth enemyHealth = enemyCollider.GetComponent<EnemyHealth>();
+        EnemyHealthController enemyHealth = enemyCollider.GetComponent<EnemyHealthController>();
         bool enemyIsAlive = true;
 
         if (enemyHealth != null)
         {
             int damageToApply = isHardAttack ? hardAttackDirectDamage : currentAttackDamage;
-            enemyHealth.TakeDamage(damageToApply);
+
+            enemyHealth.ApplyDamage(damageToApply);
             Debug.Log($"💔 Dealt {damageToApply} damage to {enemyCollider.gameObject.name}");
 
-            enemyIsAlive = !enemyHealth.IsDead;
+            enemyIsAlive = enemyHealth.GetHealth() > 0;
         }
         else
         {
-            Debug.LogWarning($"⚠️ {enemyCollider.gameObject.name} is on enemy layer but has no EnemyHealth component!");
+            Debug.LogWarning($"⚠️ {enemyCollider.gameObject.name} has tag '{enemyTag}' but no EnemyHealthController component!");
         }
 
         if (enemyIsAlive && pullOnEveryHit)
@@ -445,15 +481,19 @@ public class SwordCollisionHandler : MonoBehaviour
         Vector3 point2 = swordBottomTransform.position;
         float radius = 0.5f;
 
-        Collider[] hitColliders = Physics.OverlapCapsule(point1, point2, radius, enemyLayer);
+        Collider[] hitColliders = Physics.OverlapCapsule(point1, point2, radius);
 
         foreach (Collider col in hitColliders)
         {
             if (col == null || col.gameObject == null) continue;
+
+            // ✅ CHECK TAG
+            if (!col.CompareTag(enemyTag)) continue;
+
             if (hitTargetsThisAttack.Contains(col)) continue;
 
-            EnemyHealth health = col.GetComponent<EnemyHealth>();
-            if (health != null && health.IsDead) continue;
+            EnemyHealthController health = col.GetComponent<EnemyHealthController>();
+            if (health != null && health.GetHealth() <= 0) continue;
 
             hitTargetsThisAttack.Add(col);
 
@@ -467,8 +507,9 @@ public class SwordCollisionHandler : MonoBehaviour
             if (health != null)
             {
                 int damageToApply = isHardAttack ? hardAttackDirectDamage : damage;
-                health.TakeDamage(damageToApply);
-                enemyIsAlive = !health.IsDead;
+
+                health.ApplyDamage(damageToApply);
+                enemyIsAlive = health.GetHealth() > 0;
             }
 
             if (enemyIsAlive && pullOnEveryHit)
@@ -517,10 +558,13 @@ public class SwordCollisionHandler : MonoBehaviour
         Vector3 center = (swordTipTransform.position + swordBottomTransform.position) / 2f;
         float radius = Vector3.Distance(swordTipTransform.position, swordBottomTransform.position) / 2f;
 
-        Collider[] hitEnemies = Physics.OverlapSphere(center, radius + 0.5f, enemyLayer);
+        Collider[] hitEnemies = Physics.OverlapSphere(center, radius + 0.5f);
 
         foreach (Collider col in hitEnemies)
         {
+            // ✅ CHECK TAG
+            if (!col.CompareTag(enemyTag)) continue;
+
             if (hitTargetsThisAttack.Contains(col)) continue;
 
             hitTargetsThisAttack.Add(col);
@@ -590,12 +634,26 @@ public class SwordCollisionHandler : MonoBehaviour
         if (swordTipTransform != null && swordBottomTransform != null)
         {
             Vector3 center = (swordTipTransform.position + swordBottomTransform.position) / 2f;
-            Collider[] nearbyEnemies = Physics.OverlapSphere(center, swingVFXDetectionRadius, enemyLayer);
-            enemiesNearby = nearbyEnemies.Length > 0;
+
+            // ✅ FIND ENEMIES BY TAG
+            GameObject[] allEnemies = GameObject.FindGameObjectsWithTag(enemyTag);
+
+            foreach (GameObject enemy in allEnemies)
+            {
+                if (enemy != null)
+                {
+                    float distance = Vector3.Distance(center, enemy.transform.position);
+                    if (distance <= swingVFXDetectionRadius)
+                    {
+                        enemiesNearby = true;
+                        break;
+                    }
+                }
+            }
 
             if (debugCollisions && enemiesNearby)
             {
-                Debug.Log($"👁️ Detected {nearbyEnemies.Length} enemies in swing range!");
+                Debug.Log($"👁️ Detected enemies in swing range!");
             }
         }
 

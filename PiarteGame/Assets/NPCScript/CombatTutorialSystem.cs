@@ -36,6 +36,17 @@ public class CombatTutorialSystem : TutorialManagerBase
     public GameObject npcToDestroy;
     public Dialogue completionDialogue;
 
+    // NEW: Compass Integration
+    [Header("Compass Integration")]
+    [Tooltip("Reference to the Compass script")]
+    public Compass compass;
+
+    [Tooltip("Quest ID that matches the compass questPoint - e.g., 'Herb_Tutorial'")]
+    public string compassQuestID = "CombatTutorial";
+
+    [Tooltip("Show marker during herb collection?")]
+    public bool showMarkerDuringCollection = true;
+
     // Internal State
     private int enemiesToDefeat;
     private int kills = 0;
@@ -49,6 +60,10 @@ public class CombatTutorialSystem : TutorialManagerBase
         dialogueManager = FindObjectOfType<DialogueManager>();
 
         if (audioSource == null) audioSource = GetComponent<AudioSource>();
+
+        // NEW: Find compass if not assigned
+        if (compass == null)
+            compass = FindObjectOfType<Compass>();
 
         if (missionUI != null) missionUI.SetActive(false);
         if (tutorialUI != null) tutorialUI.SetActive(false);
@@ -123,6 +138,14 @@ public class CombatTutorialSystem : TutorialManagerBase
             if (missionStartSound != null && audioSource != null)
                 audioSource.PlayOneShot(missionStartSound);
         }
+
+        // NEW: Show compass marker when mission starts (if enabled)
+        if (compass != null && !string.IsNullOrEmpty(compassQuestID) && showMarkerDuringCollection)
+        {
+            compass.ShowMarker(compassQuestID);
+        }
+
+
         UpdateUI();
     }
 
@@ -134,6 +157,12 @@ public class CombatTutorialSystem : TutorialManagerBase
         Time.timeScale = 0f;
         currentSlideIndex = 0;
         ShowSlide(0);
+
+        // NEW: Hide compass marker during tutorial slides
+        if (compass != null && !string.IsNullOrEmpty(compassQuestID))
+        {
+            compass.HideMarker(compassQuestID);
+        }
     }
 
     void ShowSlide(int index)
@@ -201,6 +230,13 @@ public class CombatTutorialSystem : TutorialManagerBase
         missionActive = false;
         if (missionUI != null) missionUI.SetActive(false);
 
+        // NEW: Hide compass marker when mission completes
+        if (compass != null && !string.IsNullOrEmpty(compassQuestID))
+        {
+            compass.HideMarker(compassQuestID);
+        }
+
+
         if (completionDialogue != null && completionDialogue.dialogueLines.Length > 0)
         {
             // CHANGED: Triggering as Subtitle Mode (Hands-free)
@@ -218,5 +254,11 @@ public class CombatTutorialSystem : TutorialManagerBase
         yield return new WaitForSeconds(0.5f);
         if (returnPoint != null) player.transform.position = returnPoint.position;
         if (npcToDestroy != null) Destroy(npcToDestroy);
+
+        // NEW: Make sure marker is hidden after cleanup
+        if (compass != null && !string.IsNullOrEmpty(compassQuestID))
+        {
+            compass.HideMarker(compassQuestID);
+        }
     }
 }
