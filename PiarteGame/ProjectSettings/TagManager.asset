@@ -11,6 +11,10 @@ TagManager:
   - CarriageRig
   - Enemy
   - PlayerWeapon
+  - HavenportStone
+  - BloodskullStone
+  - BlackWakeStone
+  - GravewindStone
   layers:
   - Default
   - TransparentFX

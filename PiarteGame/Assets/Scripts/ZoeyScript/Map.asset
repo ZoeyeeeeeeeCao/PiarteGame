@@ -17,16 +17,17 @@ MonoBehaviour:
   category: 2
   description: 'If there''s a place you got to go
 
-    I''m the one you need to
-    know
+    I''m the one you need to know
 
-    I''m the Map
+    I''m
+    the Map
 
     I''m the Map
 
     I''m the Map'
   stackable: 0
   maxStack: 99
+  initialAmount: 1
   isConsumable: 0
   healAmount: 0
   inspectPrefab: {fileID: 919132149155446097, guid: aa872e1574a65b049b4951e4a09a9083, type: 3}

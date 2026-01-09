@@ -21,6 +21,7 @@ MonoBehaviour:
     with the other stones does it reveal the path to the final relic.
   stackable: 0
   maxStack: 99
+  initialAmount: 1
   isConsumable: 0
   healAmount: 0
   inspectPrefab: {fileID: 919132149155446097, guid: 105e73f6b3af7a7498aa1b01f393de61, type: 3}

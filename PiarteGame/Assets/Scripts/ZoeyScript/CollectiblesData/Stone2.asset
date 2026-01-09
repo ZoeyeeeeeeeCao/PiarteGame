@@ -21,6 +21,7 @@ MonoBehaviour:
     on one another for its power, staining the stone with betrayal and bloodshed.
   stackable: 0
   maxStack: 99
+  initialAmount: 1
   isConsumable: 0
   healAmount: 0
   inspectPrefab: {fileID: 919132149155446097, guid: 16a75c22bd04a714290d1604a5f44ae1, type: 3}
