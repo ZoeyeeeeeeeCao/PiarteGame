@@ -2756,6 +2756,52 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!1 &816369647
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 816369649}
+  - component: {fileID: 816369648}
+  m_Layer: 0
+  m_Name: GameManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &816369648
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 816369647}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e0d1aa33dd119694ba8d1d068cc4c8d4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  loadingScreenPrefab: {fileID: 5343721967947909761, guid: 641e5782ceb342449995f6829be09384, type: 3}
+  fillSpeed: 0.5
+--- !u!4 &816369649
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 816369647}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1317.9164, y: 566.23395, z: -3.0658605}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &828460245
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6963,9 +7009,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   swordCollider: {fileID: 1626565217}
-  enemyLayer:
-    serializedVersion: 2
-    m_Bits: 16384
+  enemyTag: Enemy
   debugCollisions: 1
   swordTipTransform: {fileID: 93047922}
   swordBottomTransform: {fileID: 1105690145}
@@ -7205,6 +7249,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1640716990}
+  - component: {fileID: 1640716991}
   m_Layer: 0
   m_Name: GameObject (7)
   m_TagString: Untagged
@@ -7227,6 +7272,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1640716991
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1640716989}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 667db48489067394cb29822ca4797e96, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sceneToLoad: NelsenScene
+  playerTag: Player
 --- !u!1 &1677603701
 GameObject:
   m_ObjectHideFlags: 0
@@ -7259,6 +7318,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   damageAmount: 10
   playerTag: Player
+  damageCooldown: 1
+  hitVFXPrefabs: []
+  hitVFXLifetime: 2
+  hitSounds: []
+  hitSoundVolume: 0.7
+  enableCameraShake: 1
+  shakeDuration: 0.3
+  shakeMagnitude: 0.2
+  debugMode: 1
 --- !u!65 &1677603703
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -8469,6 +8537,7 @@ GameObject:
   - component: {fileID: 1939692256}
   - component: {fileID: 1939692255}
   - component: {fileID: 1939692254}
+  - component: {fileID: 1939692257}
   m_Layer: 0
   m_Name: GameObject (5)
   m_TagString: Untagged
@@ -8525,6 +8594,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1939692257
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1939692253}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 667db48489067394cb29822ca4797e96, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sceneToLoad: NelsenScene
+  playerTag: Player
 --- !u!1001 &1964847889
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -9569,3 +9652,4 @@ SceneRoots:
   - {fileID: 1677603704}
   - {fileID: 1065315073}
   - {fileID: 1640716990}
+  - {fileID: 816369649}
