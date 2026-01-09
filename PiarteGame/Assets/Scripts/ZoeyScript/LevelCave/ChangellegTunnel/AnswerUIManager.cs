@@ -1,4 +1,4 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using TMPro;
 
 public class AnswerUIManager : MonoBehaviour
@@ -6,12 +6,12 @@ public class AnswerUIManager : MonoBehaviour
     public static AnswerUIManager Instance;
 
     [Header("Answer UI (Screen Space)")]
-    public GameObject uiRoot;   // ÍÏÄãµÄ AnswerCanvas£¨»òÄãÒªÏÔÊ¾/Òþ²ØµÄUI¸ùÎïÌå£©
-    public TMP_Text mainText;   // ÍÏÎ¨Ò»µÄ TMP_Text
+    public GameObject uiRoot;   // AnswerCanvas / UI Root
+    public TMP_Text mainText;   // æ˜¾ç¤ºå†…å®¹
 
-    [Header("Keys")]
-    public KeyCode proceedKey = KeyCode.Alpha7; // 7
-    public KeyCode exitKey = KeyCode.Alpha8;    // 8
+    [Header("Buttons")]
+    public UnityEngine.UI.Button proceedButton;
+    public UnityEngine.UI.Button exitButton;
 
     private AnswerDoor currentDoor;
     private bool showing;
@@ -28,22 +28,14 @@ public class AnswerUIManager : MonoBehaviour
 
     private void Start()
     {
+        // ç»‘å®šæŒ‰é’®äº‹ä»¶
+        if (proceedButton)
+            proceedButton.onClick.AddListener(OnProceedClicked);
+
+        if (exitButton)
+            exitButton.onClick.AddListener(OnExitClicked);
+
         Hide();
-    }
-
-    private void Update()
-    {
-        if (!showing) return;
-
-        if (Input.GetKeyDown(proceedKey))
-        {
-            currentDoor?.ConfirmProceed();
-            Hide();
-        }
-        else if (Input.GetKeyDown(exitKey))
-        {
-            Hide();
-        }
     }
 
     public void Show(AnswerDoor door)
@@ -53,6 +45,11 @@ public class AnswerUIManager : MonoBehaviour
 
         if (uiRoot) uiRoot.SetActive(true);
         if (mainText) mainText.text = door.uiText;
+
+        // âœ… æ‰“å¼€ UI æ—¶ï¼šå¯ç”¨é¼ æ ‡
+        Time.timeScale = 0f;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
     }
 
     public void Hide()
@@ -61,6 +58,22 @@ public class AnswerUIManager : MonoBehaviour
         currentDoor = null;
 
         if (uiRoot) uiRoot.SetActive(false);
+
+        // âœ… å…³é—­ UI æ—¶ï¼šæ¢å¤æ¸¸æˆ
+        Time.timeScale = 1f;
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+    }
+
+    private void OnProceedClicked()
+    {
+        currentDoor?.ConfirmProceed();
+        Hide();
+    }
+
+    private void OnExitClicked()
+    {
+        Hide();
     }
 
     public bool IsShowing => showing;
