@@ -1,6 +1,6 @@
 using UnityEngine;
 using UnityEngine.Playables;
-using UnityEngine.Events; // Required for UnityEvent
+using UnityEngine.Events;
 
 public class CutsceneController : MonoBehaviour
 {
@@ -9,17 +9,18 @@ public class CutsceneController : MonoBehaviour
     public GameObject mainCamera;
     public GameObject Player;
 
-    [Header("Controllers to Activate")]
-    public WindTurbineController windController;
-    public FogController fogController;
-
     [Header("Events")]
-    [Tooltip("Actions to trigger exactly when the cutscene ends.")]
+    [Tooltip("Triggered the moment the cutscene begins.")]
+    public UnityEvent onCutsceneStart;
+
+    [Tooltip("Triggered the moment the cutscene ends.")]
     public UnityEvent onCutsceneFinished;
 
     private void Start()
     {
-        mainCamera.SetActive(false);
+        // Setup initial state: Cutscene camera off
+        if (mainCamera != null)
+            mainCamera.SetActive(false);
     }
 
     private void OnEnable()
@@ -34,31 +35,45 @@ public class CutsceneController : MonoBehaviour
             cutsceneDirector.stopped -= OnDirectorStopped;
     }
 
+    /// <summary>
+    /// Call this function to start everything.
+    /// </summary>
     public void ActivateSequence()
     {
-        mainCamera.SetActive(true);
-        Player.SetActive(false);
-        cutsceneDirector.Play();
+        // 1. Setup Camera/Player states
+        if (mainCamera != null) mainCamera.SetActive(true);
+        if (Player != null) Player.SetActive(false);
+
+        // 2. Trigger the Start Event
+        if (onCutsceneStart != null)
+        {
+            onCutsceneStart.Invoke();
+        }
+
+        // 3. Play the Timeline
+        if (cutsceneDirector != null)
+        {
+            cutsceneDirector.Play();
+        }
+
+        Debug.Log("Cutscene Started: onCutsceneStart event invoked.");
     }
 
     private void OnDirectorStopped(PlayableDirector director)
     {
         if (director == cutsceneDirector)
         {
-            // 1. Standard Logic
-            Player.SetActive(true);
-            mainCamera.SetActive(false);
+            // 1. Reset Camera and Player states
+            if (Player != null) Player.SetActive(true);
+            if (mainCamera != null) mainCamera.SetActive(false);
 
-            if (windController != null) windController.ActivateWind();
-            if (fogController != null) fogController.ActivateFog();
-
-            // 2. Trigger the Custom Event
+            // 2. Trigger the Finished Event (where your Fog/Wind should be)
             if (onCutsceneFinished != null)
             {
                 onCutsceneFinished.Invoke();
             }
 
-            Debug.Log("Cutscene Ended: Wind, Fog, and Custom Events triggered.");
+            Debug.Log("Cutscene Finished: onCutsceneFinished event invoked.");
         }
     }
 }
