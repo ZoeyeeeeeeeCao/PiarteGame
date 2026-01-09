@@ -17,7 +17,7 @@ namespace FS_ThirdPerson
         [SerializeField] KeyCode quickSwitchItemKey = KeyCode.CapsLock;
         [SerializeField] KeyCode selectKey = KeyCode.E;
         [SerializeField] KeyCode backKey = KeyCode.Escape;
-        [SerializeField] KeyCode crouchKey = KeyCode.C;
+        [SerializeField] KeyCode crouchKey = KeyCode.LeftControl;
         [SerializeField] KeyCode cycleToPreviousKey = KeyCode.Alpha3;
         [SerializeField] KeyCode cycleToNextKey = KeyCode.Alpha4;
 
