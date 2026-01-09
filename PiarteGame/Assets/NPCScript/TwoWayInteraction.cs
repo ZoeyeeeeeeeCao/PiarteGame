@@ -23,6 +23,14 @@ public class TwoWayInteraction : MonoBehaviour
     public string playerName = "Me";
     public List<ConversationLine> conversationLines;
 
+    [Header("Text Animation Settings")]
+    public float typingSpeed = 0.05f;
+
+    [Header("UI Animation Settings")]
+    public float slideSpeed = 0.5f;     // Speed of the slide
+    public float slideDistance = 500f;  // Distance to slide from (make sure this is large enough)
+    public bool slideFromBottom = true; // Check true if panel is at bottom, false if at top
+
     [Header("Audio Settings")]
     public AudioSource audioSource;
 
@@ -56,13 +64,38 @@ public class TwoWayInteraction : MonoBehaviour
     private int currentLineIndex = 0;
     private bool interactionFinished = false;
 
-    // NEW: Variables to store start transformation
+    // Typewriter variables
+    private bool isTyping = false;
+    private string currentFullSentence = "";
+    private Coroutine typingCoroutine;
+    private Coroutine animationCoroutine;
+
+    // Position variables
+    private RectTransform dialogueBoxRect;
+    private Vector2 visiblePosition;
+    private Vector2 hiddenPosition;
+
+    // NPC Position restoration
     private Quaternion originalRotation;
     private Vector3 originalPosition;
 
     void Start()
     {
-        if (dialoguePanel != null) dialoguePanel.SetActive(false);
+        // --- UI SETUP ---
+        if (dialoguePanel != null)
+        {
+            dialogueBoxRect = dialoguePanel.GetComponent<RectTransform>();
+
+            // 1. Capture the EXACT position you set in the Editor as the "Visible" target
+            if (dialogueBoxRect != null)
+            {
+                visiblePosition = dialogueBoxRect.anchoredPosition;
+            }
+
+            // 2. Hide the panel immediately
+            dialoguePanel.SetActive(false);
+        }
+
         if (particleEffect != null) particleEffect.SetActive(true);
         if (audioSource == null) audioSource = GetComponent<AudioSource>();
         if (cutsceneCamera != null) cutsceneCamera.SetActive(false);
@@ -85,7 +118,17 @@ public class TwoWayInteraction : MonoBehaviour
         }
         else if (isTalking && Input.GetKeyDown(KeyCode.Return))
         {
-            DisplayNextLine();
+            if (isTyping)
+            {
+                // Skip typing
+                if (typingCoroutine != null) StopCoroutine(typingCoroutine);
+                dialogueText.text = currentFullSentence;
+                isTyping = false;
+            }
+            else
+            {
+                DisplayNextLine();
+            }
         }
     }
 
@@ -94,15 +137,35 @@ public class TwoWayInteraction : MonoBehaviour
         isTalking = true;
         currentLineIndex = -1;
 
-        if (dialoguePanel != null) dialoguePanel.SetActive(true);
         if (particleEffect != null) particleEffect.SetActive(false);
 
-        // --- 1. SAVE ORIGINAL POS & ROT ---
+        // --- START SLIDE IN ---
+        if (dialoguePanel != null && dialogueBoxRect != null)
+        {
+            // 1. Calculate hidden position based on where it needs to end up
+            float yOffset = slideFromBottom ? -slideDistance : slideDistance;
+            hiddenPosition = new Vector2(visiblePosition.x, visiblePosition.y + yOffset);
+
+            // 2. FORCE position to hidden BEFORE enabling
+            dialogueBoxRect.anchoredPosition = hiddenPosition;
+
+            // 3. Enable it
+            dialoguePanel.SetActive(true);
+
+            // 4. Animate it
+            if (animationCoroutine != null) StopCoroutine(animationCoroutine);
+            animationCoroutine = StartCoroutine(SlideUI(hiddenPosition, visiblePosition));
+        }
+
+        // Save NPC transforms
         originalRotation = transform.rotation;
         originalPosition = transform.position;
 
-        // --- 2. FACE THE PLAYER ---
-        StartCoroutine(SmoothLookAt(GameObject.FindGameObjectWithTag(playerTag).transform.position));
+        GameObject player = GameObject.FindGameObjectWithTag(playerTag);
+        if (player != null)
+        {
+            StartCoroutine(SmoothLookAt(player.transform.position));
+        }
 
         if (shouldStandUp && npcAnimator != null)
         {
@@ -110,6 +173,22 @@ public class TwoWayInteraction : MonoBehaviour
         }
 
         DisplayNextLine();
+    }
+
+    // --- GENERIC SLIDE COROUTINE ---
+    IEnumerator SlideUI(Vector2 startPos, Vector2 endPos)
+    {
+        float elapsed = 0f;
+        while (elapsed < slideSpeed)
+        {
+            elapsed += Time.deltaTime;
+            // SmoothStep creates a nice "Ease In / Ease Out" effect
+            float t = Mathf.SmoothStep(0, 1, elapsed / slideSpeed);
+            dialogueBoxRect.anchoredPosition = Vector2.Lerp(startPos, endPos, t);
+            yield return null;
+        }
+        // Ensure it ends exactly at the target
+        dialogueBoxRect.anchoredPosition = endPos;
     }
 
     void DisplayNextLine()
@@ -123,8 +202,6 @@ public class TwoWayInteraction : MonoBehaviour
         }
 
         ConversationLine currentLine = conversationLines[currentLineIndex];
-
-        if (dialogueText != null) dialogueText.text = currentLine.text;
 
         if (nameText != null)
         {
@@ -140,11 +217,32 @@ public class TwoWayInteraction : MonoBehaviour
             }
         }
 
+        if (dialogueText != null)
+        {
+            if (typingCoroutine != null) StopCoroutine(typingCoroutine);
+            typingCoroutine = StartCoroutine(TypeSentence(currentLine.text));
+        }
+
         if (audioSource != null)
         {
             audioSource.Stop();
             if (currentLine.voiceLine != null) audioSource.PlayOneShot(currentLine.voiceLine);
         }
+    }
+
+    IEnumerator TypeSentence(string sentence)
+    {
+        isTyping = true;
+        currentFullSentence = sentence;
+        dialogueText.text = "";
+
+        foreach (char letter in sentence.ToCharArray())
+        {
+            dialogueText.text += letter;
+            yield return new WaitForSeconds(typingSpeed);
+        }
+
+        isTyping = false;
     }
 
     IEnumerator EndSequence()
@@ -154,13 +252,18 @@ public class TwoWayInteraction : MonoBehaviour
         if (countsTowardsMission && !hasCounted)
         {
             hasCounted = true;
-            if (MissionManager.Instance != null)
-            {
-                MissionManager.Instance.AddProgressToCurrent();
-            }
+            // if (MissionManager.Instance != null) MissionManager.Instance.AddProgressToCurrent();
         }
 
-        if (dialoguePanel != null) dialoguePanel.SetActive(false);
+        // --- SLIDE OUT ---
+        if (dialoguePanel != null && dialogueBoxRect != null)
+        {
+            if (animationCoroutine != null) StopCoroutine(animationCoroutine);
+            // Wait for the slide out to finish
+            yield return StartCoroutine(SlideUI(visiblePosition, hiddenPosition));
+            dialoguePanel.SetActive(false);
+        }
+
         if (audioSource != null) audioSource.Stop();
 
         Debug.Log("Starting Cutscene...");
@@ -177,14 +280,12 @@ public class TwoWayInteraction : MonoBehaviour
             npcAnimator.SetBool(standParameter, false);
         }
 
-        // --- 3. RESET POSITION AND ROTATION ---
         StartCoroutine(ResetNPC());
 
         isTalking = false;
         Debug.Log("Cutscene Ended. Interaction Locked.");
     }
 
-    // Helper to rotate to player
     IEnumerator SmoothLookAt(Vector3 targetPosition)
     {
         Vector3 direction = targetPosition - transform.position;
@@ -203,28 +304,21 @@ public class TwoWayInteraction : MonoBehaviour
         }
     }
 
-    // NEW Helper to return to original spot
     IEnumerator ResetNPC()
     {
         float time = 0;
-        float duration = 1.5f; // How long it takes to sit back down properly
-
+        float duration = 1.5f;
         Vector3 startPos = transform.position;
         Quaternion startRot = transform.rotation;
 
         while (time < duration)
         {
-            // Smoothly move Position back
             transform.position = Vector3.Lerp(startPos, originalPosition, time / duration);
-
-            // Smoothly move Rotation back
             transform.rotation = Quaternion.Slerp(startRot, originalRotation, time / duration);
-
             time += Time.deltaTime;
             yield return null;
         }
 
-        // Force exact finish to prevent floating point errors
         transform.position = originalPosition;
         transform.rotation = originalRotation;
     }

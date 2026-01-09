@@ -42,7 +42,7 @@ TagManager:
   - 
   - 
   - 
-  - 
+  - Enemy
   - Inspect
   m_SortingLayers:
   - name: Default

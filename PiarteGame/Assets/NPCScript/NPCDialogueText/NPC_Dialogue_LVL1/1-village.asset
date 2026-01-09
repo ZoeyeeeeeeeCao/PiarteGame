@@ -10,11 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: be99e75ec8c1d44449c01afbde21cbcb, type: 3}
-  m_Name: DialogueBattle
+  m_Name: 1-village
   m_EditorClassIdentifier: 
-  npcName: Barnaby
+  npcName: Ashford
   dialogueLines:
-  - text: "So, it\u2019s finally time, Ash? Before you go, let\u2019s spar!\r\n"
-    audioClip: {fileID: 8300000, guid: 32aa810cf52ef7f47b890ac9e6a00e47, type: 3}
-  - text: "We\u2019re all ready to see what you\u2019ve got.\r\n"
-    audioClip: {fileID: 8300000, guid: 67ba45a36e48b0041856956338205ed7, type: 3}
+  - text: "Looks like there\u2019s a small village here. Maybe I can ask around about
+      the stone."
+    audioClip: {fileID: 8300000, guid: 433e01cc0fb698441a0975478a7169fd, type: 3}

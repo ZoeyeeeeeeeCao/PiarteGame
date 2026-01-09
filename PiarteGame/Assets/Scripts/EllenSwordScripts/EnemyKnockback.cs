@@ -1,105 +1,254 @@
 ﻿using UnityEngine;
+using UnityEngine.AI;
+using System.Collections;
 
-[RequireComponent(typeof(Rigidbody))]
+/// <summary>
+/// Handles knockback effects for enemies when hit by player attacks.
+/// NavMesh-friendly version that works with NavMeshAgent.
+/// </summary>
+[RequireComponent(typeof(NavMeshAgent))]
 public class EnemyKnockback : MonoBehaviour
 {
     [Header("Knockback Settings")]
-    [SerializeField] private float normalKnockbackForce = 3f;
-    [SerializeField] private float hardKnockbackForce = 10f;
-    [SerializeField] private float knockbackDuration = 0.3f;
-    [SerializeField] private AnimationCurve knockbackCurve = AnimationCurve.EaseInOut(0, 1, 1, 0);
+    [Tooltip("Force applied for normal attacks")]
+    [SerializeField] private float normalKnockbackForce = 2f;
 
-    [Header("Hard Attack Spread")]
-    [SerializeField] private float hardAttackSpreadAngle = 15f; // Degrees to spread enemies apart
+    [Tooltip("Force applied for hard attacks")]
+    [SerializeField] private float hardKnockbackForce = 5f;
 
-    private Rigidbody rb;
+    [Tooltip("How long the knockback lasts")]
+    [SerializeField] private float knockbackDuration = 0.2f;
+
+    [Tooltip("Use smooth knockback instead of instant")]
+    [SerializeField] private bool useSmoothKnockback = true;
+
+    [Header("NavMesh Settings")]
+    [Tooltip("Temporarily disable NavMesh during knockback")]
+    [SerializeField] private bool disableNavMeshDuringKnockback = true;
+
+    [Tooltip("Time to wait before re-enabling NavMesh")]
+    [SerializeField] private float navMeshReEnableDelay = 0.3f;
+
+    [Header("Limits")]
+    [Tooltip("Maximum knockback distance")]
+    [SerializeField] private float maxKnockbackDistance = 3f;
+
+    [Tooltip("Prevent knockback if already being knocked back")]
+    [SerializeField] private bool preventOverlappingKnockback = true;
+
+    [Header("Debug")]
+    [SerializeField] private bool debugMode = false;
+
+    // References
+    private NavMeshAgent agent;
+    private EnemyController enemyController;
     private bool isBeingKnockedBack = false;
-    private float knockbackTimer = 0f;
-    private Vector3 knockbackVelocity;
+    private Coroutine knockbackCoroutine;
 
-    void Start()
+    private void Awake()
     {
-        rb = GetComponent<Rigidbody>();
-
-        if (rb != null)
-        {
-            rb.isKinematic = false;
-            rb.useGravity = true;
-            rb.constraints = RigidbodyConstraints.FreezeRotation;
-        }
+        agent = GetComponent<NavMeshAgent>();
+        enemyController = GetComponent<EnemyController>();
     }
 
-    void FixedUpdate()
+    /// <summary>
+    /// Apply normal knockback (for regular attacks)
+    /// </summary>
+    public void ApplyNormalKnockback(Vector3 sourcePosition)
     {
-        if (isBeingKnockedBack)
-        {
-            knockbackTimer += Time.fixedDeltaTime;
-            float progress = knockbackTimer / knockbackDuration;
+        ApplyKnockback(sourcePosition, normalKnockbackForce, Vector3.zero);
+    }
 
-            if (progress >= 1f)
+    /// <summary>
+    /// Apply hard knockback with direction (for hard attacks)
+    /// </summary>
+    public void ApplyHardKnockback(Vector3 sourcePosition, Vector3 forwardDirection)
+    {
+        ApplyKnockback(sourcePosition, hardKnockbackForce, forwardDirection);
+    }
+
+    /// <summary>
+    /// Main knockback logic
+    /// </summary>
+    private void ApplyKnockback(Vector3 sourcePosition, float force, Vector3 optionalDirection)
+    {
+        // Prevent overlapping knockbacks
+        if (preventOverlappingKnockback && isBeingKnockedBack)
+        {
+            if (debugMode)
+                Debug.Log($"⚠️ {gameObject.name}: Already being knocked back, ignoring new knockback");
+            return;
+        }
+
+        // Stop any existing knockback
+        if (knockbackCoroutine != null)
+        {
+            StopCoroutine(knockbackCoroutine);
+        }
+
+        // Calculate knockback direction
+        Vector3 knockbackDirection;
+        if (optionalDirection != Vector3.zero)
+        {
+            // Use provided direction (for hard attacks)
+            knockbackDirection = optionalDirection.normalized;
+        }
+        else
+        {
+            // Calculate from source position (for normal attacks)
+            knockbackDirection = (transform.position - sourcePosition).normalized;
+        }
+
+        // Keep knockback horizontal (no flying enemies!)
+        knockbackDirection.y = 0;
+
+        if (debugMode)
+        {
+            Debug.Log($"💥 {gameObject.name}: Applying knockback! Force: {force}, Direction: {knockbackDirection}");
+        }
+
+        // Start knockback coroutine
+        knockbackCoroutine = StartCoroutine(KnockbackRoutine(knockbackDirection, force));
+    }
+
+    private IEnumerator KnockbackRoutine(Vector3 direction, float force)
+    {
+        isBeingKnockedBack = true;
+
+        // Disable NavMeshAgent if configured
+        bool wasNavMeshEnabled = agent.enabled;
+        if (disableNavMeshDuringKnockback && agent.enabled && agent.isOnNavMesh)
+        {
+            agent.isStopped = true;
+            agent.ResetPath();
+
+            if (debugMode)
+                Debug.Log($"🚫 {gameObject.name}: NavMesh disabled for knockback");
+        }
+
+        // Disable enemy AI during knockback
+        if (enemyController != null)
+        {
+            enemyController.ToggleNavMesh(false);
+        }
+
+        float elapsed = 0f;
+        Vector3 startPosition = transform.position;
+        Vector3 targetPosition = startPosition + (direction * force);
+
+        // Clamp to max distance
+        float distance = Vector3.Distance(startPosition, targetPosition);
+        if (distance > maxKnockbackDistance)
+        {
+            targetPosition = startPosition + (direction * maxKnockbackDistance);
+        }
+
+        // Check if target position is on NavMesh
+        NavMeshHit hit;
+        if (NavMesh.SamplePosition(targetPosition, out hit, maxKnockbackDistance, NavMesh.AllAreas))
+        {
+            targetPosition = hit.position;
+        }
+        else
+        {
+            if (debugMode)
+                Debug.LogWarning($"⚠️ {gameObject.name}: Knockback target is off NavMesh, using original position");
+            targetPosition = startPosition;
+        }
+
+        if (useSmoothKnockback)
+        {
+            // Smooth knockback
+            while (elapsed < knockbackDuration)
             {
-                isBeingKnockedBack = false;
-                rb.linearVelocity = new Vector3(0, rb.linearVelocity.y, 0);
+                float t = elapsed / knockbackDuration;
+                // Use ease-out curve for natural deceleration
+                float easedT = 1f - Mathf.Pow(1f - t, 3f);
+
+                transform.position = Vector3.Lerp(startPosition, targetPosition, easedT);
+
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+        }
+        else
+        {
+            // Instant knockback
+            transform.position = targetPosition;
+            yield return new WaitForSeconds(knockbackDuration);
+        }
+
+        // Ensure final position
+        transform.position = targetPosition;
+
+        if (debugMode)
+        {
+            Debug.Log($"✅ {gameObject.name}: Knockback complete. Moved {Vector3.Distance(startPosition, transform.position):F2}m");
+        }
+
+        // Wait a bit before re-enabling NavMesh
+        yield return new WaitForSeconds(navMeshReEnableDelay);
+
+        // Re-enable NavMeshAgent
+        if (disableNavMeshDuringKnockback && wasNavMeshEnabled)
+        {
+            // Make sure we're on the NavMesh
+            if (agent.isOnNavMesh)
+            {
+                agent.isStopped = false;
+
+                if (debugMode)
+                    Debug.Log($"✅ {gameObject.name}: NavMesh re-enabled");
             }
             else
             {
-                float curveValue = knockbackCurve.Evaluate(progress);
-                Vector3 frameVelocity = knockbackVelocity * curveValue;
-                rb.linearVelocity = new Vector3(frameVelocity.x, rb.linearVelocity.y, frameVelocity.z);
+                Debug.LogError($"❌ {gameObject.name}: Not on NavMesh after knockback!");
             }
         }
-    }
 
-    public void ApplyNormalKnockback(Vector3 attackerPosition)
-    {
-        Vector3 direction = (transform.position - attackerPosition).normalized;
-        direction.y = 0; // Keep knockback horizontal
-
-        ApplyKnockback(direction, normalKnockbackForce, false);
-
-        Debug.Log($"💥 Normal knockback applied to {gameObject.name}");
-    }
-
-    public void ApplyHardKnockback(Vector3 attackerPosition, Vector3 attackerForward)
-    {
-        // Calculate base direction from attacker to enemy
-        Vector3 directionToEnemy = (transform.position - attackerPosition).normalized;
-        directionToEnemy.y = 0;
-
-        // Calculate angle between attacker's forward and direction to enemy
-        float angleToEnemy = Vector3.SignedAngle(attackerForward, directionToEnemy, Vector3.up);
-
-        // Add spread angle to push enemies apart in a semicircle
-        float spreadModifier = Mathf.Sign(angleToEnemy) * hardAttackSpreadAngle;
-        Quaternion spreadRotation = Quaternion.Euler(0, spreadModifier, 0);
-        Vector3 spreadDirection = spreadRotation * directionToEnemy;
-
-        ApplyKnockback(spreadDirection, hardKnockbackForce, true);
-
-        Debug.Log($"💥💥 HARD knockback applied to {gameObject.name} with spread!");
-    }
-
-    private void ApplyKnockback(Vector3 direction, float force, bool isHardAttack)
-    {
-        if (rb == null) return;
-
-        // Reset any existing knockback
-        isBeingKnockedBack = true;
-        knockbackTimer = 0f;
-
-        // Calculate knockback velocity
-        knockbackVelocity = direction * force;
-
-        // Add slight upward force for hard attacks
-        if (isHardAttack)
+        // Re-enable enemy AI
+        if (enemyController != null)
         {
-            rb.AddForce(Vector3.up * (force * 0.5f), ForceMode.Impulse);
+            enemyController.ToggleNavMesh(true);
+        }
+
+        isBeingKnockedBack = false;
+        knockbackCoroutine = null;
+    }
+
+    /// <summary>
+    /// Stop any ongoing knockback (useful for death, etc.)
+    /// </summary>
+    public void CancelKnockback()
+    {
+        if (knockbackCoroutine != null)
+        {
+            StopCoroutine(knockbackCoroutine);
+            knockbackCoroutine = null;
+        }
+
+        isBeingKnockedBack = false;
+
+        // Re-enable NavMesh
+        if (agent != null && agent.isOnNavMesh)
+        {
+            agent.isStopped = false;
+        }
+
+        if (enemyController != null)
+        {
+            enemyController.ToggleNavMesh(true);
         }
     }
 
-    // Public method to check if currently being knocked back
-    public bool IsBeingKnockedBack()
+    private void OnDrawGizmos()
     {
-        return isBeingKnockedBack;
+        if (isBeingKnockedBack)
+        {
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawWireSphere(transform.position, 0.5f);
+        }
     }
+
+    public bool IsBeingKnockedBack => isBeingKnockedBack;
 }

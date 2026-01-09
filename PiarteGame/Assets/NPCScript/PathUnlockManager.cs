@@ -10,12 +10,10 @@ public class PathUnlockManager : MonoBehaviour
     [Header("Objects to Remove")]
     public GameObject[] blockingWalls;
 
-    [Header("Subtitle Settings")]
-    [Tooltip("Drag the TextMeshPro text used for subtitles (bottom of screen)")]
-    public TextMeshProUGUI subtitleText;
-    [Tooltip("The text that will appear when the path opens")]
-    public string unlockSubtitle = "The barrier has faded... I can proceed now.";
-    public float subtitleDuration = 3.0f;
+    [Header("Dialogue Integration")]
+    [Tooltip("The dialogue asset to play when the path opens")]
+    public Dialogue unlockDialogue;
+    private DialogueManager dialogueManager;
 
     [Header("Mission UI Update")]
     public GameObject missionUI;
@@ -30,10 +28,10 @@ public class PathUnlockManager : MonoBehaviour
 
     void Start()
     {
-        if (audioSource == null) audioSource = GetComponent<AudioSource>();
+        dialogueManager = FindObjectOfType<DialogueManager>();
 
+        if (audioSource == null) audioSource = GetComponent<AudioSource>();
         if (missionUI != null) missionUI.SetActive(false);
-        if (subtitleText != null) subtitleText.text = ""; // Clear subtitle at start
     }
 
     void Update()
@@ -66,27 +64,31 @@ public class PathUnlockManager : MonoBehaviour
             if (wall != null) Destroy(wall);
         }
 
-        // 2. Run the visual sequence
-        StartCoroutine(ShowSubtitleThenMission());
+        // 2. Start the sequence that waits for the dialogue
+        StartCoroutine(RunUnlockSequence());
     }
 
-    IEnumerator ShowSubtitleThenMission()
+    IEnumerator RunUnlockSequence()
     {
-        // Wait a moment for the wall destruction to be noticed
+        // Wait a tiny bit after wall destruction
         yield return new WaitForSeconds(0.5f);
 
-        // Show Subtitle
-        if (subtitleText != null)
+        if (dialogueManager != null && unlockDialogue != null)
         {
-            subtitleText.text = unlockSubtitle;
-            Debug.Log("Subtitle shown: " + unlockSubtitle);
+            // Start the dialogue in Subtitle mode (so it auto-slides away)
+            dialogueManager.StartDialogue(unlockDialogue, DialogueManager.DialogueMode.Subtitle);
 
-            yield return new WaitForSeconds(subtitleDuration);
+            // WAIT until the DialogueManager says it's finished
+            while (dialogueManager.IsDialogueActive())
+            {
+                yield return null;
+            }
 
-            subtitleText.text = ""; // Clear subtitle
+            // Wait for the slide-out animation to finish completely
+            yield return new WaitForSeconds(0.5f);
         }
 
-        // Show Mission UI
+        // 3. Show Mission UI ONLY after dialogue is done
         ShowMissionUI();
     }
 
@@ -97,7 +99,6 @@ public class PathUnlockManager : MonoBehaviour
         if (missionText != null)
         {
             missionText.text = newMissionObjective;
-            Canvas.ForceUpdateCanvases();
         }
 
         if (missionPopUpSound != null && audioSource != null)
