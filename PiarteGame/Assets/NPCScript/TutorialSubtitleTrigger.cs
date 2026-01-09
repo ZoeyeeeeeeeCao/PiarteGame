@@ -52,3 +52,4 @@ public class TutorialSubtitleTrigger : MonoBehaviour
         dialogueManager.CloseDialogueBox();
     }
 }
+

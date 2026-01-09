@@ -1,30 +1,36 @@
 using UnityEngine;
 using TMPro;
-using System.Collections.Generic; // Needed for Lists
+using System.Collections.Generic;
 
 public class MissionManager : MonoBehaviour
 {
     public static MissionManager Instance;
 
-    [System.Serializable] // This makes it show up in Inspector
+    [System.Serializable]
     public class Mission
     {
         public string missionName = "Mission Name";
         [TextArea] public string description = "What needs to be done";
-        public int targetAmount = 1; // How many times to trigger?
-        public int currentAmount = 0; // Private tracker
+        public int targetAmount = 1;
+        public int currentAmount = 0;
         public bool isCompleted = false;
     }
 
-    [Header("UI Reference")]
+    [Header("UI References")]
+    public GameObject missionBoxUI;
     public TextMeshProUGUI missionText;
 
     [Header("Mission List")]
-    // This allows you to add Mission 1, Mission 2, Mission 3 in Inspector
     public List<Mission> missions;
-
-    // Tracks which mission in the list we are currently doing
     public int currentMissionIndex = 0;
+
+    [Header("Audio Settings")]
+    public AudioSource audioSource;
+    public AudioClip missionUpdatedSound;
+    public AudioClip missionCompleteSound;
+    public AudioClip missionAppearSound;
+
+    private bool isSystemActive = false;
 
     void Awake()
     {
@@ -34,83 +40,94 @@ public class MissionManager : MonoBehaviour
 
     void Start()
     {
-        UpdateMissionUI();
+        if (audioSource == null) audioSource = GetComponent<AudioSource>();
+
+        // Ensure everything is hidden until a trigger is hit
+        if (missionBoxUI != null) missionBoxUI.SetActive(false);
+        if (missionText != null) missionText.text = "";
     }
 
-    // Call this to progress the CURRENT mission
+    // This is called by your Reusable Triggers
+    public void StartNextMission()
+    {
+        // 1. If the system is totally off, turn it on for the first time (Index 0)
+        if (!isSystemActive)
+        {
+            isSystemActive = true;
+            if (missionBoxUI != null) missionBoxUI.SetActive(true);
+            PlayMissionSound(missionAppearSound);
+            UpdateMissionUI();
+            return;
+        }
+
+        // 2. If already active, move to the next index in the list
+        if (currentMissionIndex < missions.Count - 1)
+        {
+            currentMissionIndex++;
+            PlayMissionSound(missionAppearSound); // Sound for new objective
+            UpdateMissionUI();
+        }
+    }
+
     public void AddProgressToCurrent()
     {
-        // Safety Check: Are we out of missions?
-        if (currentMissionIndex >= missions.Count) return;
+        if (!isSystemActive || currentMissionIndex >= missions.Count) return;
 
         Mission currentMission = missions[currentMissionIndex];
-
-        // 1. Add Progress
         currentMission.currentAmount++;
 
-        // 2. Check if Complete
         if (currentMission.currentAmount >= currentMission.targetAmount)
         {
             currentMission.currentAmount = currentMission.targetAmount;
             CompleteMission(currentMission);
         }
+        else
+        {
+            PlayMissionSound(missionUpdatedSound);
+        }
 
         UpdateMissionUI();
-    }
-
-    // Call this if you want to progress a SPECIFIC mission ID (optional)
-    public void AddProgressToID(int missionID)
-    {
-        if (missionID < missions.Count)
-        {
-            Mission m = missions[missionID];
-            if (!m.isCompleted)
-            {
-                m.currentAmount++;
-                if (m.currentAmount >= m.targetAmount) CompleteMission(m);
-                UpdateMissionUI();
-            }
-        }
     }
 
     void CompleteMission(Mission mission)
     {
         mission.isCompleted = true;
-        Debug.Log("Mission Completed: " + mission.missionName);
+        PlayMissionSound(missionCompleteSound);
 
-        // Auto-advance to the next mission
+        // Optional: Auto-advance index after completion
         if (currentMissionIndex < missions.Count - 1)
         {
             currentMissionIndex++;
-            Debug.Log("New Mission Started: " + missions[currentMissionIndex].missionName);
-        }
-        else
-        {
-            Debug.Log("ALL MISSIONS COMPLETED!");
-            // Optional: You could trigger a "Level Complete" screen here
+            UpdateMissionUI();
         }
     }
 
     void UpdateMissionUI()
     {
-        // Case 1: All missions done
+        if (missionText == null || !isSystemActive) return;
+
         if (currentMissionIndex >= missions.Count || (currentMissionIndex == missions.Count - 1 && missions[currentMissionIndex].isCompleted))
         {
             missionText.text = "<color=green><b>ALL MISSIONS COMPLETED!</b></color>";
             return;
         }
 
-        // Case 2: Show current active mission
         Mission current = missions[currentMissionIndex];
-
         string displayText = "<b>Current Objective:</b>\n" + current.description;
 
-        // ONLY show the count (0/5) if the target is greater than 0
-        if (current.targetAmount > 0)
+        if (current.targetAmount > 1)
         {
             displayText += "\n<color=yellow>(" + current.currentAmount + " / " + current.targetAmount + ")</color>";
         }
 
         missionText.text = displayText;
+    }
+
+    private void PlayMissionSound(AudioClip clip)
+    {
+        if (audioSource != null && clip != null)
+        {
+            audioSource.PlayOneShot(clip);
+        }
     }
 }
