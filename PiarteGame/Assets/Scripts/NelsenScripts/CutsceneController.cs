@@ -1,75 +1,79 @@
 using UnityEngine;
 using UnityEngine.Playables;
+using UnityEngine.Events;
 
 public class CutsceneController : MonoBehaviour
 {
     [Header("References")]
-    [Tooltip("The GameObject containing the PlayableDirector component.")]
     public PlayableDirector cutsceneDirector;
-
-    [Tooltip("The main gameplay camera (e.g., Third Person Camera) to disable during the cutscene.")]
-    //public GameObject thirdPersonCamera;
     public GameObject mainCamera;
     public GameObject Player;
 
-    [SerializeField] public WindTurbineController windController;
+    [Header("Events")]
+    [Tooltip("Triggered the moment the cutscene begins.")]
+    public UnityEvent onCutsceneStart;
+
+    [Tooltip("Triggered the moment the cutscene ends.")]
+    public UnityEvent onCutsceneFinished;
 
     private void Start()
     {
-        mainCamera.SetActive(false);
-}
+        // Setup initial state: Cutscene camera off
+        if (mainCamera != null)
+            mainCamera.SetActive(false);
+    }
+
     private void OnEnable()
     {
-        // Subscribe to the stopped event to know when the cutscene ends
         if (cutsceneDirector != null)
-        {
-            cutsceneDirector.stopped += OnCutsceneFinished;
-        }
+            cutsceneDirector.stopped += OnDirectorStopped;
     }
 
     private void OnDisable()
     {
-        // Unsubscribe to avoid memory leaks
         if (cutsceneDirector != null)
-        {
-            cutsceneDirector.stopped -= OnCutsceneFinished;
-        }
+            cutsceneDirector.stopped -= OnDirectorStopped;
     }
 
     /// <summary>
-    /// Call this function from a trigger or another script to start the cutscene.
+    /// Call this function to start everything.
     /// </summary>
     public void ActivateSequence()
     {
-        //if (cutsceneDirector == null || thirdPersonCamera == null)
-        //{
-        //    Debug.LogWarning("CutsceneController: Missing references!");
-        //    return;
-        //}
+        // 1. Setup Camera/Player states
+        if (mainCamera != null) mainCamera.SetActive(true);
+        if (Player != null) Player.SetActive(false);
 
-        // 1. Hide the gameplay camera
-        mainCamera.SetActive(true);
-        Player.SetActive(false);
-        //thirdPersonCamera.SetActive(false);
+        // 2. Trigger the Start Event
+        if (onCutsceneStart != null)
+        {
+            onCutsceneStart.Invoke();
+        }
 
+        // 3. Play the Timeline
+        if (cutsceneDirector != null)
+        {
+            cutsceneDirector.Play();
+        }
 
-        // 2. Play the Timeline
-        cutsceneDirector.Play();
-
-        Debug.Log("Cutscene Started: Gameplay camera disabled.");
+        Debug.Log("Cutscene Started: onCutsceneStart event invoked.");
     }
 
-    private void OnCutsceneFinished(PlayableDirector director)
+    private void OnDirectorStopped(PlayableDirector director)
     {
-        // Ensure we are reacting to the correct director
         if (director == cutsceneDirector)
         {
-            // 3. Reactivate the gameplay camera when the timeline ends
-            Player.SetActive(true);
-            mainCamera.SetActive(false);
-            //thirdPersonCamera.SetActive(true);
-            windController.ActivateWind();
-            Debug.Log("Cutscene Finished: Gameplay camera enabled.");
+            // 1. Reset Camera and Player states
+            if (Player != null) Player.SetActive(true);
+            if (mainCamera != null) mainCamera.SetActive(false);
+
+            // 2. Trigger the Finished Event (where your Fog/Wind should be)
+            if (onCutsceneFinished != null)
+            {
+                onCutsceneFinished.Invoke();
+            }
+
+            Debug.Log("Cutscene Finished: onCutsceneFinished event invoked.");
         }
     }
 }
