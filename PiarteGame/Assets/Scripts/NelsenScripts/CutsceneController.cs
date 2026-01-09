@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.Playables;
+using UnityEngine.Events; // Required for UnityEvent
 
 public class CutsceneController : MonoBehaviour
 {
@@ -10,7 +11,11 @@ public class CutsceneController : MonoBehaviour
 
     [Header("Controllers to Activate")]
     public WindTurbineController windController;
-    public FogController fogController; // <--- Drag your Fog GameObject here
+    public FogController fogController;
+
+    [Header("Events")]
+    [Tooltip("Actions to trigger exactly when the cutscene ends.")]
+    public UnityEvent onCutsceneFinished;
 
     private void Start()
     {
@@ -20,13 +25,13 @@ public class CutsceneController : MonoBehaviour
     private void OnEnable()
     {
         if (cutsceneDirector != null)
-            cutsceneDirector.stopped += OnCutsceneFinished;
+            cutsceneDirector.stopped += OnDirectorStopped;
     }
 
     private void OnDisable()
     {
         if (cutsceneDirector != null)
-            cutsceneDirector.stopped -= OnCutsceneFinished;
+            cutsceneDirector.stopped -= OnDirectorStopped;
     }
 
     public void ActivateSequence()
@@ -36,20 +41,24 @@ public class CutsceneController : MonoBehaviour
         cutsceneDirector.Play();
     }
 
-    private void OnCutsceneFinished(PlayableDirector director)
+    private void OnDirectorStopped(PlayableDirector director)
     {
         if (director == cutsceneDirector)
         {
+            // 1. Standard Logic
             Player.SetActive(true);
             mainCamera.SetActive(false);
 
-            // 1. Activate Wind
             if (windController != null) windController.ActivateWind();
-
-            // 2. Activate Fog
             if (fogController != null) fogController.ActivateFog();
 
-            Debug.Log("Cutscene Ended: Wind and Fog activated.");
+            // 2. Trigger the Custom Event
+            if (onCutsceneFinished != null)
+            {
+                onCutsceneFinished.Invoke();
+            }
+
+            Debug.Log("Cutscene Ended: Wind, Fog, and Custom Events triggered.");
         }
     }
 }
