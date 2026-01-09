@@ -1,5 +1,6 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using TMPro;
+using System.Collections;
 
 public class NpcDialogueController_Space_TMP : MonoBehaviour
 {
@@ -12,27 +13,22 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
     public GameObject pressEIndicator;
 
     [Header("Dialogue UI (TMP)")]
-    [Tooltip("Canvas root GameObject (set inactive by default)")]
+    [Tooltip("Canvas root GameObject (can stay active; we will show/hide panel)")]
     public GameObject dialogueCanvas;
 
-    [Tooltip("Optional: NPC name text")]
-    public TMP_Text npcNameText;
+    [Tooltip("IMPORTANT: Drag the Dialogue PANEL (RectTransform) here, not the Canvas.")]
+    public RectTransform dialoguePanel;
 
-    [Tooltip("Required: dialogue content text")]
+    public TMP_Text npcNameText;
     public TMP_Text dialogueText;
 
-    [Header("NPC Name (optional)")]
+    [Header("NPC Name")]
     public string npcName = "NPC";
 
     [Header("Dialogue Content")]
-    [TextArea(2, 6)]
-    public string[] firstDialogue;      // µÚÒ»´Î£º¿ªÆôµã»ðÅè
-
-    [TextArea(2, 6)]
-    public string[] secondDialogue;     // µÚ¶þ´ÎÇÒÒÑÍê³É£º¿ªÃÅ
-
-    [TextArea(2, 6)]
-    public string[] notReadyDialogue;   // µÚ¶þ´Îµ«Ã»Íê³É£ºÌáÊ¾»ØÈ¥µã»ð
+    [TextArea(2, 6)] public string[] firstDialogue;
+    [TextArea(2, 6)] public string[] secondDialogue;
+    [TextArea(2, 6)] public string[] notReadyDialogue;
 
     [Header("Voice Clips (one clip per line, optional)")]
     public AudioClip[] firstVoice;
@@ -40,35 +36,43 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
     public AudioClip[] notReadyVoice;
 
     [Header("Audio Settings")]
-    [Tooltip("Optional. If empty, will auto add/find an AudioSource on this NPC.")]
     public AudioSource voiceSource;
     [Range(0f, 1f)] public float voiceVolume = 1f;
-
-    [Tooltip("If true, stop previous voice when switching to next line.")]
     public bool stopPreviousOnNext = true;
 
     [Header("Optional: Pause game while talking (PC)")]
     public bool pauseTimeWhileTalking = false;
     public bool showCursorWhileTalking = false;
 
+    [Header("UI Animation")]
+    public float slideDuration = 0.25f;
+    public float slideOffsetY = -300f;
+
+    [Header("Typewriter")]
+    public float charInterval = 0.03f;
+
     int dialogueIndex;
     bool playerInRange;
     bool dialoguePlaying;
+    bool typing;
 
     string[] activeDialogue;
     AudioClip[] activeVoice;
+
+    Vector2 panelTargetPos;
+    Coroutine slideRoutine;
+    Coroutine typeRoutine;
 
     enum TalkState { First, Second, Done }
     TalkState talkState = TalkState.First;
 
     void Start()
     {
-        if (dialogueCanvas) dialogueCanvas.SetActive(false);
         if (pressEIndicator) pressEIndicator.SetActive(false);
 
         if (npcNameText) npcNameText.text = npcName;
 
-        // Prepare audio source
+        // AudioSource: use existing, do not force spatialBlend here
         if (!voiceSource)
         {
             voiceSource = GetComponent<AudioSource>();
@@ -76,8 +80,18 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
         }
         voiceSource.playOnAwake = false;
 
-        // Í¨³£¶Ô°×½¨Òé 2D£¨²»¸ú¾àÀëË¥¼õ£©£»ÄãÏë 3D ¾Í°ÑÏÂÃæ¸Ä³É 1
-        voiceSource.spatialBlend = 0f;
+        // UI initial state
+        if (dialogueCanvas) dialogueCanvas.SetActive(false);
+
+        if (dialoguePanel)
+        {
+            panelTargetPos = dialoguePanel.anchoredPosition;
+            dialoguePanel.gameObject.SetActive(false); // âœ… panel hidden at start
+        }
+        else
+        {
+            Debug.LogWarning($"[{name}] dialoguePanel is NULL. Slide animation won't work. Please assign the Panel RectTransform.");
+        }
     }
 
     void Update()
@@ -92,7 +106,10 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
         }
 
         if (Input.GetKeyDown(nextKey))
-            NextLine();
+        {
+            if (typing) FinishTypingInstant();
+            else NextLine();
+        }
     }
 
     void OnTriggerEnter(Collider other)
@@ -121,7 +138,9 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
         dialogueIndex = 0;
 
         if (pressEIndicator) pressEIndicator.SetActive(false);
+
         if (dialogueCanvas) dialogueCanvas.SetActive(true);
+        ShowPanelAnimated(true);
 
         if (npcNameText) npcNameText.text = npcName;
 
@@ -134,7 +153,7 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
         }
 
         ApplyTalkingPause(true);
-        ShowCurrentLine(playVoice: true);
+        ShowCurrentLine();
     }
 
     void PickDialogueAndVoiceForThisTalk()
@@ -167,24 +186,51 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
         activeVoice = null;
     }
 
-    void ShowCurrentLine(bool playVoice)
+    void ShowCurrentLine()
     {
-        if (dialogueText)
+        if (!dialogueText) return;
+
+        if (typeRoutine != null) StopCoroutine(typeRoutine);
+        typeRoutine = StartCoroutine(TypeText(activeDialogue[dialogueIndex]));
+
+        PlayVoiceForLine(dialogueIndex);
+    }
+
+    IEnumerator TypeText(string line)
+    {
+        typing = true;
+        dialogueText.text = "";
+
+        foreach (char c in line)
+        {
+            dialogueText.text += c;
+            yield return new WaitForSecondsRealtime(charInterval);
+        }
+
+        typing = false;
+    }
+
+    void FinishTypingInstant()
+    {
+        if (typeRoutine != null) StopCoroutine(typeRoutine);
+
+        if (dialogueText && activeDialogue != null && dialogueIndex < activeDialogue.Length)
             dialogueText.text = activeDialogue[dialogueIndex];
 
-        if (!playVoice) return;
+        typing = false;
+    }
 
-        // ²¥·Å¶ÔÓ¦ÐÐµÄÒôÆµ£¨Èç¹ûÓÐ£©
-        if (voiceSource && activeVoice != null &&
-            dialogueIndex >= 0 && dialogueIndex < activeVoice.Length)
-        {
-            var clip = activeVoice[dialogueIndex];
-            if (clip)
-            {
-                if (stopPreviousOnNext) voiceSource.Stop();
-                voiceSource.PlayOneShot(clip, voiceVolume);
-            }
-        }
+    void PlayVoiceForLine(int index)
+    {
+        if (!voiceSource) return;
+        if (activeVoice == null) return;
+        if (index < 0 || index >= activeVoice.Length) return;
+
+        var clip = activeVoice[index];
+        if (!clip) return;
+
+        if (stopPreviousOnNext) voiceSource.Stop();
+        voiceSource.PlayOneShot(clip, voiceVolume);
     }
 
     void NextLine()
@@ -197,7 +243,7 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
             return;
         }
 
-        ShowCurrentLine(playVoice: true);
+        ShowCurrentLine();
     }
 
     void EndDialogue()
@@ -205,17 +251,15 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
         if (voiceSource && stopPreviousOnNext)
             voiceSource.Stop();
 
-        if (dialogueCanvas) dialogueCanvas.SetActive(false);
         dialoguePlaying = false;
-
         ApplyTalkingPause(false);
 
-        // ½áÊø´¥·¢ÈÎÎñÂß¼­
+        ShowPanelAnimated(false);
+
+        // task logic
         if (talkState == TalkState.First)
         {
-            if (QuestFinalSceneManager.Instance != null)
-                QuestFinalSceneManager.Instance.OnNpcTalk_StartQuest();
-
+            QuestFinalSceneManager.Instance?.OnNpcTalk_StartQuest();
             talkState = TalkState.Second;
         }
         else if (talkState == TalkState.Second)
@@ -228,36 +272,60 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
                 QuestFinalSceneManager.Instance.OnNpcTalk_OpenDoorIfReady();
                 talkState = TalkState.Done;
             }
-            // Ã»Íê³É¾Í±£³Ö Second£¬ÈÃÍæ¼Ò»ØÈ¥µã»ðÅè
         }
 
         if (playerInRange && talkState != TalkState.Done && pressEIndicator)
             pressEIndicator.SetActive(true);
     }
 
+    void ShowPanelAnimated(bool show)
+    {
+        if (!dialoguePanel) return;
+
+        if (slideRoutine != null) StopCoroutine(slideRoutine);
+        slideRoutine = StartCoroutine(SlidePanel(show));
+    }
+
+    IEnumerator SlidePanel(bool show)
+    {
+        if (show)
+        {
+            dialoguePanel.gameObject.SetActive(true);
+            dialoguePanel.anchoredPosition = panelTargetPos + Vector2.up * slideOffsetY;
+        }
+
+        Vector2 start = dialoguePanel.anchoredPosition;
+        Vector2 end = show ? panelTargetPos : (panelTargetPos + Vector2.up * slideOffsetY);
+
+        float t = 0f;
+        while (t < slideDuration)
+        {
+            t += Time.unscaledDeltaTime;
+            dialoguePanel.anchoredPosition = Vector2.Lerp(start, end, t / slideDuration);
+            yield return null;
+        }
+
+        dialoguePanel.anchoredPosition = end;
+
+        if (!show)
+        {
+            dialoguePanel.gameObject.SetActive(false);
+
+            // If you want canvas off too after slide down:
+            if (dialogueCanvas) dialogueCanvas.SetActive(false);
+        }
+    }
+
     void ApplyTalkingPause(bool talking)
     {
         if (!pauseTimeWhileTalking) return;
 
-        if (talking)
-        {
-            Time.timeScale = 0f;
+        Time.timeScale = talking ? 0f : 1f;
 
-            if (showCursorWhileTalking)
-            {
-                Cursor.lockState = CursorLockMode.None;
-                Cursor.visible = true;
-            }
-        }
-        else
+        if (showCursorWhileTalking)
         {
-            Time.timeScale = 1f;
-
-            if (showCursorWhileTalking)
-            {
-                Cursor.lockState = CursorLockMode.Locked;
-                Cursor.visible = false;
-            }
+            Cursor.lockState = talking ? CursorLockMode.None : CursorLockMode.Locked;
+            Cursor.visible = talking;
         }
     }
 }
