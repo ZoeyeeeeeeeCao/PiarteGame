@@ -1,4 +1,3 @@
-using Unity.Cinemachine; // needs Cinemachine package
 using System;
 using System.Collections;
 using UnityEngine;
@@ -25,10 +24,11 @@ public class SkullIslandIntroDialogueLevel3 : MonoBehaviour
     private bool _sequenceRunning;
 
     [Header("Player Positioning (Stand Point)")]
-    [SerializeField] private Transform playerRoot;             // player transform
-    [SerializeField] private CharacterController playerCC;      // player's CC
-    [SerializeField] private Rigidbody playerRB;               // player's RB (optional)
-    [SerializeField] private Transform standPoint;             // where player stands to talk
+    [Tooltip("Optional. If not set, we will use the CharacterController transform.")]
+    [SerializeField] private Transform playerRoot; // visual root (optional)
+    [SerializeField] private CharacterController playerCC;
+    [SerializeField] private Rigidbody playerRB;
+    [SerializeField] private Transform standPoint;
 
     [Header("References")]
     [SerializeField] private DialogueUILevel3 dialogueUI;
@@ -47,11 +47,10 @@ public class SkullIslandIntroDialogueLevel3 : MonoBehaviour
     [SerializeField] private string angryTrigger = "Angry";
     [SerializeField] private string whistleTrigger = "Whistle";
 
-    [Header("Camera Switching (Cinemachine)")]
-    [SerializeField] private CinemachineCamera playerTalkCam;
-    [SerializeField] private CinemachineCamera tribalTalkCam;
-    [SerializeField] private int activeCamPriority = 20;
-    [SerializeField] private int inactiveCamPriority = 5;
+    [Header("Camera Switching (Regular Cameras)")]
+    [SerializeField] private Camera gameplayCamera;
+    [SerializeField] private Camera tribalTalkCamera;
+    [SerializeField] private Camera playerTalkCamera;
 
     [Header("Skip")]
     [SerializeField] private KeyCode skipKey = KeyCode.Return; // Enter
@@ -63,8 +62,8 @@ public class SkullIslandIntroDialogueLevel3 : MonoBehaviour
     [SerializeField] private DialogueLineLevel3[] afterChoiceBLines;
 
     [Header("Choice Buttons")]
-    [SerializeField] private string choiceALabel = "A � The relic stone.";
-    [SerializeField] private string choiceBLabel = "B � I�m just a traveler. The sea dragged me here.";
+    [SerializeField] private string choiceALabel = "A - The relic stone.";
+    [SerializeField] private string choiceBLabel = "B - I'm just a traveler. The sea dragged me here.";
     [SerializeField] private float choicesFadeInDuration = 0.6f;
 
     [Header("Branch A - Attack")]
@@ -93,11 +92,16 @@ public class SkullIslandIntroDialogueLevel3 : MonoBehaviour
             fadeImage.color = c;
         }
 
+        // Auto-find if not assigned
+        if (playerCC == null && playerRoot != null) playerCC = playerRoot.GetComponentInChildren<CharacterController>();
+        if (playerRB == null && playerRoot != null) playerRB = playerRoot.GetComponentInChildren<Rigidbody>();
+
         if (tribalAnimator == null) tribalAnimator = GetComponentInChildren<Animator>();
         if (playerAnimator == null && playerRoot != null) playerAnimator = playerRoot.GetComponentInChildren<Animator>();
 
-        SetTalkState(false, false);
-        SetSpeakerCamera(SpeakerLevel3.Tribal); // default
+        SetTalkState(tribalTalking: false, playerTalking: false);
+
+        SetActiveCameraModeGameplay();
     }
 
     private void Reset()
@@ -127,23 +131,28 @@ public class SkullIslandIntroDialogueLevel3 : MonoBehaviour
             yield break;
         }
 
-        // Move player to stand point BEFORE locking (prevents sliding / physics weirdness)
-        MovePlayerToStandPoint();
+        // 1) Snap player to stand point (IMPORTANT: move the CharacterController object)
+        MovePlayerToStandPoint_Safe();
 
-        // Lock player controls for the conversation
+        // 2) Lock controls (your PlayerLockController disables movement scripts etc.)
         playerLock.Lock();
 
+        // 3) Talking: player talks the entire conversation (your request)
+        // Tribal will toggle per line, player stays ON.
+        SetTalkState(tribalTalking: false, playerTalking: true);
+
+        // UI setup
         dialogueUI.ShowPanel();
         dialogueUI.SetHint("Press Enter to skip");
         dialogueUI.HideChoicesInstant();
 
-        // Intro dialogue (no choices)
+        // Intro
         yield return PlayLines(introLines, PlayContext.Normal);
 
-        // The question line
+        // Question
         yield return PlayLine(questionLine, PlayContext.Normal, lineIndex: 0);
 
-        // Fade in choice buttons
+        // Choice buttons fade in
         bool chosen = false;
         bool choseA = false;
 
@@ -162,50 +171,98 @@ public class SkullIslandIntroDialogueLevel3 : MonoBehaviour
 
         if (choseA)
         {
-            // Choice A: keep player locked, play lines, then attack+restart
             yield return PlayLines(afterChoiceALines, PlayContext.AfterChoiceA);
             yield return AttackAndRestartRoutine();
-            // won't really matter due to reload, but safe:
-            playerLock.Unlock();
+
+            RestoreAfterDialogue();
         }
         else
         {
-            // Choice B: play lines while locked
             yield return PlayLines(afterChoiceBLines, PlayContext.AfterChoiceB);
 
-            // Unlock IMMEDIATELY after conversation ends (your request)
-            playerLock.Unlock();
-            dialogueUI.HidePanel();
-            SetTalkState(false, false);
+            // Unlock immediately after convo ends
+            RestoreAfterDialogue();
 
-            // Now run gate sequence while player is already free
+            // Gate sequence continues while player is free
             StartCoroutine(GateSequenceNonBlockingRoutine());
         }
 
         _sequenceRunning = false;
     }
 
-    private void MovePlayerToStandPoint()
+    // =========================
+    // BIG FIX: teleport safely
+    // =========================
+    private void MovePlayerToStandPoint_Safe()
     {
-        if (standPoint == null || playerRoot == null) return;
+        if (standPoint == null)
+        {
+            Debug.LogWarning("[SkullIslandIntroDialogueLevel3] StandPoint is not assigned.");
+            return;
+        }
 
-        // Disable CC while teleporting
-        if (playerCC == null) playerCC = playerRoot.GetComponentInChildren<CharacterController>();
-        if (playerRB == null) playerRB = playerRoot.GetComponentInChildren<Rigidbody>();
+        // The true "movement root" must be the object that has the CharacterController.
+        Transform controllerT = null;
 
-        bool ccWasEnabled = playerCC != null && playerCC.enabled;
+        if (playerCC == null)
+        {
+            // Try to find CC anywhere under playerRoot if not set
+            if (playerRoot != null) playerCC = playerRoot.GetComponentInChildren<CharacterController>();
+        }
+        if (playerCC != null) controllerT = playerCC.transform;
+
+        // Fallback to playerRoot if no CC found (won't be ideal, but won't crash)
+        if (controllerT == null)
+        {
+            controllerT = playerRoot != null ? playerRoot : transform;
+            Debug.LogWarning("[SkullIslandIntroDialogueLevel3] CharacterController not found; using playerRoot instead.");
+        }
+
+        // Disable CC while teleporting to avoid �pop� / collision push
+        bool ccWasEnabled = (playerCC != null && playerCC.enabled);
         if (playerCC != null) playerCC.enabled = false;
+
+        // If RB exists and is different object, freeze it first
+        if (playerRB == null && playerRoot != null)
+            playerRB = playerRoot.GetComponentInChildren<Rigidbody>();
 
         if (playerRB != null)
         {
+            // Use velocity for widest compatibility
             playerRB.linearVelocity = Vector3.zero;
             playerRB.angularVelocity = Vector3.zero;
         }
 
-        playerRoot.position = standPoint.position;
-        playerRoot.rotation = standPoint.rotation;
+        // Teleport the controller object (THIS prevents detaching)
+        controllerT.position = standPoint.position;
+        controllerT.rotation = standPoint.rotation;
 
+        // Optional: keep visual root aligned if your mesh root is separate from CC root
+        if (playerRoot != null && playerRoot != controllerT)
+        {
+            // If your mesh is a child of the CC, you can skip this.
+            // If your mesh is NOT parented properly, this will �re-sync�.
+            playerRoot.position = controllerT.position;
+            playerRoot.rotation = controllerT.rotation;
+        }
+
+        // Re-enable CC
         if (playerCC != null) playerCC.enabled = ccWasEnabled;
+    }
+
+    private void RestoreAfterDialogue()
+    {
+        // Turn off dialogue UI
+        if (dialogueUI != null) dialogueUI.HidePanel();
+
+        // Restore original camera
+        SetActiveCameraModeGameplay();
+
+        // Stop talk anims
+        SetTalkState(tribalTalking: false, playerTalking: false);
+
+        // Unlock player controls
+        if (playerLock != null) playerLock.Unlock();
     }
 
     private IEnumerator PlayLines(DialogueLineLevel3[] lines, PlayContext ctx)
@@ -219,18 +276,14 @@ public class SkullIslandIntroDialogueLevel3 : MonoBehaviour
     {
         if (line == null) yield break;
 
-        // Camera switches to current speaker
+        // Switch camera to current speaker
         SetSpeakerCamera(line.speaker);
 
-        // Talking animation: current speaker ON, other OFF
-        SetTalkState(
-            tribalTalking: line.speaker == SpeakerLevel3.Tribal,
-            playerTalking: line.speaker == SpeakerLevel3.Player
-        );
+        // Player talks the whole time; tribal only talks when tribal speaks
+        bool tribalTalkingNow = (line.speaker == SpeakerLevel3.Tribal);
+        SetTalkState(tribalTalking: tribalTalkingNow, playerTalking: true);
 
-        // Choice A special tribal animations:
-        // first tribal line after choosing A -> Angry
-        // second tribal line after choosing A -> Whistle
+        // Choice A special tribal animations
         if (ctx == PlayContext.AfterChoiceA && line.speaker == SpeakerLevel3.Tribal && tribalAnimator != null)
         {
             if (lineIndex == 0 && !string.IsNullOrWhiteSpace(angryTrigger))
@@ -243,7 +296,7 @@ public class SkullIslandIntroDialogueLevel3 : MonoBehaviour
         string speakerName = line.speaker == SpeakerLevel3.Tribal ? "Tribal Guard" : "Ashford";
         dialogueUI.SetLine(speakerName, line.text);
 
-        // Voice playback
+        // Voice
         AudioSource src = (line.speaker == SpeakerLevel3.Tribal) ? tribalVoiceSource : playerVoiceSource;
         float duration = Mathf.Max(0.2f, line.fallbackDuration);
 
@@ -258,7 +311,7 @@ public class SkullIslandIntroDialogueLevel3 : MonoBehaviour
             }
         }
 
-        // Wait until time OR Enter skip
+        // Wait OR Enter skip
         float t = 0f;
         while (t < duration)
         {
@@ -267,18 +320,57 @@ public class SkullIslandIntroDialogueLevel3 : MonoBehaviour
                 if (src != null) src.Stop();
                 break;
             }
-
             t += Time.deltaTime;
             yield return null;
         }
 
-        // Stop talking pose after each line (optional, keeps it snappy)
-        SetTalkState(false, false);
+        // Keep player talking on; tribal stops if not tribal
+        SetTalkState(tribalTalking: false, playerTalking: true);
+    }
+
+    private void SetSpeakerCamera(SpeakerLevel3 speaker)
+    {
+        if (gameplayCamera == null) return;
+
+        if (speaker == SpeakerLevel3.Player)
+            SetActiveCamera(playerTalkCamera, fallbackToGameplay: true);
+        else
+            SetActiveCamera(tribalTalkCamera, fallbackToGameplay: true);
+    }
+
+    private void SetActiveCameraModeGameplay()
+    {
+        if (gameplayCamera != null) gameplayCamera.enabled = true;
+        if (tribalTalkCamera != null) tribalTalkCamera.enabled = false;
+        if (playerTalkCamera != null) playerTalkCamera.enabled = false;
+
+        EnsureSingleAudioListener(gameplayCamera, tribalTalkCamera, playerTalkCamera);
+    }
+
+    private void SetActiveCamera(Camera cam, bool fallbackToGameplay)
+    {
+        if (gameplayCamera != null) gameplayCamera.enabled = false;
+        if (tribalTalkCamera != null) tribalTalkCamera.enabled = false;
+        if (playerTalkCamera != null) playerTalkCamera.enabled = false;
+
+        if (cam != null) cam.enabled = true;
+        else if (fallbackToGameplay && gameplayCamera != null) gameplayCamera.enabled = true;
+
+        EnsureSingleAudioListener(gameplayCamera, tribalTalkCamera, playerTalkCamera);
+    }
+
+    private void EnsureSingleAudioListener(params Camera[] cams)
+    {
+        foreach (var c in cams)
+        {
+            if (c == null) continue;
+            var listener = c.GetComponent<AudioListener>();
+            if (listener != null) listener.enabled = c.enabled;
+        }
     }
 
     private IEnumerator AttackAndRestartRoutine()
     {
-        // Optional: attackers appear / rush
         if (attackersToEnable != null)
         {
             foreach (var go in attackersToEnable)
@@ -300,7 +392,6 @@ public class SkullIslandIntroDialogueLevel3 : MonoBehaviour
 
     private IEnumerator GateSequenceNonBlockingRoutine()
     {
-        // NPC walks to gate (player is already free)
         if (greeterFollower != null)
         {
             bool finished = false;
@@ -325,22 +416,6 @@ public class SkullIslandIntroDialogueLevel3 : MonoBehaviour
 
         if (playerAnimator != null && !string.IsNullOrWhiteSpace(talkBoolParam))
             playerAnimator.SetBool(talkBoolParam, playerTalking);
-    }
-
-    private void SetSpeakerCamera(SpeakerLevel3 speaker)
-    {
-        if (playerTalkCam == null || tribalTalkCam == null) return;
-
-        if (speaker == SpeakerLevel3.Player)
-        {
-            playerTalkCam.Priority = activeCamPriority;
-            tribalTalkCam.Priority = inactiveCamPriority;
-        }
-        else
-        {
-            tribalTalkCam.Priority = activeCamPriority;
-            playerTalkCam.Priority = inactiveCamPriority;
-        }
     }
 
     private IEnumerator Fade(float targetAlpha)
