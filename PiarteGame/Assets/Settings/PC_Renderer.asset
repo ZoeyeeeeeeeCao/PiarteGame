@@ -47,9 +47,9 @@ MonoBehaviour:
     failOperation: 0
     zFailOperation: 0
   m_ShadowTransparentReceive: 1
-  m_RenderingMode: 2
+  m_RenderingMode: 0
   m_DepthPrimingMode: 0
-  m_CopyDepthMode: 0
+  m_CopyDepthMode: 1
   m_DepthAttachmentFormat: 0
   m_DepthTextureFormat: 0
   m_AccurateGbufferNormals: 0
@@ -67,8 +67,8 @@ MonoBehaviour:
   m_Name: FullScreenPassDamage
   m_EditorClassIdentifier: 
   m_Active: 0
-  injectionPoint: 550
-  fetchColorBuffer: 1
+  injectionPoint: 450
+  fetchColorBuffer: 0
   requirements: 4
   passMaterial: {fileID: 2100000, guid: a3a2ef44e4a080c49a2589ae144fb083, type: 2}
   passIndex: 0
@@ -87,8 +87,8 @@ MonoBehaviour:
   m_Name: FullScreenPassHealing
   m_EditorClassIdentifier: 
   m_Active: 0
-  injectionPoint: 550
-  fetchColorBuffer: 1
+  injectionPoint: 450
+  fetchColorBuffer: 0
   requirements: 4
   passMaterial: {fileID: 2100000, guid: 793b3033a9597ba48ad5e1790857eee1, type: 2}
   passIndex: 0
