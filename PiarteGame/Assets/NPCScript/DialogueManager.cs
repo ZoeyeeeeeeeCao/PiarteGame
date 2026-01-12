@@ -18,9 +18,9 @@ public class DialogueManager : MonoBehaviour
     public float subtitleAutoDelay = 1.0f;
 
     [Header("Animation Settings")]
-    public float slideSpeed = 0.3f;
+    public float slideSpeed = 0.4f; // Slightly slower for a smoother feel
     public float slideDistance = 300f;
-    public float closeDelay = 0.2f;
+    public float closeDelay = 0.1f;
 
     [Header("Audio Settings")]
     public AudioSource audioSource;
@@ -48,25 +48,19 @@ public class DialogueManager : MonoBehaviour
     void Start()
     {
         if (audioSource == null) audioSource = GetComponent<AudioSource>();
-        if (audioSource == null) audioSource = gameObject.AddComponent<AudioSource>();
 
         if (dialogueBox != null)
         {
             dialogueBoxRect = dialogueBox.GetComponent<RectTransform>();
-            if (dialogueBoxRect != null)
-            {
-                visiblePosition = dialogueBoxRect.anchoredPosition;
-                hiddenPosition = new Vector2(visiblePosition.x, visiblePosition.y - slideDistance);
-                dialogueBoxRect.anchoredPosition = hiddenPosition;
-            }
+            visiblePosition = dialogueBoxRect.anchoredPosition;
+            hiddenPosition = new Vector2(visiblePosition.x, visiblePosition.y - slideDistance);
+            dialogueBoxRect.anchoredPosition = hiddenPosition;
             dialogueBox.SetActive(false);
         }
-        if (spacePromptText != null) spacePromptText.SetActive(false);
     }
 
     void Update()
     {
-        // Only allow manual "NextLine" via Enter if in Dialogue mode (not Subtitle)
         if (isDialogueActive && !isAnimating && currentMode == DialogueMode.Dialogue && Input.GetKeyDown(KeyCode.Return))
         {
             if (isTyping) FinishLineInstantly();
@@ -74,11 +68,15 @@ public class DialogueManager : MonoBehaviour
         }
     }
 
-    // UPDATED: Now supports autoClose. Set this to FALSE when chaining multiple dialogue assets.
     public void StartDialogue(Dialogue dialogue, DialogueMode mode = DialogueMode.Dialogue, bool animate = true, bool autoClose = true)
     {
         StopAllCoroutines();
-        if (dialogueText != null) dialogueText.text = "";
+
+        // FIX: Clear the text immediately so the old dialogue doesn't show for a brief second
+        if (dialogueText != null)
+        {
+            dialogueText.text = "";
+        }
 
         currentMode = mode;
         isDialogueActive = true;
@@ -97,12 +95,9 @@ public class DialogueManager : MonoBehaviour
         }
         else
         {
-            if (dialogueBox != null)
-            {
-                dialogueBox.SetActive(true);
-                // FORCE POSITION: Ensures the box is at visiblePosition immediately
-                if (dialogueBoxRect != null) dialogueBoxRect.anchoredPosition = visiblePosition;
-            }
+            // Force box active but it will now be empty because of the clear above
+            dialogueBox.SetActive(true);
+            dialogueBoxRect.anchoredPosition = visiblePosition;
             StartCoroutine(TypeLine());
         }
     }
@@ -113,7 +108,6 @@ public class DialogueManager : MonoBehaviour
         dialogueText.text = "";
 
         Dialogue.DialogueLine currentLineData = currentLines[lineIndex];
-        string lineToType = currentLineData.text;
         bool hasSpecificClip = currentLineData.audioClip != null;
 
         if (hasSpecificClip && audioSource != null)
@@ -123,7 +117,7 @@ public class DialogueManager : MonoBehaviour
         }
 
         int charCount = 0;
-        foreach (char c in lineToType.ToCharArray())
+        foreach (char c in currentLineData.text.ToCharArray())
         {
             dialogueText.text += c;
             charCount++;
@@ -141,7 +135,6 @@ public class DialogueManager : MonoBehaviour
 
         isTyping = false;
 
-        // Auto-advance for Subtitles
         if (currentMode == DialogueMode.Subtitle)
         {
             if (hasSpecificClip)
@@ -162,15 +155,15 @@ public class DialogueManager : MonoBehaviour
         }
         else
         {
+            // Signal finished so the Trigger loop can proceed
             isDialogueActive = false;
             isTyping = false;
 
-            // ONLY auto-close if the instruction allows it.
-            // If shouldAutoClose is false, the box stays visible and static.
             if (shouldAutoClose)
             {
                 CloseDialogueBox();
             }
+            // If shouldAutoClose is false, we stay visible and do nothing
         }
     }
 
@@ -187,24 +180,6 @@ public class DialogueManager : MonoBehaviour
         EnablePlayerControls();
     }
 
-    public void EndDialogue(bool animate = true)
-    {
-        StopAllCoroutines();
-        if (animate)
-        {
-            StartCoroutine(EndDialogueWithAnimation());
-        }
-        else
-        {
-            isDialogueActive = false;
-            isTyping = false;
-            if (dialogueBox != null) dialogueBox.SetActive(false);
-            if (dialogueBoxRect != null) dialogueBoxRect.anchoredPosition = hiddenPosition;
-            EnablePlayerControls();
-        }
-    }
-
-    // Animation Logic
     IEnumerator SlideInAndStartDialogue()
     {
         yield return StartCoroutine(SlideIn());
@@ -213,7 +188,6 @@ public class DialogueManager : MonoBehaviour
 
     IEnumerator SlideIn()
     {
-        if (dialogueBox == null || dialogueBoxRect == null) yield break;
         isAnimating = true;
         dialogueBox.SetActive(true);
         float elapsed = 0f;
@@ -230,7 +204,6 @@ public class DialogueManager : MonoBehaviour
 
     IEnumerator SlideOut()
     {
-        if (dialogueBox == null || dialogueBoxRect == null) yield break;
         isAnimating = true;
         float elapsed = 0f;
         while (elapsed < slideSpeed)
@@ -243,30 +216,6 @@ public class DialogueManager : MonoBehaviour
         dialogueBoxRect.anchoredPosition = hiddenPosition;
         dialogueBox.SetActive(false);
         isAnimating = false;
-    }
-
-    IEnumerator EndDialogueWithAnimation()
-    {
-        isTyping = false;
-        yield return new WaitForSeconds(closeDelay);
-        yield return StartCoroutine(SlideOut());
-        isDialogueActive = false;
-        EnablePlayerControls();
-    }
-
-    void FinishLineInstantly()
-    {
-        StopAllCoroutines();
-        dialogueText.text = currentLines[lineIndex].text;
-        isTyping = false;
-        if (stopAudioOnSkip && audioSource.isPlaying) audioSource.Stop();
-        if (currentMode == DialogueMode.Subtitle) StartCoroutine(WaitAndNextLine());
-    }
-
-    IEnumerator WaitAndNextLine()
-    {
-        yield return new WaitForSeconds(subtitleAutoDelay);
-        NextLine();
     }
 
     void DisablePlayerControls()
@@ -283,5 +232,20 @@ public class DialogueManager : MonoBehaviour
     }
 
     public bool IsDialogueActive() => isDialogueActive;
-}
 
+    // Added to help FinishLineInstantly respect the new logic
+    void FinishLineInstantly()
+    {
+        StopAllCoroutines();
+        dialogueText.text = currentLines[lineIndex].text;
+        isTyping = false;
+        if (stopAudioOnSkip && audioSource.isPlaying) audioSource.Stop();
+        if (currentMode == DialogueMode.Subtitle) StartCoroutine(WaitAndNextLine());
+    }
+
+    IEnumerator WaitAndNextLine()
+    {
+        yield return new WaitForSeconds(subtitleAutoDelay);
+        NextLine();
+    }
+}

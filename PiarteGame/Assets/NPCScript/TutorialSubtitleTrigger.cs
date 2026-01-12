@@ -1,6 +1,5 @@
 using UnityEngine;
 using TMPro;
-using UnityEngine.UI; // Required for the Image component
 using System.Collections;
 
 public class TutorialSubtitleTrigger : MonoBehaviour
@@ -11,14 +10,9 @@ public class TutorialSubtitleTrigger : MonoBehaviour
     private bool hasTriggered = false;
     private DialogueManager dialogueManager;
 
-    [Header("Mission UI Slots")]
-    [Tooltip("The Background Panel or Main Parent")]
+    [Header("Mission UI (Optional)")]
     public GameObject missionBox;
-
-    [Tooltip("The Text component")]
     public TextMeshProUGUI missionText;
-
-    [Tooltip("The Icon/Image that was staying visible")]
     public GameObject missionImageObject;
 
     [Header("Mission Content")]
@@ -33,9 +27,7 @@ public class TutorialSubtitleTrigger : MonoBehaviour
     {
         dialogueManager = FindObjectOfType<DialogueManager>();
         if (audioSource == null) audioSource = GetComponent<AudioSource>();
-
-        // Hide everything at start
-        HideMissionUI();
+        if (missionBox != null) HideMissionUI();
     }
 
     private void OnTriggerEnter(Collider other)
@@ -52,63 +44,55 @@ public class TutorialSubtitleTrigger : MonoBehaviour
 
     IEnumerator PlayDialogueSequence()
     {
-        // 1. HIDE ALL PIECES
-        HideMissionUI();
+        // Prevent mission UI from overlapping
+        if (missionBox != null) missionBox.SetActive(false);
 
         for (int i = 0; i < dialogues.Length; i++)
         {
             if (dialogues[i] == null) continue;
 
-            bool first = (i == 0);
-            dialogueManager.StartDialogue(dialogues[i], DialogueManager.DialogueMode.Subtitle, first);
+            bool isFirst = (i == 0);
+            bool isLast = (i == dialogues.Length - 1);
 
+            // Pass isLast to autoClose so the box stays open until the sequence is done
+            dialogueManager.StartDialogue(dialogues[i], DialogueManager.DialogueMode.Subtitle, isFirst, isLast);
+
+            // Wait for manager to finish current asset
             while (dialogueManager.IsDialogueActive())
             {
                 yield return null;
             }
-            yield return new WaitForSeconds(0.1f);
+
+            // Tiny delay between assets while box stays static
+            if (!isLast) yield return new WaitForSeconds(0.1f);
         }
 
-        dialogueManager.CloseDialogueBox();
-        yield return new WaitForSeconds(0.5f);
+        // Wait for the final slide-down animation to finish
+        yield return new WaitForSeconds(0.6f);
 
-        // 2. SHOW ALL PIECES
-        ShowMission();
-    }
-
-    void HideMissionUI()
-    {
-        // We hide the GameObject specifically to ensure child images vanish
-        if (missionBox != null) missionBox.SetActive(false);
-        if (missionText != null) missionText.gameObject.SetActive(false);
-        if (missionImageObject != null) missionImageObject.SetActive(false);
-    }
-
-    void ShowMission()
-    {
-        // Update the text string first
-        if (missionText != null)
-        {
-            missionText.text = missionDescription;
-            missionText.gameObject.SetActive(true); // Show text
-        }
-
-        // Show the icon
-        if (missionImageObject != null)
-        {
-            missionImageObject.SetActive(true);
-        }
-
-        // Show the main background box
         if (missionBox != null)
         {
-            missionBox.SetActive(true);
+            ShowMissionFinal();
         }
+    }
 
-        // Play the sound
+    void ShowMissionFinal()
+    {
+        if (missionText != null) missionText.text = missionDescription;
+        if (missionText != null) missionText.gameObject.SetActive(true);
+        if (missionImageObject != null) missionImageObject.SetActive(true);
+        if (missionBox != null) missionBox.SetActive(true);
+
         if (audioSource != null && missionSound != null)
         {
             audioSource.PlayOneShot(missionSound);
         }
+    }
+
+    void HideMissionUI()
+    {
+        if (missionBox != null) missionBox.SetActive(false);
+        if (missionText != null) missionText.gameObject.SetActive(false);
+        if (missionImageObject != null) missionImageObject.SetActive(false);
     }
 }
