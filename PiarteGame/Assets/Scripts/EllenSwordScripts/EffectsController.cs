@@ -253,6 +253,70 @@ public class EffectsController : MonoBehaviour
             Debug.LogError("❌ EffectsController.instance is null! Make sure EffectsController exists in scene.");
     }
 
+    // === NEW: STOP METHODS ===
+    public static void StopHealing()
+    {
+        if (instance != null)
+            instance.ForceStopHealingEffect();
+    }
+
+    public static void StopDamage()
+    {
+        if (instance != null)
+            instance.ForceStopDamageEffect();
+    }
+
+    private void ForceStopHealingEffect()
+    {
+        // Stop coroutine if running
+        if (healingCoroutine != null)
+        {
+            StopCoroutine(healingCoroutine);
+            healingCoroutine = null;
+        }
+
+        // Disable feature
+        if (healingFeature != null)
+            healingFeature.SetActive(false);
+
+        // Reset material properties immediately
+        if (healingMaterial != null)
+        {
+            healingMaterial.SetFloat(VignetteRadiusID, HEALING_RADIUS_NONE);
+            healingMaterial.SetFloat(HealOpacityID, 0f);
+            healingMaterial.SetFloat(HealIntensityID, 0f);
+        }
+
+        if (debugMode)
+            Debug.Log("🛑 Healing effect forcefully stopped");
+    }
+
+    private void ForceStopDamageEffect()
+    {
+        // Stop coroutine if running
+        if (damageCoroutine != null)
+        {
+            StopCoroutine(damageCoroutine);
+            damageCoroutine = null;
+        }
+
+        // Disable feature
+        if (damageFeature != null)
+            damageFeature.SetActive(false);
+
+        // Reset material properties immediately
+        if (damageMaterial != null)
+        {
+            damageMaterial.SetFloat(VignetteRadiusID, DAMAGE_RADIUS_NONE);
+            damageMaterial.SetFloat(VignetteDarkeningID, 0f);
+            damageMaterial.SetFloat(OverlayOpacityID, 0f);
+            damageMaterial.SetFloat(ScratchesIntensityID, 0f);
+        }
+
+        if (debugMode)
+            Debug.Log("🛑 Damage effect forcefully stopped");
+    }
+
     // === DAMAGE EFFECT ===
     private void StartDamageEffect(float intensity)
     {
@@ -279,12 +343,7 @@ public class EffectsController : MonoBehaviour
         }
 
         // Stop healing effect if active
-        if (healingCoroutine != null)
-        {
-            StopCoroutine(healingCoroutine);
-            if (healingFeature != null) healingFeature.SetActive(false);
-            healingCoroutine = null;
-        }
+        ForceStopHealingEffect();
 
         // Stop previous damage effect
         if (damageCoroutine != null)
@@ -389,12 +448,7 @@ public class EffectsController : MonoBehaviour
         }
 
         // Stop damage effect if active
-        if (damageCoroutine != null)
-        {
-            StopCoroutine(damageCoroutine);
-            if (damageFeature != null) damageFeature.SetActive(false);
-            damageCoroutine = null;
-        }
+        ForceStopDamageEffect();
 
         // Stop previous healing effect
         if (healingCoroutine != null)

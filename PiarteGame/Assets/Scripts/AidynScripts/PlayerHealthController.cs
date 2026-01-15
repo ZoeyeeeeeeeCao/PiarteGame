@@ -42,8 +42,12 @@ public class PlayerHealthController : MonoBehaviour
     [SerializeField] private float lowHealthPulseIntensity = 0.5f;
     [Tooltip("How fast the low health effect pulses")]
     [SerializeField] private float lowHealthPulseSpeed = 1.5f;
+    [Tooltip("Time to pause low health pulse when damage/heal occurs")]
+    [SerializeField] private float effectInterruptDuration = 1.0f;
 
     private Coroutine lowHealthPulseCoroutine;
+    private float lastEffectTime = -999f; // Track when last damage/heal occurred
+    private GameObject activeHealParticleInstance; // Track active heal particles
 
     [Header("Testing (Optional)")]
     [SerializeField] private float testDamageAmount = 10f;
@@ -113,6 +117,15 @@ public class PlayerHealthController : MonoBehaviour
         CurrentHealth = Mathf.Clamp(CurrentHealth - amount, 0f, maxHealth);
         Notify();
 
+        // Record time of effect to pause low health pulse
+        lastEffectTime = Time.time;
+
+        // IMPORTANT: Stop any active heal particles immediately
+        StopHealParticles();
+
+        // IMPORTANT: Stop any ongoing healing effect first
+        EffectsController.StopHealing();
+
         // Trigger shader-based damage effect
         float damageIntensity = Mathf.Clamp01(amount / maxHealth);
         EffectsController.TriggerDamage(damageIntensity);
@@ -134,7 +147,14 @@ public class PlayerHealthController : MonoBehaviour
 
         CurrentHealth = Mathf.Clamp(CurrentHealth + amount, 0f, maxHealth);
         Notify();
+
+        // Record time of effect to pause low health pulse
+        lastEffectTime = Time.time;
+
         CheckLowHealthState();
+
+        // IMPORTANT: Stop any ongoing damage effect first
+        EffectsController.StopDamage();
 
         // Trigger shader-based healing effect
         float healIntensity = Mathf.Clamp01(amount / maxHealth);
@@ -199,12 +219,19 @@ public class PlayerHealthController : MonoBehaviour
     {
         while (IsLowHealth && !IsDead)
         {
-            // Calculate pulsing intensity
-            float pingPong = Mathf.PingPong(Time.time * lowHealthPulseSpeed, 1f);
-            float intensity = Mathf.Lerp(0.3f, lowHealthPulseIntensity, pingPong);
+            // Check if we should pause pulsing due to recent damage/heal effect
+            float timeSinceLastEffect = Time.time - lastEffectTime;
 
-            // Trigger damage effect continuously for pulse
-            EffectsController.TriggerDamage(intensity);
+            if (timeSinceLastEffect >= effectInterruptDuration)
+            {
+                // Calculate pulsing intensity
+                float pingPong = Mathf.PingPong(Time.time * lowHealthPulseSpeed, 1f);
+                float intensity = Mathf.Lerp(0.3f, lowHealthPulseIntensity, pingPong);
+
+                // Trigger damage effect continuously for pulse
+                EffectsController.TriggerDamage(intensity);
+            }
+            // else: Skip triggering pulse effect, let damage/heal effect play out
 
             // Wait for next frame
             yield return new WaitForSeconds(0.1f);
@@ -235,13 +262,16 @@ public class PlayerHealthController : MonoBehaviour
             return;
         }
 
+        // Stop any existing heal particles first
+        StopHealParticles();
+
         Transform spawnParent = playerTransform != null ? playerTransform : transform;
 
-        GameObject particleInstance = Instantiate(healParticlePrefab, spawnParent);
-        particleInstance.transform.localPosition = particleOffset;
-        particleInstance.transform.localRotation = Quaternion.identity;
+        activeHealParticleInstance = Instantiate(healParticlePrefab, spawnParent);
+        activeHealParticleInstance.transform.localPosition = particleOffset;
+        activeHealParticleInstance.transform.localRotation = Quaternion.identity;
 
-        ParticleSystem[] particleSystems = particleInstance.GetComponentsInChildren<ParticleSystem>();
+        ParticleSystem[] particleSystems = activeHealParticleInstance.GetComponentsInChildren<ParticleSystem>();
 
         if (particleSystems.Length > 0)
         {
@@ -260,12 +290,29 @@ public class PlayerHealthController : MonoBehaviour
                     maxDuration = psDuration;
             }
 
-            Destroy(particleInstance, maxDuration);
+            Destroy(activeHealParticleInstance, maxDuration);
         }
         else
         {
             Debug.LogWarning("⚠️ No ParticleSystem found in the prefab!");
-            Destroy(particleInstance, healParticleDuration);
+            Destroy(activeHealParticleInstance, healParticleDuration);
+        }
+    }
+
+    private void StopHealParticles()
+    {
+        if (activeHealParticleInstance != null)
+        {
+            // Stop all particle systems immediately
+            ParticleSystem[] particleSystems = activeHealParticleInstance.GetComponentsInChildren<ParticleSystem>();
+            foreach (ParticleSystem ps in particleSystems)
+            {
+                ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            }
+
+            // Destroy the game object
+            Destroy(activeHealParticleInstance);
+            activeHealParticleInstance = null;
         }
     }
 }
