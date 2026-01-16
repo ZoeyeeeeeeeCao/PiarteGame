@@ -30,6 +30,7 @@ TagManager:
   - FootTrigger
   - Hotspot
   - HitBone
+  - Combat
   - 
   - 
   - 
@@ -44,8 +45,7 @@ TagManager:
   - 
   - 
   - 
-  - 
-  - 
+  - PostProcess
   - Enemy
   - Inspect
   m_SortingLayers:
