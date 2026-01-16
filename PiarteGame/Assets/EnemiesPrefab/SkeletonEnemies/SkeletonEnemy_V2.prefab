@@ -69,6 +69,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   damageAmount: 15
   playerTag: Player
+  damageCooldown: 1
+  hitVFXPrefabs: []
+  hitVFXLifetime: 2
+  hitSounds: []
+  hitSoundVolume: 0.7
+  enableCameraShake: 1
+  shakeDuration: 0.3
+  shakeMagnitude: 0.2
+  debugMode: 1
 --- !u!54 &4337659861677956200
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -229,6 +238,10 @@ PrefabInstance:
       propertyPath: m_Controller
       value: 
       objectReference: {fileID: 9100000, guid: 195a369762526dc4d8dd29637a069d93, type: 2}
+    - target: {fileID: 9500000, guid: d86787a2f463c10489d95d7e51adaeba, type: 3}
+      propertyPath: m_ApplyRootMotion
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:

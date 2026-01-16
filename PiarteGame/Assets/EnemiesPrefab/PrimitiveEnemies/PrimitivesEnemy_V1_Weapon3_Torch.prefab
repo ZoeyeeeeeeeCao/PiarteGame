@@ -1788,7 +1788,7 @@ GameObject:
   - component: {fileID: 2865420673409108248}
   m_Layer: 0
   m_Name: PrimitivesEnemy_V1_Weapon3_Torch
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1841,7 +1841,7 @@ Animator:
   m_Controller: {fileID: 9100000, guid: 195a369762526dc4d8dd29637a069d93, type: 2}
   m_CullingMode: 1
   m_UpdateMode: 0
-  m_ApplyRootMotion: 1
+  m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
   m_AnimatePhysics: 0
