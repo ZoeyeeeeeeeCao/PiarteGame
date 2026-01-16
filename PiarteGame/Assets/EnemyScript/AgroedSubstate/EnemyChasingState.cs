@@ -3,6 +3,7 @@ using UnityEngine;
 public class EnemyChasingState : EnemyBaseState
 {
     private const float DESIRED_DISTANCE = 1f;
+    private const float STOPPING_THRESHOLD = 0.15f;
 
     public override void EnterState(EnemyController enemy)
     {
@@ -12,8 +13,8 @@ public class EnemyChasingState : EnemyBaseState
         {
             enemy.agent.speed = enemy.runningSpeed;
             enemy.agent.isStopped = false;
-            enemy.agent.stoppingDistance = 0f; // we control distance manually
-            enemy.agent.updateRotation = false; // manual facing
+            enemy.agent.stoppingDistance = 0f;
+            enemy.agent.updateRotation = false; // We handle rotation manually for smoother look
         }
     }
 
@@ -22,18 +23,27 @@ public class EnemyChasingState : EnemyBaseState
         if (enemy.isSpawning) return;
         if (enemy.agent == null || !enemy.agent.enabled || enemy.playerTarget == null) return;
 
-        // --- FLATTEN POSITIONS ---
-        Vector3 enemyPos = enemy.transform.position;
-        Vector3 playerPos = enemy.playerTarget.position;
-        enemyPos.y = playerPos.y = 0f;
+        // 1. Get real positions for the NavMesh (includes Y height)
+        Vector3 realEnemyPos = enemy.transform.position;
+        Vector3 realPlayerPos = enemy.playerTarget.position;
 
-        float distanceToPlayer = Vector3.Distance(enemyPos, playerPos);
+        // 2. Create flattened versions for distance and rotation logic
+        // This prevents the enemy from "tilting" or miscalculating distance on hills
+        Vector3 flatEnemyPos = new Vector3(realEnemyPos.x, 0, realEnemyPos.z);
+        Vector3 flatPlayerPos = new Vector3(realPlayerPos.x, 0, realPlayerPos.z);
+
+        float distanceToPlayer = Vector3.Distance(flatEnemyPos, flatPlayerPos);
 
         // --- MAINTAIN DISTANCE ---
-        Vector3 dirFromPlayer = (enemyPos - playerPos).normalized;
-        Vector3 desiredPos = playerPos + dirFromPlayer * DESIRED_DISTANCE;
+        // Calculate the direction on a flat plane
+        Vector3 dirFromPlayer = (flatEnemyPos - flatPlayerPos).normalized;
 
-        if (distanceToPlayer > DESIRED_DISTANCE + 0.15f || distanceToPlayer < DESIRED_DISTANCE - 0.15f)
+        // Target a position near the player, but keep the player's real Y height
+        // so the NavMeshAgent doesn't try to go underground.
+        Vector3 desiredPos = realPlayerPos + dirFromPlayer * DESIRED_DISTANCE;
+
+        if (distanceToPlayer > DESIRED_DISTANCE + STOPPING_THRESHOLD ||
+            distanceToPlayer < DESIRED_DISTANCE - STOPPING_THRESHOLD)
         {
             enemy.agent.isStopped = false;
             enemy.agent.destination = desiredPos;
@@ -44,7 +54,8 @@ public class EnemyChasingState : EnemyBaseState
         }
 
         // --- FACE PLAYER ---
-        Vector3 lookDir = playerPos - enemyPos;
+        // We use the flat positions here so the enemy rotates only on the Y axis
+        Vector3 lookDir = flatPlayerPos - flatEnemyPos;
         if (lookDir.sqrMagnitude > 0.01f)
         {
             Quaternion targetRot = Quaternion.LookRotation(lookDir);
@@ -55,9 +66,9 @@ public class EnemyChasingState : EnemyBaseState
             );
         }
 
-        // --- ANIMATION DRIVEN BY SPEED ---
-        float speed = enemy.agent.velocity.magnitude;
-        float blend = Mathf.InverseLerp(0f, enemy.runningSpeed, speed);
+        // --- ANIMATION ---
+        float currentSpeed = enemy.agent.velocity.magnitude;
+        float blend = Mathf.InverseLerp(0f, enemy.runningSpeed, currentSpeed);
 
         if (enemy.animator != null)
         {
@@ -67,6 +78,9 @@ public class EnemyChasingState : EnemyBaseState
 
     public override void ExitState(EnemyController enemy)
     {
-        // nothing special
+        if (enemy.agent != null && enemy.agent.enabled)
+        {
+            enemy.agent.isStopped = true;
+        }
     }
 }
