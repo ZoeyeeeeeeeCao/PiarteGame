@@ -6225,13 +6225,13 @@ MonoBehaviour:
   drawVolume: 0.7
   sheathVolume: 0.3
   swingSounds:
-  - {fileID: 8300000, guid: ff55d6e34a4a1cb4a8bd901f8a25ca4f, type: 3}
-  - {fileID: 8300000, guid: 9113cc54676bc9a47af55561f5fb4ea0, type: 3}
-  - {fileID: 8300000, guid: 6a5115cec929b9446b289dd76a1ab8a4, type: 3}
-  - {fileID: 8300000, guid: 3f977700161bc294ea34e8e34e2d2d06, type: 3}
-  - {fileID: 8300000, guid: 43efa66ae7ea43241b0de4c109a10831, type: 3}
-  - {fileID: 8300000, guid: 379d6eac5c57eaa45a3f6cef2c45653d, type: 3}
-  - {fileID: 8300000, guid: cb3712d5fb05b7443bacf08d8955172e, type: 3}
+  - {fileID: 8300000, guid: 3d7142fa6abd24944903622738b38be5, type: 3}
+  - {fileID: 8300000, guid: 4aa9155b24b12314c83fa68da1768473, type: 3}
+  - {fileID: 8300000, guid: 6454156fabc0fb3439ba21ca85aee0b7, type: 3}
+  - {fileID: 8300000, guid: 1d37e8b78ef464047bc50ab4fa820559, type: 3}
+  - {fileID: 8300000, guid: df602af41c0c75a4184044ea6f8c8bf6, type: 3}
+  - {fileID: 8300000, guid: 9a068ac2cf0ebf144b49e00e910c6f4c, type: 3}
+  - {fileID: 8300000, guid: 8c9f0437e2a06d940a032402ff6b29ea, type: 3}
   swingVolume: 0.1
   swingPitchMin: 0.9
   swingPitchMax: 1.1
