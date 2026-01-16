@@ -14,7 +14,7 @@ public class InventoryDetailPanel : MonoBehaviour
     [Tooltip("Drag the RawImage RectTransform that displays InspectRT here.")]
     public RectTransform inspectDragArea;
 
-    // Keeping these fields so your script name/structure doesn’t “break”
+    // Keeping these fields so your script name/structure doesn’t “break?
     // You can leave them unassigned or delete the UI objects.
     public Button inspectButton;
     public Button closeInspectButton; // optional

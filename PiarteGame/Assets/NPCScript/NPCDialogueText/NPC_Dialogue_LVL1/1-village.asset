@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be99e75ec8c1d44449c01afbde21cbcb, type: 3}
+  m_Name: 1-village
+  m_EditorClassIdentifier: 
+  npcName: Ashford
+  dialogueLines:
+  - text: "Looks like there\u2019s a small village here. Maybe I can ask around about
+      the stone."
+    audioClip: {fileID: 8300000, guid: 433e01cc0fb698441a0975478a7169fd, type: 3}

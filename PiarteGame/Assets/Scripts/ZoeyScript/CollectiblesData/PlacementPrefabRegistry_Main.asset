@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ac0203d48e014fd44b084c8fa2914f1e, type: 3}
+  m_Name: PlacementPrefabRegistry_Main
+  m_EditorClassIdentifier: 
+  entries:
+  - item: {fileID: 11400000, guid: 86eadf7297b541b41a59fd9fc087115e, type: 2}
+    worldPrefab: {fileID: 8713121066105873847, guid: 06514d06a0d326d48b4b06e2efb4ba20, type: 3}
+  - item: {fileID: 11400000, guid: 37ff25da834335043a95094f58f4c98e, type: 2}
+    worldPrefab: {fileID: 7031911805920316360, guid: c67a56dce6618194e98bcd0b1ce9153b, type: 3}
+  - item: {fileID: 11400000, guid: 36cba08612d850b4b9c380da8fbc51e7, type: 2}
+    worldPrefab: {fileID: 7771341805993313999, guid: a9ba52d75e4e2964ead3568b04928ef3, type: 3}
+  - item: {fileID: 11400000, guid: 2f6f2d47bad39f14a950c3dbaede5373, type: 2}
+    worldPrefab: {fileID: 8855966340449084227, guid: 13665e95d307f1d4ba2c2712c6e04fc6, type: 3}

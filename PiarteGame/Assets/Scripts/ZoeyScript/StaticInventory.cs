@@ -1,10 +1,47 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 public static class StaticInventory
 {
     private static Dictionary<string, int> items = new Dictionary<string, int>();
     public static event Action OnChanged;
+
+    private static bool initialized;
+
+    public static void InitializeFromDatabase(ItemDatabase db)
+    {
+        if (initialized) return;
+        initialized = true;
+
+        if (db == null || db.items == null) return;
+
+        bool changed = false;
+
+        foreach (var item in db.items)
+        {
+            if (item == null) continue;
+            if (item.initialAmount <= 0) continue;
+
+            // 如果已存在（比如未来做存档载入），不覆盖
+            if (items.ContainsKey(item.itemId)) continue;
+
+            int amt = item.initialAmount;
+
+            // 遵守原本规则
+            if (!item.stackable)
+                amt = Mathf.Clamp(amt, 0, 1);
+            else
+                amt = Mathf.Clamp(amt, 0, item.maxStack);
+
+            if (amt <= 0) continue;
+
+            items[item.itemId] = amt;
+            changed = true;
+        }
+
+        if (changed) OnChanged?.Invoke();
+    }
 
     public static int Count(ItemData item)
     {
@@ -55,5 +92,6 @@ public static class StaticInventory
     {
         items.Clear();
         OnChanged?.Invoke();
+        initialized = false; // ✅ 允许你 Clear 后重新初始化初始量
     }
 }

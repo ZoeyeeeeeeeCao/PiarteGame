@@ -21,6 +21,7 @@ MonoBehaviour:
     on fear, growing stronger the longer it remains undisturbed.
   stackable: 0
   maxStack: 99
+  initialAmount: 1
   isConsumable: 0
   healAmount: 0
   inspectPrefab: {fileID: 919132149155446097, guid: 13ac1a83ec63921418f60d822113c75b, type: 3}

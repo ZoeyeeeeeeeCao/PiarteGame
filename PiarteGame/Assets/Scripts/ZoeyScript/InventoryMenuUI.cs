@@ -30,6 +30,14 @@ public class InventoryMenuUI : MonoBehaviour
     [Header("Inspect (optional but recommended)")]
     public InspectManager inspectManager;
 
+    // ⭐ NEW: Optional canvas/object to hide while inventory is open
+    [Header("Optional UI Lock (Hide While Inventory Open)")]
+    [Tooltip("Optional: another Canvas or UI root to disable when inventory opens (can be null).")]
+    public GameObject uiToDisableWhenInventoryOpen;
+
+    // ⭐ NEW: Remember its initial state so we restore correctly
+    private bool uiWasInitiallyActive;
+
     PickUpItemCategory currentCategory = PickUpItemCategory.Herbs;
     readonly List<GameObject> spawnedRows = new();
 
@@ -47,6 +55,13 @@ public class InventoryMenuUI : MonoBehaviour
     {
         if (windowRoot) windowRoot.SetActive(false);
         if (detailPanel) detailPanel.Hide();
+
+        // ✅ 初始化初始量（你之前要求的）
+        StaticInventory.InitializeFromDatabase(database);
+
+        // ⭐ NEW: cache initial active state of the other UI
+        if (uiToDisableWhenInventoryOpen != null)
+            uiWasInitiallyActive = uiToDisableWhenInventoryOpen.activeSelf;
 
         // Make sure detail panel has the inspect manager reference
         if (detailPanel && detailPanel.inspectManager == null)
@@ -79,6 +94,10 @@ public class InventoryMenuUI : MonoBehaviour
     {
         if (windowRoot) windowRoot.SetActive(true);
 
+        // ⭐ NEW: hide the other UI if it exists and was initially active
+        if (uiToDisableWhenInventoryOpen != null && uiWasInitiallyActive)
+            uiToDisableWhenInventoryOpen.SetActive(false);
+
         Time.timeScale = 0f;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
@@ -99,6 +118,10 @@ public class InventoryMenuUI : MonoBehaviour
         Cursor.visible = false;
 
         if (detailPanel) detailPanel.Hide();
+
+        // ⭐ NEW: restore the other UI only if it was initially active
+        if (uiToDisableWhenInventoryOpen != null && uiWasInitiallyActive)
+            uiToDisableWhenInventoryOpen.SetActive(true);
     }
 
     void SetCategory(PickUpItemCategory cat)

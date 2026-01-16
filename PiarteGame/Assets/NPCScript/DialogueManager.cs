@@ -284,3 +284,4 @@ public class DialogueManager : MonoBehaviour
 
     public bool IsDialogueActive() => isDialogueActive;
 }
+
