@@ -1,23 +1,27 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class PauseManager : MonoBehaviour
 {
     [Header("UI References")]
     [SerializeField] private GameObject pauseMenuCanvas;
-    [SerializeField] private GameObject settingsPanel; // Panel containing sliders
-    [SerializeField] private GameObject controlsPanel; // Panel containing controls pages
+    [SerializeField] private GameObject settingsPanel; // Panel with sliders (audio, sfx, mouse sensitivity)
 
-    [Header("Controls Pages")]
+    [Header("Buttons")]
+    [SerializeField] private GameObject mainButtons; // Container for Resume, Controls, Main Menu buttons
+
+    [Header("Controls Pages (Paginated)")]
+    [SerializeField] private GameObject controlsContainer; // Parent container for all control pages
     [SerializeField] private GameObject[] controlPages; // Array of control page GameObjects
-    [SerializeField] private GameObject previousButton;
-    [SerializeField] private GameObject nextButton;
+    [SerializeField] private GameObject nextPageButton;
+    [SerializeField] private GameObject prevPageButton;
+    [SerializeField] private GameObject backButton; // Back button that appears in controls view
 
     [Header("Scene Settings")]
     [SerializeField] private string mainMenuSceneName = "MainMenu";
 
     private bool isPaused = false;
-    private int currentControlPage = 0;
+    private int currentControlPageIndex = 0;
     private bool isInControlsView = false;
 
     void Start()
@@ -26,8 +30,8 @@ public class PauseManager : MonoBehaviour
         if (pauseMenuCanvas != null)
             pauseMenuCanvas.SetActive(false);
 
-        if (controlsPanel != null)
-            controlsPanel.SetActive(false);
+        if (controlsContainer != null)
+            controlsContainer.SetActive(false);
 
         // Hide all control pages initially
         HideAllControlPages();
@@ -49,7 +53,7 @@ public class PauseManager : MonoBehaviour
             if (isInControlsView)
             {
                 // If in controls view, go back to settings
-                ShowSettings();
+                CloseControlsView();
             }
             else
             {
@@ -74,7 +78,8 @@ public class PauseManager : MonoBehaviour
         if (pauseMenuCanvas != null)
             pauseMenuCanvas.SetActive(true);
 
-        ShowSettings();
+        // Show settings panel
+        ShowSettingsPanel();
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
@@ -90,79 +95,98 @@ public class PauseManager : MonoBehaviour
         if (pauseMenuCanvas != null)
             pauseMenuCanvas.SetActive(false);
 
-        HideAllControlPages();
-
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
 
-    public void ShowControls()
-    {
-        isInControlsView = true;
-        currentControlPage = 0;
-
-        if (settingsPanel != null)
-            settingsPanel.SetActive(false);
-
-        if (controlsPanel != null)
-            controlsPanel.SetActive(true);
-
-        UpdateControlPage();
-    }
-
-    public void ShowSettings()
+    private void ShowSettingsPanel()
     {
         isInControlsView = false;
 
-        if (controlsPanel != null)
-            controlsPanel.SetActive(false);
-
+        // Show settings and buttons
         if (settingsPanel != null)
             settingsPanel.SetActive(true);
 
-        HideAllControlPages();
+        if (mainButtons != null)
+            mainButtons.SetActive(true);
+
+        // Hide controls
+        if (controlsContainer != null)
+            controlsContainer.SetActive(false);
+
+        if (backButton != null)
+            backButton.SetActive(false);
+    }
+
+    public void OpenControlsView()
+    {
+        isInControlsView = true;
+
+        // Hide settings panel
+        if (settingsPanel != null)
+            settingsPanel.SetActive(false);
+
+        // Hide main buttons
+        if (mainButtons != null)
+            mainButtons.SetActive(false);
+
+        // Show controls container
+        if (controlsContainer != null)
+            controlsContainer.SetActive(true);
+
+        // Show back button
+        if (backButton != null)
+            backButton.SetActive(true);
+
+        // Reset to first page
+        currentControlPageIndex = 0;
+        UpdateControlPageVisibility();
+    }
+
+    public void CloseControlsView()
+    {
+        ShowSettingsPanel();
     }
 
     public void NextControlPage()
     {
-        if (controlPages == null || controlPages.Length == 0)
-            return;
+        if (controlPages == null || controlPages.Length == 0) return;
 
-        currentControlPage = (currentControlPage + 1) % controlPages.Length;
-        UpdateControlPage();
+        // Loop using modulo (same as SettingsManager)
+        currentControlPageIndex = (currentControlPageIndex + 1) % controlPages.Length;
+        UpdateControlPageVisibility();
     }
 
     public void PreviousControlPage()
     {
-        if (controlPages == null || controlPages.Length == 0)
-            return;
+        if (controlPages == null || controlPages.Length == 0) return;
 
-        currentControlPage--;
-        if (currentControlPage < 0)
-            currentControlPage = controlPages.Length - 1;
+        currentControlPageIndex--;
 
-        UpdateControlPage();
+        // Loop back to end if below zero
+        if (currentControlPageIndex < 0)
+            currentControlPageIndex = controlPages.Length - 1;
+
+        UpdateControlPageVisibility();
     }
 
-    private void UpdateControlPage()
+    private void UpdateControlPageVisibility()
     {
         // Hide all pages first
-        HideAllControlPages();
-
-        // Show current page
-        if (controlPages != null && currentControlPage >= 0 && currentControlPage < controlPages.Length)
+        for (int i = 0; i < controlPages.Length; i++)
         {
-            if (controlPages[currentControlPage] != null)
-                controlPages[currentControlPage].SetActive(true);
+            if (controlPages[i] != null)
+                controlPages[i].SetActive(i == currentControlPageIndex);
         }
 
-        // Update navigation buttons visibility (optional - always show for looping)
-        // You can hide these if you only have 1 page
-        if (previousButton != null)
-            previousButton.SetActive(controlPages != null && controlPages.Length > 1);
+        // Show/hide navigation buttons (hide if only 1 page)
+        bool hasMultiplePages = controlPages != null && controlPages.Length > 1;
 
-        if (nextButton != null)
-            nextButton.SetActive(controlPages != null && controlPages.Length > 1);
+        if (nextPageButton != null)
+            nextPageButton.SetActive(hasMultiplePages);
+
+        if (prevPageButton != null)
+            prevPageButton.SetActive(hasMultiplePages);
     }
 
     private void HideAllControlPages()
@@ -179,7 +203,6 @@ public class PauseManager : MonoBehaviour
 
     public void OnBackButtonPressed()
     {
-        // Smart back button - same as ESC
         HandleBackNavigation();
     }
 
