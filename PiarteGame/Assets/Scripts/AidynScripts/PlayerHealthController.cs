@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Collections;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 public class PlayerHealthController : MonoBehaviour
 {
@@ -7,11 +10,13 @@ public class PlayerHealthController : MonoBehaviour
 
     [Header("Health")]
     [SerializeField] private float maxHealth = 100f;
+    [SerializeField] private float lowHealthThreshold = 30f;
 
     public float CurrentHealth { get; private set; }
     public float MaxHealth => maxHealth;
     public bool IsDead => CurrentHealth <= 0f;
     public bool IsFullHealth => Mathf.Approximately(CurrentHealth, maxHealth);
+    public bool IsLowHealth => CurrentHealth <= lowHealthThreshold;
 
     public event Action<float, float> OnHealthChanged;
     public event Action OnDeath;
@@ -19,7 +24,7 @@ public class PlayerHealthController : MonoBehaviour
     private bool deathFired = false;
 
     // =========================
-    // VFX / Feedback (from PlayerHealth)
+    // VFX / Feedback
     // =========================
     [Header("Heal Particle System")]
     [SerializeField] private GameObject healParticlePrefab;
@@ -33,10 +38,19 @@ public class PlayerHealthController : MonoBehaviour
     [SerializeField] private float lightDamageShakeMagnitude = 0.15f;
     [SerializeField] private float heavyDamageShakeMagnitude = 0.35f;
 
-    // Optional debug (kept as non-invasive, won’t change your core logic)
+    [Header("Low Health Pulse Effect")]
+    [SerializeField] private float lowHealthPulseIntensity = 0.5f;
+    [Tooltip("How fast the low health effect pulses")]
+    [SerializeField] private float lowHealthPulseSpeed = 1.5f;
+    [Tooltip("Time to pause low health pulse when damage/heal occurs")]
+    [SerializeField] private float effectInterruptDuration = 1.0f;
+
+    private Coroutine lowHealthPulseCoroutine;
+    private float lastEffectTime = -999f; // Track when last damage/heal occurred
+    private GameObject activeHealParticleInstance; // Track active heal particles
+
     [Header("Testing (Optional)")]
     [SerializeField] private float testDamageAmount = 10f;
-    
 
     private void Awake()
     {
@@ -49,16 +63,12 @@ public class PlayerHealthController : MonoBehaviour
         Instance = this;
         DontDestroyOnLoad(gameObject);
 
-        // If you want health to persist, keep this.
-        // If you want "new run" health per fresh play session, reset elsewhere.
         CurrentHealth = maxHealth;
         Notify();
     }
 
     private void Start()
     {
-        // Keep the inspector fields from your old PlayerHealth script.
-        // Auto-assign playerTransform if not set.
         if (playerTransform == null)
         {
             playerTransform = transform;
@@ -72,20 +82,30 @@ public class PlayerHealthController : MonoBehaviour
     private void Update()
     {
 #if UNITY_EDITOR
-        // DEBUG: test damage (existing debug)
         if (Input.GetKeyDown(KeyCode.J))
         {
             Damage(15f);
         }
 
-        // Optional VFX testing (doesn't change core logic)
         if (Input.GetKeyDown(KeyCode.Alpha1))
         {
             Damage(testDamageAmount);
             Debug.Log($"🎮 TEST: Pressed [1] - Damage {testDamageAmount}");
         }
 
-       
+        if (Input.GetKeyDown(KeyCode.Alpha2))
+        {
+            CurrentHealth = 25f;
+            Notify();
+            CheckLowHealthState();
+            Debug.Log($"🎮 TEST: Pressed [2] - Set health to {CurrentHealth}");
+        }
+
+        if (Input.GetKeyDown(KeyCode.K))
+        {
+            Heal(20f);
+            Debug.Log($"🎮 TEST: Pressed [K] - Heal 20");
+        }
 #endif
     }
 
@@ -94,13 +114,27 @@ public class PlayerHealthController : MonoBehaviour
         if (deathFired) return;
         if (amount <= 0f) return;
 
-        // ---- core logic preserved ----
         CurrentHealth = Mathf.Clamp(CurrentHealth - amount, 0f, maxHealth);
         Notify();
-        // ---- end core logic ----
 
-        // VFX/feedback (added)
+        // Record time of effect to pause low health pulse
+        lastEffectTime = Time.time;
+
+        // IMPORTANT: Stop any active heal particles immediately
+        StopHealParticles();
+
+        // IMPORTANT: Stop any ongoing healing effect first
+        EffectsController.StopHealing();
+
+        // Trigger shader-based damage effect
+        float damageIntensity = Mathf.Clamp01(amount / maxHealth);
+        EffectsController.TriggerDamage(damageIntensity);
+
+        // Camera shake
         TriggerDamageShake(amount);
+
+        // Check if low health state changed
+        CheckLowHealthState();
 
         if (CurrentHealth <= 0f)
             Die();
@@ -111,24 +145,30 @@ public class PlayerHealthController : MonoBehaviour
         if (deathFired) return;
         if (amount <= 0f) return;
 
-        // ---- core logic preserved ----
         CurrentHealth = Mathf.Clamp(CurrentHealth + amount, 0f, maxHealth);
         Notify();
-        // ---- end core logic ----
 
-        // VFX/feedback (added)
+        // Record time of effect to pause low health pulse
+        lastEffectTime = Time.time;
+
+        CheckLowHealthState();
+
+        // IMPORTANT: Stop any ongoing damage effect first
+        EffectsController.StopDamage();
+
+        // Trigger shader-based healing effect
+        float healIntensity = Mathf.Clamp01(amount / maxHealth);
+        EffectsController.TriggerHealing(healIntensity);
+
         PlayHealParticles();
     }
 
-    /// <summary>
-    /// Call this when restarting the level so you don't reload with 0 HP
-    /// (since this controller persists with DontDestroyOnLoad).
-    /// </summary>
     public void ResetHealth()
     {
         deathFired = false;
         CurrentHealth = maxHealth;
         Notify();
+        CheckLowHealthState();
     }
 
     private void Die()
@@ -136,7 +176,14 @@ public class PlayerHealthController : MonoBehaviour
         if (deathFired) return;
         deathFired = true;
 
-        Debug.Log("Player died");
+        // Stop low health pulse
+        if (lowHealthPulseCoroutine != null)
+        {
+            StopCoroutine(lowHealthPulseCoroutine);
+            lowHealthPulseCoroutine = null;
+        }
+
+        Debug.Log("💀 Player died");
         OnDeath?.Invoke();
     }
 
@@ -145,9 +192,53 @@ public class PlayerHealthController : MonoBehaviour
         OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
     }
 
-    // =========================
-    // VFX Helpers
-    // =========================
+    private void CheckLowHealthState()
+    {
+        if (IsLowHealth && !IsDead)
+        {
+            // Start pulsing low health effect using shader
+            if (lowHealthPulseCoroutine == null)
+            {
+                lowHealthPulseCoroutine = StartCoroutine(LowHealthPulseCoroutine());
+                Debug.Log("⚠️ Low health pulse started!");
+            }
+        }
+        else
+        {
+            // Stop pulsing
+            if (lowHealthPulseCoroutine != null)
+            {
+                StopCoroutine(lowHealthPulseCoroutine);
+                lowHealthPulseCoroutine = null;
+                Debug.Log("✅ Low health pulse stopped!");
+            }
+        }
+    }
+
+    private IEnumerator LowHealthPulseCoroutine()
+    {
+        while (IsLowHealth && !IsDead)
+        {
+            // Check if we should pause pulsing due to recent damage/heal effect
+            float timeSinceLastEffect = Time.time - lastEffectTime;
+
+            if (timeSinceLastEffect >= effectInterruptDuration)
+            {
+                // Calculate pulsing intensity
+                float pingPong = Mathf.PingPong(Time.time * lowHealthPulseSpeed, 1f);
+                float intensity = Mathf.Lerp(0.3f, lowHealthPulseIntensity, pingPong);
+
+                // Trigger damage effect continuously for pulse
+                EffectsController.TriggerDamage(intensity);
+            }
+            // else: Skip triggering pulse effect, let damage/heal effect play out
+
+            // Wait for next frame
+            yield return new WaitForSeconds(0.1f);
+        }
+
+        lowHealthPulseCoroutine = null;
+    }
 
     private void TriggerDamageShake(float damageAmount)
     {
@@ -171,30 +262,26 @@ public class PlayerHealthController : MonoBehaviour
             return;
         }
 
+        // Stop any existing heal particles first
+        StopHealParticles();
+
         Transform spawnParent = playerTransform != null ? playerTransform : transform;
 
-        // Instantiate as child of player
-        GameObject particleInstance = Instantiate(healParticlePrefab, spawnParent);
+        activeHealParticleInstance = Instantiate(healParticlePrefab, spawnParent);
+        activeHealParticleInstance.transform.localPosition = particleOffset;
+        activeHealParticleInstance.transform.localRotation = Quaternion.identity;
 
-        // Set local position relative to parent
-        particleInstance.transform.localPosition = particleOffset;
-        particleInstance.transform.localRotation = Quaternion.identity;
-
-        // Get all particle systems in the prefab (in case there are multiple)
-        ParticleSystem[] particleSystems = particleInstance.GetComponentsInChildren<ParticleSystem>();
+        ParticleSystem[] particleSystems = activeHealParticleInstance.GetComponentsInChildren<ParticleSystem>();
 
         if (particleSystems.Length > 0)
         {
             foreach (ParticleSystem ps in particleSystems)
             {
-                // CRITICAL: Set simulation space to Local so particles follow the parent
                 var mainModule = ps.main;
                 mainModule.simulationSpace = ParticleSystemSimulationSpace.Local;
-
                 ps.Play();
             }
 
-            // Auto-destroy after the longest particle system finishes
             float maxDuration = 0f;
             foreach (ParticleSystem ps in particleSystems)
             {
@@ -203,12 +290,29 @@ public class PlayerHealthController : MonoBehaviour
                     maxDuration = psDuration;
             }
 
-            Destroy(particleInstance, maxDuration);
+            Destroy(activeHealParticleInstance, maxDuration);
         }
         else
         {
             Debug.LogWarning("⚠️ No ParticleSystem found in the prefab!");
-            Destroy(particleInstance, healParticleDuration);
+            Destroy(activeHealParticleInstance, healParticleDuration);
+        }
+    }
+
+    private void StopHealParticles()
+    {
+        if (activeHealParticleInstance != null)
+        {
+            // Stop all particle systems immediately
+            ParticleSystem[] particleSystems = activeHealParticleInstance.GetComponentsInChildren<ParticleSystem>();
+            foreach (ParticleSystem ps in particleSystems)
+            {
+                ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            }
+
+            // Destroy the game object
+            Destroy(activeHealParticleInstance);
+            activeHealParticleInstance = null;
         }
     }
 }

@@ -4,9 +4,9 @@ using UnityEngine.UI;
 using System.Collections;
 using TMPro;
 
-public class SceneLoader : MonoBehaviour
+public class SceneLoaderHoward : MonoBehaviour
 {
-    public static SceneLoader Instance;
+    public static SceneLoaderHoward Instance;
 
     [Header("Settings")]
     public GameObject loadingScreenPrefab;

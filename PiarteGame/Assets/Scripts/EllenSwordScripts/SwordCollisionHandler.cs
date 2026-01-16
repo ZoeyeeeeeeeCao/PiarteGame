@@ -62,6 +62,9 @@ public class SwordCollisionHandler : MonoBehaviour
     [SerializeField] private GameObject[] genericHitVFXPrefabs;
     [SerializeField] private float genericHitVFXLifetime = 1.5f;
 
+    [Header("Combat Controller Reference")]
+    [SerializeField] private SwordCombatController combatController;
+
     [Header("Knockback Settings")]
     [SerializeField] private bool enableKnockback = true;
     [SerializeField] private float normalKnockbackForce = 3f;
@@ -240,8 +243,6 @@ public class SwordCollisionHandler : MonoBehaviour
         if (!isHardAttack || playerTransform == null) return;
 
         Vector3 playerPos = playerTransform.position;
-
-        // ✅ FIND ALL ENEMIES BY TAG
         GameObject[] allEnemies = GameObject.FindGameObjectsWithTag(enemyTag);
 
         Debug.Log($"💥 HARD ATTACK AOE: Found {allEnemies.Length} enemies with tag '{enemyTag}'");
@@ -252,7 +253,6 @@ public class SwordCollisionHandler : MonoBehaviour
 
             float distance = Vector3.Distance(playerPos, enemyObj.transform.position);
 
-            // Check if within AOE radius
             if (distance > hardAttackAOERadius) continue;
 
             Collider enemyCol = enemyObj.GetComponent<Collider>();
@@ -286,7 +286,16 @@ public class SwordCollisionHandler : MonoBehaviour
 
                 Vector3 hitPos = enemyCol.ClosestPoint(playerPos);
                 Vector3 hitDir = (hitPos - playerPos).normalized;
+
+                // ✅ SPAWN VFX FOR AOE HIT
                 SpawnContactVFXAlongBlade(enemyContactVFXPrefabs, hitPos, hitDir);
+
+                // ✅ INCREMENT COUNTER AFTER AOE VFX SPAWNS
+                if (combatController != null)
+                {
+                    combatController.IncrementAttackCounter();
+                    Debug.Log("✅ Attack counter incremented after AOE hit VFX spawn!");
+                }
             }
         }
 
@@ -391,8 +400,28 @@ public class SwordCollisionHandler : MonoBehaviour
             audioManager.PlayHitSound();
         }
 
+        // ✅ SPAWN VFX FIRST
         SpawnContactVFXAlongBlade(enemyContactVFXPrefabs, hitPosition, hitDirection);
         SpawnImpactWaveVFX(enemyImpactWaveVFXPrefabs);
+
+        // ✅ INCREMENT COUNTER - ONLY ONCE, WITH CLEAR LOGIC
+        if (combatController != null)
+        {
+            if (isHardAttack)
+            {
+                Debug.Log("⚠️ This is a HARD ATTACK direct hit - counter will NOT increment (only normal attacks count)");
+            }
+            else
+            {
+                Debug.Log($"🎯 INCREMENTING COUNTER! Current state: isHardAttack={isHardAttack}");
+                combatController.IncrementAttackCounter();
+                Debug.Log("✅ Attack counter incremented after hit VFX spawn!");
+            }
+        }
+        else
+        {
+            Debug.LogError("❌ CombatController is NULL! Cannot increment counter!");
+        }
     }
 
     private void HandleGeneralCollision(Collider otherCollider, Vector3 hitPosition, Vector3 hitDirection)
@@ -487,7 +516,6 @@ public class SwordCollisionHandler : MonoBehaviour
         {
             if (col == null || col.gameObject == null) continue;
 
-            // ✅ CHECK TAG
             if (!col.CompareTag(enemyTag)) continue;
 
             if (hitTargetsThisAttack.Contains(col)) continue;
@@ -543,8 +571,16 @@ public class SwordCollisionHandler : MonoBehaviour
                 audioManager.PlayHitSound();
             }
 
+            // ✅ SPAWN VFX
             SpawnContactVFXAlongBlade(enemyContactVFXPrefabs, hitPoint, hitDirection);
             SpawnImpactWaveVFX(enemyImpactWaveVFXPrefabs);
+
+            // ✅ INCREMENT COUNTER AFTER VFX SPAWNS
+            if (combatController != null && !isHardAttack)
+            {
+                combatController.IncrementAttackCounter();
+                Debug.Log("✅ Attack counter incremented after event-based hit VFX spawn!");
+            }
         }
 
         if (isHardAttack)
