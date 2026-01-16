@@ -30,14 +30,6 @@ public class SettingsManager : MonoBehaviour
     [SerializeField] private Slider brightnessSlider;
     [SerializeField] private Button openKeyboardSettingsButton;
 
-    [Header("Slider Ranges")]
-    [Tooltip("Min and Max for mouse sensitivity")]
-    [SerializeField] private float minMouseSensitivity = 0.5f;
-    [SerializeField] private float maxMouseSensitivity = 5f;
-    [Tooltip("Min and Max for brightness (0 = darkest, 1 = brightest)")]
-    [SerializeField] private float minBrightness = 0.2f;
-    [SerializeField] private float maxBrightness = 1f;
-
     [Header("Keyboard Sub-Menu (Paginated)")]
     [SerializeField] private GameObject keyboardSettingsContainer;
     [SerializeField] private GameObject[] keyboardPages;
@@ -99,46 +91,12 @@ public class SettingsManager : MonoBehaviour
         if (keyboardSettingsContainer != null)
             keyboardSettingsContainer.SetActive(false);
 
-        // 3. Setup Sliders with proper ranges
-        if (masterVolumeSlider != null)
-        {
-            masterVolumeSlider.minValue = 0f;
-            masterVolumeSlider.maxValue = 1f;
-            masterVolumeSlider.wholeNumbers = false;
-            masterVolumeSlider.onValueChanged.AddListener(SetMasterVolume);
-        }
-
-        if (sfxVolumeSlider != null)
-        {
-            sfxVolumeSlider.minValue = 0f;
-            sfxVolumeSlider.maxValue = 1f;
-            sfxVolumeSlider.wholeNumbers = false;
-            sfxVolumeSlider.onValueChanged.AddListener(SetSFXVolume);
-        }
-
-        if (bgmVolumeSlider != null)
-        {
-            bgmVolumeSlider.minValue = 0f;
-            bgmVolumeSlider.maxValue = 1f;
-            bgmVolumeSlider.wholeNumbers = false;
-            bgmVolumeSlider.onValueChanged.AddListener(SetBGMVolume);
-        }
-
-        if (mouseSensitivitySlider != null)
-        {
-            mouseSensitivitySlider.minValue = minMouseSensitivity;
-            mouseSensitivitySlider.maxValue = maxMouseSensitivity;
-            mouseSensitivitySlider.wholeNumbers = false;
-            mouseSensitivitySlider.onValueChanged.AddListener(SetMouseSensitivity);
-        }
-
-        if (brightnessSlider != null)
-        {
-            brightnessSlider.minValue = minBrightness;
-            brightnessSlider.maxValue = maxBrightness;
-            brightnessSlider.wholeNumbers = false;
-            brightnessSlider.onValueChanged.AddListener(SetBrightness);
-        }
+        // 3. Setup Sliders
+        if (masterVolumeSlider != null) masterVolumeSlider.onValueChanged.AddListener(SetMasterVolume);
+        if (sfxVolumeSlider != null) sfxVolumeSlider.onValueChanged.AddListener(SetSFXVolume);
+        if (bgmVolumeSlider != null) bgmVolumeSlider.onValueChanged.AddListener(SetBGMVolume);
+        if (mouseSensitivitySlider != null) mouseSensitivitySlider.onValueChanged.AddListener(SetMouseSensitivity);
+        if (brightnessSlider != null) brightnessSlider.onValueChanged.AddListener(SetBrightness);
 
         // 4. Initialization
         LoadSettings();
@@ -371,12 +329,7 @@ public class SettingsManager : MonoBehaviour
     {
         if (brightnessOverlay != null)
         {
-            // Map brightness value (minBrightness to maxBrightness) to alpha (higher alpha = darker)
-            // When brightness is at max, alpha should be 0 (no overlay)
-            // When brightness is at min, alpha should be high (dark overlay)
-            float normalizedBrightness = (brightness - minBrightness) / (maxBrightness - minBrightness);
-            float alpha = Mathf.Lerp(0.8f, 0f, normalizedBrightness);
-
+            float alpha = Mathf.Lerp(0.8f, 0f, brightness);
             Color col = brightnessOverlay.color;
             col.a = alpha;
             brightnessOverlay.color = col;
