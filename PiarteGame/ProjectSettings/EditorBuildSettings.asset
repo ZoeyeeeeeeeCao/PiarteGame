@@ -38,6 +38,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/MainMenu.unity
     guid: 73b81e6a208082e4a9bd64342f94619d
+  - enabled: 1
+    path: Assets/Scenes/TestScene/EllenUITest.unity
+    guid: e8141866d11211c4a82d0f94e13f8458
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0

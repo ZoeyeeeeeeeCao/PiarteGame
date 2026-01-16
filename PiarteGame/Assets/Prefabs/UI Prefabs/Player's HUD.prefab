@@ -276,8 +276,8 @@ MonoBehaviour:
   questMarkerPrefab: {fileID: 3729151891246621216, guid: 022d2c3b830862a439bbd8bb6e2185b9, type: 3}
   markerContainer: {fileID: 0}
   markerMask: {fileID: 0}
-  markerMaxSize: 1
-  markerMinSize: 0.3
+  markerMaxSize: 150
+  markerMinSize: 70
   nearDistance: 5
   farDistance: 100
   markerColor: {r: 1, g: 1, b: 1, a: 1}
