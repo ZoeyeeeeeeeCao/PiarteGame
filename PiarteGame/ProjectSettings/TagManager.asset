@@ -15,6 +15,7 @@ TagManager:
   - BloodskullStone
   - BlackWakeStone
   - GravewindStone
+  - EnemyDamage
   layers:
   - Default
   - TransparentFX
