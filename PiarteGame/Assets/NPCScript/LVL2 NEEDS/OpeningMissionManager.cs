@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using TMPro;
 using System.Collections;
 
@@ -34,13 +34,29 @@ public class ReusableOpeningMission : MonoBehaviour
     public AudioSource audioSource;
     public AudioClip missionAppearSound;
 
+    // NEW: Compass Integration
+    [Header("Compass Integration")]
+    [Tooltip("Reference to the Compass script")]
+    public Compass compass;
+
+    [Tooltip("Quest ID that matches the compass questPoint - e.g., 'Opening_Mission'")]
+    public string compassQuestID = "";
+
+    [Tooltip("Show compass marker when mission appears?")]
+    public bool showCompassMarker = true;
+
     private DialogueManager dialogueManager;
     private bool hasTriggered = false;
+    private bool missionActive = false;
 
     void Start()
     {
         dialogueManager = FindObjectOfType<DialogueManager>();
         if (audioSource == null) audioSource = GetComponent<AudioSource>();
+
+        // NEW: Find compass if not assigned
+        if (compass == null)
+            compass = FindObjectOfType<Compass>();
 
         // Initialization: Hide the main box and all mission texts
         if (sharedMissionBox != null) sharedMissionBox.SetActive(false);
@@ -76,7 +92,6 @@ public class ReusableOpeningMission : MonoBehaviour
         if (playSubtitlesFirst && subtitleDialogue != null && dialogueManager != null)
         {
             dialogueManager.StartDialogue(subtitleDialogue, DialogueManager.DialogueMode.Subtitle);
-
             while (dialogueManager.IsDialogueActive())
             {
                 yield return null;
@@ -108,6 +123,81 @@ public class ReusableOpeningMission : MonoBehaviour
                 mission.textComponent.text = mission.missionDescription;
                 mission.textComponent.gameObject.SetActive(true);
             }
+        }
+
+        // NEW: Show compass marker when mission appears
+        missionActive = true;
+        if (compass != null && !string.IsNullOrEmpty(compassQuestID) && showCompassMarker)
+        {
+            compass.ShowMarker(compassQuestID);
+            Debug.Log($"[MISSION] Compass marker shown for: {compassQuestID}");
+        }
+    }
+
+    // NEW: Call this when the mission is completed
+    /// <summary>
+    /// Call this method when the player completes the mission
+    /// </summary>
+    public void CompleteMission()
+    {
+        if (!missionActive)
+        {
+            Debug.LogWarning("[MISSION] CompleteMission called but mission is not active!");
+            return;
+        }
+
+        missionActive = false;
+
+        // Hide the mission UI
+        if (sharedMissionBox != null)
+        {
+            sharedMissionBox.SetActive(false);
+        }
+
+        foreach (var mission in missionList)
+        {
+            if (mission.textComponent != null)
+                mission.textComponent.gameObject.SetActive(false);
+        }
+
+        // Hide compass marker when mission completes
+        if (compass != null && !string.IsNullOrEmpty(compassQuestID))
+        {
+            compass.HideMarker(compassQuestID);
+            Debug.Log($"[MISSION] Compass marker hidden for: {compassQuestID}");
+        }
+    }
+
+    // NEW: Check if mission is currently active
+    /// <summary>
+    /// Returns true if the mission is currently active
+    /// </summary>
+    public bool IsMissionActive()
+    {
+        return missionActive;
+    }
+
+    // NEW: Manually show compass marker (if you need it for other purposes)
+    /// <summary>
+    /// Manually show the compass marker
+    /// </summary>
+    public void ShowCompassMarker()
+    {
+        if (compass != null && !string.IsNullOrEmpty(compassQuestID))
+        {
+            compass.ShowMarker(compassQuestID);
+        }
+    }
+
+    // NEW: Manually hide compass marker (if you need it for other purposes)
+    /// <summary>
+    /// Manually hide the compass marker
+    /// </summary>
+    public void HideCompassMarker()
+    {
+        if (compass != null && !string.IsNullOrEmpty(compassQuestID))
+        {
+            compass.HideMarker(compassQuestID);
         }
     }
 }
