@@ -1,97 +1,36 @@
 using UnityEngine;
-using UnityEngine.UI;
-using UnityEngine.Audio;
 using UnityEngine.SceneManagement;
-using FS_ThirdPerson;
 
 public class PauseManager : MonoBehaviour
 {
     [Header("UI References")]
     [SerializeField] private GameObject pauseMenuCanvas;
-    [SerializeField] private GameObject generalSettingsPanel;
-    [SerializeField] private GameObject keyboardControlsPanel;
+    [SerializeField] private GameObject settingsPanel; // Panel containing sliders
+    [SerializeField] private GameObject controlsPanel; // Panel containing controls pages
 
-    [Header("Pause Menu Buttons")]
-    [SerializeField] private Button resumeButton;
-    [SerializeField] private Button controlsButton;
-    [SerializeField] private Button mainMenuButton;
-
-    [Header("General Settings Panel")]
-    [SerializeField] private Slider masterVolumeSlider;
-    [SerializeField] private Slider sfxVolumeSlider;
-    [SerializeField] private Slider mouseSensitivitySlider;
-    [SerializeField] private Button viewKeyboardControlsButton;
-
-    [Header("Keyboard Controls (Paginated)")]
-    [SerializeField] private GameObject[] keyboardPages;
-    [SerializeField] private Button nextPageButton;
-    [SerializeField] private Button prevPageButton;
-
-    [Header("Universal Back Button")]
-    [SerializeField] private Button backButton;
-
-    [Header("Audio Settings")]
-    [SerializeField] private AudioMixer audioMixer;
+    [Header("Controls Pages")]
+    [SerializeField] private GameObject[] controlPages; // Array of control page GameObjects
+    [SerializeField] private GameObject previousButton;
+    [SerializeField] private GameObject nextButton;
 
     [Header("Scene Settings")]
     [SerializeField] private string mainMenuSceneName = "MainMenu";
 
     private bool isPaused = false;
-    private int currentKeyboardPageIndex = 0;
-    private MenuState currentMenuState = MenuState.MainPause;
-
-    // PlayerPrefs Keys
-    private const string MASTER_VOLUME_KEY = "MasterVolume";
-    private const string SFX_VOLUME_KEY = "SFXVolume";
-    private const string MOUSE_SENSITIVITY_KEY = "MouseSensitivity";
-
-    // Defaults
-    private const float DEFAULT_MASTER_VOLUME = 1f;
-    private const float DEFAULT_SFX_VOLUME = 1f;
-    private const float DEFAULT_MOUSE_SENSITIVITY = 2f;
-
-    private enum MenuState
-    {
-        MainPause,
-        GeneralSettings,
-        KeyboardControls
-    }
+    private int currentControlPage = 0;
+    private bool isInControlsView = false;
 
     void Start()
     {
-        // Hide all menus at start
+        // Make sure menus are hidden at start
         if (pauseMenuCanvas != null)
             pauseMenuCanvas.SetActive(false);
 
-        // Setup button listeners
-        if (resumeButton != null)
-            resumeButton.onClick.AddListener(ResumeGame);
-        if (controlsButton != null)
-            controlsButton.onClick.AddListener(ShowGeneralSettings);
-        if (mainMenuButton != null)
-            mainMenuButton.onClick.AddListener(GoToMainMenu);
+        if (controlsPanel != null)
+            controlsPanel.SetActive(false);
 
-        if (viewKeyboardControlsButton != null)
-            viewKeyboardControlsButton.onClick.AddListener(ShowKeyboardControls);
-
-        if (backButton != null)
-            backButton.onClick.AddListener(HandleBackNavigation);
-
-        if (nextPageButton != null)
-            nextPageButton.onClick.AddListener(NextPage);
-        if (prevPageButton != null)
-            prevPageButton.onClick.AddListener(PreviousPage);
-
-        // Setup sliders
-        if (masterVolumeSlider != null)
-            masterVolumeSlider.onValueChanged.AddListener(SetMasterVolume);
-        if (sfxVolumeSlider != null)
-            sfxVolumeSlider.onValueChanged.AddListener(SetSFXVolume);
-        if (mouseSensitivitySlider != null)
-            mouseSensitivitySlider.onValueChanged.AddListener(SetMouseSensitivity);
-
-        // Load saved settings
-        LoadSettings();
+        // Hide all control pages initially
+        HideAllControlPages();
     }
 
     void Update()
@@ -99,48 +38,44 @@ public class PauseManager : MonoBehaviour
         // Check for ESC key press
         if (Input.GetKeyDown(KeyCode.Escape))
         {
-            if (isPaused)
-            {
-                HandleBackNavigation();
-            }
-            else
-            {
-                PauseGame();
-            }
+            HandleBackNavigation();
         }
     }
-
-    #region Smart Navigation
 
     private void HandleBackNavigation()
     {
-        switch (currentMenuState)
+        if (isPaused)
         {
-            case MenuState.KeyboardControls:
-                ShowGeneralSettings();
-                break;
-            case MenuState.GeneralSettings:
-                ShowMainPause();
-                break;
-            case MenuState.MainPause:
+            if (isInControlsView)
+            {
+                // If in controls view, go back to settings
+                ShowSettings();
+            }
+            else
+            {
+                // If in settings view, resume game
                 ResumeGame();
-                break;
+            }
+        }
+        else
+        {
+            // Game is running, open pause menu
+            PauseGame();
         }
     }
-
-    #endregion
-
-    #region Menu Navigation
 
     public void PauseGame()
     {
         isPaused = true;
+        isInControlsView = false;
         Time.timeScale = 0f;
         AudioListener.pause = true;
 
-        ShowMainPause();
+        if (pauseMenuCanvas != null)
+            pauseMenuCanvas.SetActive(true);
 
-        // Unlock cursor
+        ShowSettings();
+
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }
@@ -148,216 +83,110 @@ public class PauseManager : MonoBehaviour
     public void ResumeGame()
     {
         isPaused = false;
+        isInControlsView = false;
         Time.timeScale = 1f;
         AudioListener.pause = false;
 
-        // Hide pause menu
         if (pauseMenuCanvas != null)
             pauseMenuCanvas.SetActive(false);
 
-        currentMenuState = MenuState.MainPause;
+        HideAllControlPages();
 
-        // Lock cursor back
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
 
-    private void ShowMainPause()
+    public void ShowControls()
     {
-        currentMenuState = MenuState.MainPause;
+        isInControlsView = true;
+        currentControlPage = 0;
 
-        if (pauseMenuCanvas != null)
-            pauseMenuCanvas.SetActive(true);
+        if (settingsPanel != null)
+            settingsPanel.SetActive(false);
 
-        // Hide all sub-panels
-        if (generalSettingsPanel != null)
-            generalSettingsPanel.SetActive(false);
-        if (keyboardControlsPanel != null)
-            keyboardControlsPanel.SetActive(false);
+        if (controlsPanel != null)
+            controlsPanel.SetActive(true);
 
-        // Hide pagination buttons
-        if (nextPageButton != null)
-            nextPageButton.gameObject.SetActive(false);
-        if (prevPageButton != null)
-            prevPageButton.gameObject.SetActive(false);
-
-        // Hide back button on main pause
-        if (backButton != null)
-            backButton.gameObject.SetActive(false);
+        UpdateControlPage();
     }
 
-    public void ShowGeneralSettings()
+    public void ShowSettings()
     {
-        currentMenuState = MenuState.GeneralSettings;
+        isInControlsView = false;
 
-        // Show general settings panel, hide keyboard controls
-        if (generalSettingsPanel != null)
-            generalSettingsPanel.SetActive(true);
-        if (keyboardControlsPanel != null)
-            keyboardControlsPanel.SetActive(false);
+        if (controlsPanel != null)
+            controlsPanel.SetActive(false);
 
-        // Hide pagination buttons
-        if (nextPageButton != null)
-            nextPageButton.gameObject.SetActive(false);
-        if (prevPageButton != null)
-            prevPageButton.gameObject.SetActive(false);
+        if (settingsPanel != null)
+            settingsPanel.SetActive(true);
 
-        // Show back button
-        if (backButton != null)
-            backButton.gameObject.SetActive(true);
+        HideAllControlPages();
     }
 
-    public void ShowKeyboardControls()
+    public void NextControlPage()
     {
-        currentMenuState = MenuState.KeyboardControls;
+        if (controlPages == null || controlPages.Length == 0)
+            return;
 
-        // Hide general settings, show keyboard controls
-        if (generalSettingsPanel != null)
-            generalSettingsPanel.SetActive(false);
-        if (keyboardControlsPanel != null)
-            keyboardControlsPanel.SetActive(true);
+        currentControlPage = (currentControlPage + 1) % controlPages.Length;
+        UpdateControlPage();
+    }
 
-        // Show pagination buttons
-        if (nextPageButton != null)
-            nextPageButton.gameObject.SetActive(true);
-        if (prevPageButton != null)
-            prevPageButton.gameObject.SetActive(true);
+    public void PreviousControlPage()
+    {
+        if (controlPages == null || controlPages.Length == 0)
+            return;
 
-        // Show back button
-        if (backButton != null)
-            backButton.gameObject.SetActive(true);
+        currentControlPage--;
+        if (currentControlPage < 0)
+            currentControlPage = controlPages.Length - 1;
 
-        currentKeyboardPageIndex = 0;
-        UpdateKeyboardPageVisibility();
+        UpdateControlPage();
+    }
+
+    private void UpdateControlPage()
+    {
+        // Hide all pages first
+        HideAllControlPages();
+
+        // Show current page
+        if (controlPages != null && currentControlPage >= 0 && currentControlPage < controlPages.Length)
+        {
+            if (controlPages[currentControlPage] != null)
+                controlPages[currentControlPage].SetActive(true);
+        }
+
+        // Update navigation buttons visibility (optional - always show for looping)
+        // You can hide these if you only have 1 page
+        if (previousButton != null)
+            previousButton.SetActive(controlPages != null && controlPages.Length > 1);
+
+        if (nextButton != null)
+            nextButton.SetActive(controlPages != null && controlPages.Length > 1);
+    }
+
+    private void HideAllControlPages()
+    {
+        if (controlPages != null)
+        {
+            foreach (GameObject page in controlPages)
+            {
+                if (page != null)
+                    page.SetActive(false);
+            }
+        }
+    }
+
+    public void OnBackButtonPressed()
+    {
+        // Smart back button - same as ESC
+        HandleBackNavigation();
     }
 
     public void GoToMainMenu()
     {
         Time.timeScale = 1f;
         AudioListener.pause = false;
-        PlayerPrefs.Save();
         SceneManager.LoadScene(mainMenuSceneName);
     }
-
-    #endregion
-
-    #region Keyboard Controls Pagination
-
-    public void NextPage()
-    {
-        if (keyboardPages.Length == 0) return;
-        currentKeyboardPageIndex = (currentKeyboardPageIndex + 1) % keyboardPages.Length;
-        UpdateKeyboardPageVisibility();
-    }
-
-    public void PreviousPage()
-    {
-        if (keyboardPages.Length == 0) return;
-        currentKeyboardPageIndex--;
-        if (currentKeyboardPageIndex < 0)
-            currentKeyboardPageIndex = keyboardPages.Length - 1;
-        UpdateKeyboardPageVisibility();
-    }
-
-    private void UpdateKeyboardPageVisibility()
-    {
-        for (int i = 0; i < keyboardPages.Length; i++)
-        {
-            if (keyboardPages[i] != null)
-                keyboardPages[i].SetActive(i == currentKeyboardPageIndex);
-        }
-    }
-
-    #endregion
-
-    #region Audio & Control Settings
-
-    public void SetMasterVolume(float volume)
-    {
-        AudioListener.volume = volume;
-        PlayerPrefs.SetFloat(MASTER_VOLUME_KEY, volume);
-        PlayerPrefs.Save();
-
-        if (audioMixer != null)
-        {
-            float db = volume > 0 ? 20f * Mathf.Log10(volume) : -80f;
-            audioMixer.SetFloat("MasterVolume", db);
-        }
-    }
-
-    public void SetSFXVolume(float volume)
-    {
-        PlayerPrefs.SetFloat(SFX_VOLUME_KEY, volume);
-        PlayerPrefs.Save();
-
-        if (audioMixer != null)
-        {
-            float db = volume > 0 ? 20f * Mathf.Log10(volume) : -80f;
-            audioMixer.SetFloat("SFXVolume", db);
-        }
-    }
-
-    public void SetMouseSensitivity(float sensitivity)
-    {
-        PlayerPrefs.SetFloat(MOUSE_SENSITIVITY_KEY, sensitivity);
-        PlayerPrefs.Save();
-        ApplyMouseSensitivityToAllCameras(sensitivity);
-    }
-
-    private void ApplyMouseSensitivityToAllCameras(float sensitivity)
-    {
-        var cameraControllers = FindObjectsOfType<CameraController>();
-        foreach (var camController in cameraControllers)
-        {
-            if (camController.thirdPersonCamera != null && camController.thirdPersonCamera.defaultSettings != null)
-            {
-                camController.thirdPersonCamera.defaultSettings.sensitivity = sensitivity;
-                if (camController.thirdPersonCamera.overrideCameraSettings != null)
-                {
-                    foreach (var o in camController.thirdPersonCamera.overrideCameraSettings)
-                        if (o.settings != null) o.settings.sensitivity = sensitivity;
-                }
-            }
-            if (camController.firstPersonCamera != null && camController.firstPersonCamera.defaultSettings != null)
-            {
-                camController.firstPersonCamera.defaultSettings.sensitivity = sensitivity;
-                if (camController.firstPersonCamera.overrideCameraSettings != null)
-                {
-                    foreach (var o in camController.firstPersonCamera.overrideCameraSettings)
-                        if (o.settings != null) o.settings.sensitivity = sensitivity;
-                }
-            }
-        }
-    }
-
-    #endregion
-
-    #region Save/Load System
-
-    private void LoadSettings()
-    {
-        float masterVol = PlayerPrefs.GetFloat(MASTER_VOLUME_KEY, DEFAULT_MASTER_VOLUME);
-        float sfxVol = PlayerPrefs.GetFloat(SFX_VOLUME_KEY, DEFAULT_SFX_VOLUME);
-        float sensitivity = PlayerPrefs.GetFloat(MOUSE_SENSITIVITY_KEY, DEFAULT_MOUSE_SENSITIVITY);
-
-        if (masterVolumeSlider != null)
-        {
-            masterVolumeSlider.value = masterVol;
-            SetMasterVolume(masterVol);
-        }
-
-        if (sfxVolumeSlider != null)
-        {
-            sfxVolumeSlider.value = sfxVol;
-            SetSFXVolume(sfxVol);
-        }
-
-        if (mouseSensitivitySlider != null)
-        {
-            mouseSensitivitySlider.value = sensitivity;
-            SetMouseSensitivity(sensitivity);
-        }
-    }
-
-    #endregion
 }
