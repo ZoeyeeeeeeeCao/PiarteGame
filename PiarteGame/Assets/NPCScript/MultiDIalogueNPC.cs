@@ -19,6 +19,10 @@ public class GeneralMultiDialogueNPC : MonoBehaviour
     [Tooltip("If this NPC starts a tutorial, drag the tutorial manager here")]
     public TutorialManagerBase tutorialManager;
 
+    [Header("Dialogue Progression")]
+    [Tooltip("The key used to advance the dialogue to the next part.")]
+    public KeyCode nextPartKey = KeyCode.Space; // Key to advance between dialogue parts
+
     private DialogueManager dialogueManager;
     private bool playerInRange = false;
     private bool hasFinishedAll = false;
@@ -38,8 +42,10 @@ public class GeneralMultiDialogueNPC : MonoBehaviour
     {
         CheckDistance();
 
+        // Start new conversation: Check for 'E' press and ensures no dialogue is currently active
         if (playerInRange && Input.GetKeyDown(KeyCode.E) && !hasFinishedAll)
         {
+            // Only start the sequence if the DialogueManager isn't already running something
             if (!dialogueManager.IsDialogueActive())
             {
                 StartCoroutine(RunConversationSequence());
@@ -54,50 +60,74 @@ public class GeneralMultiDialogueNPC : MonoBehaviour
             interactPrompt.SetActive(false);
 
         if (npcIndicator != null)
-            npcIndicator.SetActive(false); // Moved from the bottom to here
+            npcIndicator.SetActive(false);
 
         // Loop through all dialogue parts
         for (int i = 0; i < dialogueParts.Length; i++)
         {
             bool isFirstPart = (i == 0);
-            bool isLastPart = (i == dialogueParts.Length - 1);
 
+            // --- START DIALOGUE PART ---
             dialogueManager.StartDialogue(
                 dialogueParts[i],
                 DialogueManager.DialogueMode.Dialogue,
-                animate: isFirstPart
+                animate: isFirstPart // Only animate the first part's text fully
             );
 
+            // Wait until the DialogueManager says the current dialogue part is complete.
+            // This is the VITAL part that needs to align with your DialogueManager's logic.
+            // If IsDialogueActive() only turns false when the dialogue box closes, this is fine.
             while (dialogueManager.IsDialogueActive())
             {
                 yield return null;
             }
 
-            if (!isLastPart)
+            // --- INTER-PART PAUSE AND INPUT WAIT ---
+            // If it's NOT the last part, wait for the player to press a key to continue to the next part.
+            if (i < dialogueParts.Length - 1)
             {
-                yield return new WaitForSeconds(0.1f);
+                // This assumes your DialogueManager hides the box temporarily after a part, 
+                // but you want to ensure a player press before starting the next one.
+
+                // You might need a way to visually prompt the player here (e.g., a "Continue" text).
+                Debug.Log($"💬 Press {nextPartKey} to continue to part {i + 2} of the conversation...");
+
+                bool advance = false;
+                while (!advance)
+                {
+                    if (Input.GetKeyDown(nextPartKey))
+                    {
+                        advance = true;
+                    }
+                    yield return null;
+                }
             }
         }
 
-        // Wait for player to press Enter to close
-        Debug.Log("💬 Press Enter to close dialogue...");
-        while (!Input.GetKeyDown(KeyCode.Return))
-        {
-            yield return null;
-        }
+        // --- END OF ENTIRE SEQUENCE ---
 
-        dialogueManager.CloseDialogueBox();
+        // This old logic used KeyCode.Return to close the box, but if your DialogueManager 
+        // already handled the closing on the last line, we just need a delay before setting the flag.
+
+        // If your DialogueManager DOESN'T close the box automatically after the last line, 
+        // you should put the KeyCode.Return close wait here.
+
+        // For now, assuming DialogueManager closed the box after the final part's final line:
+
         yield return new WaitForSeconds(0.5f);
 
         hasFinishedAll = true;
-
-        // (Optional) Remove the old reference at the bottom to keep code clean
         Debug.Log("✅ Full conversation sequence finished.");
 
+        // Call tutorial manager hook if it exists
         if (tutorialManager != null)
         {
             tutorialManager.OnDialogueComplete();
         }
+
+        // Ensure prompt is hidden now that conversation is over
+        if (interactPrompt != null)
+            interactPrompt.SetActive(false);
     }
 
     void CheckDistance()
@@ -112,9 +142,17 @@ public class GeneralMultiDialogueNPC : MonoBehaviour
         {
             playerInRange = inRange;
 
+            // Only show prompt if in range, hasn't finished conversation, AND dialogue is not currently running
             if (interactPrompt != null)
             {
                 interactPrompt.SetActive(playerInRange && !hasFinishedAll && !dialogueManager.IsDialogueActive());
+            }
+
+            // Also manage the indicator
+            if (npcIndicator != null)
+            {
+                // Only show indicator if in range and hasn't finished
+                npcIndicator.SetActive(playerInRange && !hasFinishedAll && !dialogueManager.IsDialogueActive());
             }
         }
     }
