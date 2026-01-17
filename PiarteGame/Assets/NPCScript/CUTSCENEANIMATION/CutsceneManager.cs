@@ -9,8 +9,14 @@ public class CutsceneManager : MonoBehaviour
 
     [Header("Settings")]
     public string nextSceneName;
-    [Tooltip("If true, player can press any key to skip the cutscene")]
+
+    [Tooltip("If true, player can press Enter to skip the cutscene")]
     public bool allowSkip = true;
+
+    [Tooltip("Which key to press to skip (default: Return = Enter)")]
+    public KeyCode skipKey = KeyCode.Return;
+
+    private bool hasSkipped = false;
 
     void Start()
     {
@@ -23,16 +29,22 @@ public class CutsceneManager : MonoBehaviour
 
     void Update()
     {
-        // Skip logic
-        if (allowSkip && Input.anyKeyDown)
+        // Skip logic - only skip with specified key (Enter by default)
+        if (allowSkip && !hasSkipped && Input.GetKeyDown(skipKey))
         {
+            hasSkipped = true;
+            Debug.Log("Cutscene skipped by player");
             LoadNextScene();
         }
     }
 
     void OnVideoFinished(VideoPlayer vp)
     {
-        LoadNextScene();
+        if (!hasSkipped)
+        {
+            Debug.Log("Cutscene finished naturally");
+            LoadNextScene();
+        }
     }
 
     public void LoadNextScene()
