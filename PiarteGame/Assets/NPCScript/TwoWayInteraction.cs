@@ -13,7 +13,8 @@ public class TwoWayInteraction : MonoBehaviour
     public struct ConversationLine
     {
         public Speaker speaker;
-        [TextArea(3, 10)] public string text;
+        [TextArea(3, 10)]
+        public string text;
         public AudioClip voiceLine;
     }
 
@@ -30,6 +31,12 @@ public class TwoWayInteraction : MonoBehaviour
     public float slideSpeed = 0.5f;
     public float slideDistance = 500f;
     public bool slideFromBottom = true;
+
+    [Header("Custom Position Settings")]
+    [Tooltip("Check this to ignore where the UI is in the Editor and force it to a specific position when talking.")]
+    public bool useCustomPosition = false;
+    [Tooltip("The anchored position the UI should appear at (e.g., X=0, Y=0)")]
+    public Vector2 customVisiblePos = Vector2.zero;
 
     [Header("Audio")]
     public AudioSource audioSource;
@@ -57,6 +64,11 @@ public class TwoWayInteraction : MonoBehaviour
     public Animator npcAnimator;
     public string standParameter = "isStanding";
 
+    [Header("Compass Integration")]
+    public Compass compass;
+    public string compassQuestID = "";
+    public bool hideMarkerOnComplete = true;
+
     // --- PRIVATE ---
     private bool playerInRange = false;
     private bool isTalking = false;
@@ -64,7 +76,6 @@ public class TwoWayInteraction : MonoBehaviour
     private int currentLineIndex = 0;
     private bool isTyping = false;
     private string currentFullSentence = "";
-
     private Coroutine typingCoroutine;
     private Coroutine animationCoroutine;
     private RectTransform dialogueBoxRect;
@@ -78,33 +89,42 @@ public class TwoWayInteraction : MonoBehaviour
         if (dialoguePanel != null)
         {
             dialogueBoxRect = dialoguePanel.GetComponent<RectTransform>();
-            if (dialogueBoxRect != null) visiblePosition = dialogueBoxRect.anchoredPosition;
+            if (dialogueBoxRect != null)
+            {
+                // --- FIX: Logic to handle Position Issues ---
+                if (useCustomPosition)
+                {
+                    // Use the user-defined position
+                    visiblePosition = customVisiblePos;
+                }
+                else
+                {
+                    // Use whatever position the UI is currently sitting at in the Editor
+                    visiblePosition = dialogueBoxRect.anchoredPosition;
+                }
+            }
             dialoguePanel.SetActive(false);
         }
 
-        // Initially hide UI prompt
         if (interactionPrompt != null) interactionPrompt.SetActive(false);
-
-        // Particles can be visible from far away as a marker
         if (particleEffect != null) particleEffect.SetActive(true);
-
         if (audioSource == null) audioSource = GetComponent<AudioSource>();
         if (cutsceneCamera != null) cutsceneCamera.SetActive(false);
-
         if (shouldStandUp && npcAnimator != null)
             npcAnimator.SetBool(standParameter, false);
+
+        if (compass == null)
+            compass = FindObjectOfType<Compass>();
     }
 
     void Update()
     {
         if (interactionFinished) return;
 
-        // Trigger conversation
         if (playerInRange && !isTalking && Input.GetKeyDown(KeyCode.E))
         {
             StartConversation();
         }
-        // Advance text
         else if (isTalking && Input.GetKeyDown(KeyCode.Return))
         {
             if (isTyping)
@@ -120,7 +140,6 @@ public class TwoWayInteraction : MonoBehaviour
         }
     }
 
-    // --- TRIGGER DETECTION ---
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag(playerTag) && !interactionFinished && !isTalking)
@@ -144,18 +163,22 @@ public class TwoWayInteraction : MonoBehaviour
         isTalking = true;
         currentLineIndex = -1;
 
-        // Force hide prompts when talking starts
         if (interactionPrompt != null) interactionPrompt.SetActive(false);
         if (particleEffect != null) particleEffect.SetActive(false);
 
         if (dialoguePanel != null && dialogueBoxRect != null)
         {
             float yOffset = slideFromBottom ? -slideDistance : slideDistance;
+
+            // Calculate hidden position relative to the correct Visible position
             hiddenPosition = new Vector2(visiblePosition.x, visiblePosition.y + yOffset);
+
+            // Snap to hidden immediately
             dialogueBoxRect.anchoredPosition = hiddenPosition;
             dialoguePanel.SetActive(true);
 
             if (animationCoroutine != null) StopCoroutine(animationCoroutine);
+            // Slide TO the Visible Position
             animationCoroutine = StartCoroutine(SlideUI(hiddenPosition, visiblePosition));
         }
 
@@ -165,12 +188,12 @@ public class TwoWayInteraction : MonoBehaviour
         GameObject player = GameObject.FindGameObjectWithTag(playerTag);
         if (player != null) StartCoroutine(SmoothLookAt(player.transform.position));
 
-        if (shouldStandUp && npcAnimator != null) npcAnimator.SetBool(standParameter, true);
+        if (shouldStandUp && npcAnimator != null)
+            npcAnimator.SetBool(standParameter, true);
 
         DisplayNextLine();
     }
 
-    // --- (Keep the rest of the logic: SlideUI, DisplayNextLine, TypeSentence, EndSequence, etc.) ---
     IEnumerator SlideUI(Vector2 startPos, Vector2 endPos)
     {
         float elapsed = 0f;
@@ -187,23 +210,32 @@ public class TwoWayInteraction : MonoBehaviour
     void DisplayNextLine()
     {
         currentLineIndex++;
-        if (currentLineIndex >= conversationLines.Count) { StartCoroutine(EndSequence()); return; }
+        if (currentLineIndex >= conversationLines.Count)
+        {
+            StartCoroutine(EndSequence());
+            return;
+        }
+
         ConversationLine currentLine = conversationLines[currentLineIndex];
+
         if (nameText != null)
         {
             nameText.text = (currentLine.speaker == Speaker.NPC) ? npcName : playerName;
             nameText.color = Color.white;
         }
+
         if (dialogueText != null)
         {
             dialogueText.color = Color.white;
             if (typingCoroutine != null) StopCoroutine(typingCoroutine);
             typingCoroutine = StartCoroutine(TypeSentence(currentLine.text));
         }
+
         if (audioSource != null)
         {
             audioSource.Stop();
-            if (currentLine.voiceLine != null) audioSource.PlayOneShot(currentLine.voiceLine);
+            if (currentLine.voiceLine != null)
+                audioSource.PlayOneShot(currentLine.voiceLine);
         }
     }
 
@@ -212,6 +244,7 @@ public class TwoWayInteraction : MonoBehaviour
         isTyping = true;
         currentFullSentence = sentence;
         dialogueText.text = "";
+
         foreach (char letter in sentence.ToCharArray())
         {
             dialogueText.text += letter;
@@ -223,27 +256,48 @@ public class TwoWayInteraction : MonoBehaviour
     IEnumerator EndSequence()
     {
         interactionFinished = true;
-        if (countsTowardsMission && !hasCounted) hasCounted = true;
+
+        if (countsTowardsMission && !hasCounted)
+            hasCounted = true;
+
+        if (hideMarkerOnComplete && compass != null && !string.IsNullOrEmpty(compassQuestID))
+        {
+            compass.HideMarker(compassQuestID);
+        }
+
         if (dialoguePanel != null && dialogueBoxRect != null)
         {
             if (animationCoroutine != null) StopCoroutine(animationCoroutine);
+            // Slide Back to Hidden
             yield return StartCoroutine(SlideUI(visiblePosition, hiddenPosition));
             dialoguePanel.SetActive(false);
         }
+
         if (audioSource != null) audioSource.Stop();
         if (objectToEnable != null) objectToEnable.SetActive(true);
+
         if (cutsceneCamera != null) cutsceneCamera.SetActive(true);
         yield return new WaitForSeconds(cutsceneDuration);
         if (cutsceneCamera != null) cutsceneCamera.SetActive(false);
-        if (shouldStandUp && npcAnimator != null) npcAnimator.SetBool(standParameter, false);
+
+        if (shouldStandUp && npcAnimator != null)
+            npcAnimator.SetBool(standParameter, false);
+
         StartCoroutine(ResetNPC());
         isTalking = false;
+
+        if (countsTowardsMission)
+        {
+            yield return new WaitForSeconds(2f);
+            Destroy(gameObject);
+        }
     }
 
     IEnumerator SmoothLookAt(Vector3 targetPosition)
     {
         Vector3 direction = targetPosition - transform.position;
         direction.y = 0;
+
         if (direction != Vector3.zero)
         {
             Quaternion targetRot = Quaternion.LookRotation(direction);
@@ -263,6 +317,7 @@ public class TwoWayInteraction : MonoBehaviour
         float duration = 1.5f;
         Vector3 startPos = transform.position;
         Quaternion startRot = transform.rotation;
+
         while (time < duration)
         {
             transform.position = Vector3.Lerp(startPos, originalPosition, time / duration);
@@ -270,7 +325,18 @@ public class TwoWayInteraction : MonoBehaviour
             time += Time.deltaTime;
             yield return null;
         }
+
         transform.position = originalPosition;
         transform.rotation = originalRotation;
+    }
+
+    public bool IsInteractionFinished()
+    {
+        return interactionFinished;
+    }
+
+    public bool CountsTowardsMission()
+    {
+        return countsTowardsMission && hasCounted;
     }
 }
