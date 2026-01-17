@@ -36,20 +36,21 @@ public class InteractToEnable : MonoBehaviour
 
     void ActivateObject()
     {
-        hasActivated = true; // Lock it so it doesn't happen twice
+        hasActivated = true;
 
         Debug.Log("Interaction Successful!");
 
+        // Option A: If you want to ENABLE something (like a portal)
         if (objectToEnable != null)
         {
             objectToEnable.SetActive(true);
         }
 
-        // Hide the "Press E" UI immediately
-        if (interactTextUI != null) interactTextUI.SetActive(false);
+        // Option B: If you want to DESTROY this object (the stone itself)
+        // Add this line to make the object you clicked on disappear forever
+        Destroy(gameObject);
 
-        // Optional: Play a sound here if you have an AudioSource
-        // GetComponent<AudioSource>()?.Play();
+        if (interactTextUI != null) interactTextUI.SetActive(false);
     }
 
     // --- DETECTION LOGIC ---
