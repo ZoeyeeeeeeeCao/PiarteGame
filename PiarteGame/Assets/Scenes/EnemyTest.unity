@@ -35940,6 +35940,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Drunk Pirate
       objectReference: {fileID: 0}
+    - target: {fileID: 9098762709115532411, guid: 29a0a41806d98e343b3d80fc5fbf829d, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 9202037139749473393, guid: 29a0a41806d98e343b3d80fc5fbf829d, type: 3}
       propertyPath: audioSource
       value: 
@@ -41995,6 +41999,67 @@ SkinnedMeshRenderer:
     m_Center: {x: 0.30846632, y: -0.042821556, z: 0.41759768}
     m_Extent: {x: 0.33569187, y: 0.13645317, z: 0.4700218}
   m_DirtyAABB: 0
+--- !u!1001 &8023435368018768672
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 1830094030923776626, guid: 48edd276ca68b41448f65264973d5175, type: 3}
+      propertyPath: playerTarget
+      value: 
+      objectReference: {fileID: 272737711}
+    - target: {fileID: 3590026795970914082, guid: 48edd276ca68b41448f65264973d5175, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -2.3616552
+      objectReference: {fileID: 0}
+    - target: {fileID: 3590026795970914082, guid: 48edd276ca68b41448f65264973d5175, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3590026795970914082, guid: 48edd276ca68b41448f65264973d5175, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -6.518385
+      objectReference: {fileID: 0}
+    - target: {fileID: 3590026795970914082, guid: 48edd276ca68b41448f65264973d5175, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3590026795970914082, guid: 48edd276ca68b41448f65264973d5175, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3590026795970914082, guid: 48edd276ca68b41448f65264973d5175, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3590026795970914082, guid: 48edd276ca68b41448f65264973d5175, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3590026795970914082, guid: 48edd276ca68b41448f65264973d5175, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3590026795970914082, guid: 48edd276ca68b41448f65264973d5175, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3590026795970914082, guid: 48edd276ca68b41448f65264973d5175, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4222554513422859672, guid: 48edd276ca68b41448f65264973d5175, type: 3}
+      propertyPath: m_Name
+      value: BlackBeard
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 48edd276ca68b41448f65264973d5175, type: 3}
 --- !u!4 &8031085611862068431
 Transform:
   m_ObjectHideFlags: 0
@@ -44257,3 +44322,4 @@ SceneRoots:
   - {fileID: 4717676283911277549}
   - {fileID: 7221893168194678295}
   - {fileID: 711098778}
+  - {fileID: 8023435368018768672}
