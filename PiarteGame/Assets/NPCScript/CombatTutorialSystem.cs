@@ -11,7 +11,8 @@ public class CombatTutorialSystem : TutorialManagerBase
     public AudioClip missionStartSound;
 
     [Header("Target Enemies (Drag Here!)")]
-    public List<EnemyTutorialTarget> targetEnemies;
+    [Tooltip("Drag enemy GameObjects (from scene or prefabs) here - any enemy type works!")]
+    public List<GameObject> targetEnemies;
 
     [Header("Tutorial Slides")]
     public GameObject tutorialUI;
@@ -68,9 +69,11 @@ public class CombatTutorialSystem : TutorialManagerBase
         if (missionUI != null) missionUI.SetActive(false);
         if (tutorialUI != null) tutorialUI.SetActive(false);
 
+        // Count enemies that are still alive
         if (targetEnemies != null && targetEnemies.Count > 0)
         {
             enemiesToDefeat = targetEnemies.Count;
+            Debug.Log($"Combat Tutorial: Tracking {enemiesToDefeat} enemies to defeat");
         }
     }
 
@@ -91,6 +94,37 @@ public class CombatTutorialSystem : TutorialManagerBase
         {
             waitingForCompletionDialogue = false;
             StartCoroutine(Finish());
+        }
+
+        // Track enemy kills by checking if enemies are destroyed
+        if (missionActive)
+        {
+            CheckEnemyProgress();
+        }
+    }
+
+    void CheckEnemyProgress()
+    {
+        int currentCount = 0;
+
+        // Count how many enemies have been destroyed (are null)
+        foreach (GameObject enemy in targetEnemies)
+        {
+            if (enemy == null) currentCount++;
+        }
+
+        // If kill count changed, update UI
+        if (currentCount != kills)
+        {
+            kills = currentCount;
+            Debug.Log($"Enemy killed! Progress: {kills}/{enemiesToDefeat}");
+            UpdateUI();
+
+            // Check if all enemies defeated
+            if (kills >= enemiesToDefeat)
+            {
+                CompleteMission();
+            }
         }
     }
 
@@ -144,7 +178,6 @@ public class CombatTutorialSystem : TutorialManagerBase
         {
             compass.ShowMarker(compassQuestID);
         }
-
 
         UpdateUI();
     }
@@ -206,20 +239,6 @@ public class CombatTutorialSystem : TutorialManagerBase
         waitingForPostSlideDialogue = true;
     }
 
-    public void OnEnemyKilled(EnemyTutorialTarget enemyDied)
-    {
-        if (!missionActive) return;
-
-        if (targetEnemies.Contains(enemyDied))
-        {
-            kills++;
-            targetEnemies.Remove(enemyDied);
-            UpdateUI();
-
-            if (kills >= enemiesToDefeat) CompleteMission();
-        }
-    }
-
     void UpdateUI()
     {
         if (progressText != null) progressText.text = $"Defeated: {kills}/{enemiesToDefeat}";
@@ -235,7 +254,6 @@ public class CombatTutorialSystem : TutorialManagerBase
         {
             compass.HideMarker(compassQuestID);
         }
-
 
         if (completionDialogue != null && completionDialogue.dialogueLines.Length > 0)
         {
