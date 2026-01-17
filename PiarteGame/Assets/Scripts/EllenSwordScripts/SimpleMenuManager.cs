@@ -1,8 +1,9 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Video;
 
 /// <summary>
-/// Simple Main Menu Manager
+/// Simple Main Menu Manager with Video Background Support
 /// Connects the Play button to Howard's Scene Loader
 /// </summary>
 public class SimpleMenuManager : MonoBehaviour
@@ -12,11 +13,15 @@ public class SimpleMenuManager : MonoBehaviour
     [SerializeField] private GameObject settingsPanel;
     [SerializeField] private GameObject creditsPanel;
 
+    [Header("Video Background (Optional)")]
+    [Tooltip("Drag your VideoPlayer or RawImage with VideoPlayer here")]
+    [SerializeField] private VideoPlayer backgroundVideo;
+    [Tooltip("Pause video when in Settings/Credits?")]
+    [SerializeField] private bool pauseVideoInSubmenus = false;
+
     [Header("Scene to Load")]
     [Tooltip("The exact name of the scene you want to play (e.g., 'GameScene')")]
     [SerializeField] private string gameSceneName = "GameScene";
-
-    // REMOVED: loadingSceneName is no longer needed because Howard loads an overlay, not a scene.
 
     [Header("Back Buttons")]
     [SerializeField] private Button[] backButtons;
@@ -30,17 +35,30 @@ public class SimpleMenuManager : MonoBehaviour
         {
             FindAllBackButtons();
         }
+
         // Assign ShowMainMenu to all back buttons
         SetupBackButtons();
+
         // Show only main menu at start, hide everything else
         ShowMainMenu();
+
+        // Start video if assigned
+        if (backgroundVideo != null)
+        {
+            backgroundVideo.Play();
+        }
     }
 
     // ===== MAIN MENU BUTTONS =====
-
     public void PlayGame()
     {
         Debug.Log($"▶️ Requesting Load for: {gameSceneName}");
+
+        // Stop video before loading (optional)
+        if (backgroundVideo != null)
+        {
+            backgroundVideo.Stop();
+        }
 
         // Check if Howard's loader exists
         if (SceneLoaderHoward.Instance != null)
@@ -59,6 +77,13 @@ public class SimpleMenuManager : MonoBehaviour
         mainMenuPanel.SetActive(false);
         settingsPanel.SetActive(true);
         creditsPanel.SetActive(false);
+
+        // Pause video if enabled
+        if (pauseVideoInSubmenus && backgroundVideo != null)
+        {
+            backgroundVideo.Pause();
+        }
+
         Debug.Log("⚙️ Settings opened");
     }
 
@@ -67,6 +92,13 @@ public class SimpleMenuManager : MonoBehaviour
         mainMenuPanel.SetActive(false);
         settingsPanel.SetActive(false);
         creditsPanel.SetActive(true);
+
+        // Pause video if enabled
+        if (pauseVideoInSubmenus && backgroundVideo != null)
+        {
+            backgroundVideo.Pause();
+        }
+
         Debug.Log("📜 Credits opened");
     }
 
@@ -80,12 +112,19 @@ public class SimpleMenuManager : MonoBehaviour
 #endif
     }
 
-    // ===== BACK BUTTON LOGIC (Unchanged) =====
+    // ===== BACK BUTTON LOGIC =====
     public void ShowMainMenu()
     {
         mainMenuPanel.SetActive(true);
         settingsPanel.SetActive(false);
         creditsPanel.SetActive(false);
+
+        // Resume video when returning to main menu
+        if (pauseVideoInSubmenus && backgroundVideo != null && !backgroundVideo.isPlaying)
+        {
+            backgroundVideo.Play();
+        }
+
         Debug.Log("🏠 Returned to main menu");
     }
 
@@ -101,6 +140,7 @@ public class SimpleMenuManager : MonoBehaviour
                 foundBackButtons.Add(button);
             }
         }
+
         backButtons = foundBackButtons.ToArray();
     }
 

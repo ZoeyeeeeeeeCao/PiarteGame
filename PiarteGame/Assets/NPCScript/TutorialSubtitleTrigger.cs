@@ -44,34 +44,45 @@ public class TutorialSubtitleTrigger : MonoBehaviour
 
     IEnumerator PlayDialogueSequence()
     {
-        // Prevent mission UI from overlapping
+        Debug.Log($"[TRIGGER] PlayDialogueSequence started. Total dialogues: {dialogues.Length}");
+
         if (missionBox != null) missionBox.SetActive(false);
 
         for (int i = 0; i < dialogues.Length; i++)
         {
             if (dialogues[i] == null) continue;
 
-            bool isFirst = (i == 0);
             bool isLast = (i == dialogues.Length - 1);
 
-            // Pass isLast to autoClose so the box stays open until the sequence is done
-            dialogueManager.StartDialogue(dialogues[i], DialogueManager.DialogueMode.Subtitle, isFirst, isLast);
+            Debug.Log($"[TRIGGER] Starting dialogue {i + 1}/{dialogues.Length}. isLast: {isLast}");
 
-            // Wait for manager to finish current asset
+            dialogueManager.StartDialogue(
+                dialogues[i],
+                DialogueManager.DialogueMode.Subtitle,
+                animate: true,
+                autoClose: true
+            );
+
+            Debug.Log($"[TRIGGER] Waiting for dialogue {i + 1} to finish...");
             while (dialogueManager.IsDialogueActive())
             {
                 yield return null;
             }
+            Debug.Log($"[TRIGGER] Dialogue {i + 1} finished!");
 
-            // Tiny delay between assets while box stays static
-            if (!isLast) yield return new WaitForSeconds(0.1f);
+            if (!isLast)
+            {
+                Debug.Log($"[TRIGGER] Waiting 0.5s before next dialogue...");
+                yield return new WaitForSeconds(0.5f);
+            }
         }
 
-        // Wait for the final slide-down animation to finish
-        yield return new WaitForSeconds(0.6f);
+        Debug.Log($"[TRIGGER] All dialogues complete. Waiting 0.3s before mission UI...");
+        yield return new WaitForSeconds(0.3f);
 
         if (missionBox != null)
         {
+            Debug.Log($"[TRIGGER] Showing mission UI.");
             ShowMissionFinal();
         }
     }
