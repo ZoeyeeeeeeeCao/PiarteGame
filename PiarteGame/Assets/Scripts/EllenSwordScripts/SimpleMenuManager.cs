@@ -17,7 +17,7 @@ public class SimpleMenuManager : MonoBehaviour
     [Tooltip("Drag your VideoPlayer or RawImage with VideoPlayer here")]
     [SerializeField] private VideoPlayer backgroundVideo;
     [Tooltip("Pause video when in Settings/Credits?")]
-    [SerializeField] private bool pauseVideoInSubmenus = false;
+    [SerializeField] private bool pauseVideoInSubmenus = false; // Changed default to false
 
     [Header("Scene to Load")]
     [Tooltip("The exact name of the scene you want to play (e.g., 'GameScene')")]
@@ -43,7 +43,7 @@ public class SimpleMenuManager : MonoBehaviour
         ShowMainMenu();
 
         // Start video if assigned
-        if (backgroundVideo != null)
+        if (backgroundVideo != null && !backgroundVideo.isPlaying)
         {
             backgroundVideo.Play();
         }
@@ -78,8 +78,8 @@ public class SimpleMenuManager : MonoBehaviour
         settingsPanel.SetActive(true);
         creditsPanel.SetActive(false);
 
-        // Pause video if enabled
-        if (pauseVideoInSubmenus && backgroundVideo != null)
+        // Only pause video if enabled
+        if (pauseVideoInSubmenus && backgroundVideo != null && backgroundVideo.isPlaying)
         {
             backgroundVideo.Pause();
         }
@@ -93,8 +93,8 @@ public class SimpleMenuManager : MonoBehaviour
         settingsPanel.SetActive(false);
         creditsPanel.SetActive(true);
 
-        // Pause video if enabled
-        if (pauseVideoInSubmenus && backgroundVideo != null)
+        // Only pause video if enabled
+        if (pauseVideoInSubmenus && backgroundVideo != null && backgroundVideo.isPlaying)
         {
             backgroundVideo.Pause();
         }
@@ -119,7 +119,7 @@ public class SimpleMenuManager : MonoBehaviour
         settingsPanel.SetActive(false);
         creditsPanel.SetActive(false);
 
-        // Resume video when returning to main menu
+        // Resume video when returning to main menu (only if it was paused)
         if (pauseVideoInSubmenus && backgroundVideo != null && !backgroundVideo.isPlaying)
         {
             backgroundVideo.Play();
@@ -142,6 +142,7 @@ public class SimpleMenuManager : MonoBehaviour
         }
 
         backButtons = foundBackButtons.ToArray();
+        Debug.Log($"🔍 Auto-found {backButtons.Length} back buttons");
     }
 
     private void SetupBackButtons()
