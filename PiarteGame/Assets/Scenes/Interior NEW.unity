@@ -2456,7 +2456,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1254839621562173614, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 5.0031195
+      value: 3.74
       objectReference: {fileID: 0}
     - target: {fileID: 1254839621562173614, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
       propertyPath: m_LocalRotation.w
@@ -2826,6 +2826,7 @@ GameObject:
   m_Component:
   - component: {fileID: 816369649}
   - component: {fileID: 816369648}
+  - component: {fileID: 816369650}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -2862,6 +2863,23 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &816369650
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 816369647}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c856098e61ac2a40a19af224988c626, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  loadingScreenPrefab: {fileID: 5343721967947909761, guid: 641e5782ceb342449995f6829be09384, type: 3}
+  fillSpeed: 0.5
+  progressBar: {fileID: 0}
+  loadingText: {fileID: 0}
+  steeringWheel: {fileID: 0}
 --- !u!1001 &828460245
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6186,6 +6204,74 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!1 &1477774663
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1477774666}
+  - component: {fileID: 1477774665}
+  - component: {fileID: 1477774664}
+  m_Layer: 0
+  m_Name: GameObject (8)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1477774664
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1477774663}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d9bc65addb6bc044a103ff9637767fe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sceneToLoad: NelsenScene
+  playerTag: Player
+--- !u!65 &1477774665
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1477774663}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!4 &1477774666
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1477774663}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1.501, y: 1.6201707, z: 4.7817073}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1487705901 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 8f8edc250900bd24dba9a242e5c55058, type: 3}
@@ -7345,9 +7431,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 667db48489067394cb29822ca4797e96, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  sceneToLoad: NelsenScene
-  playerTag: Player
-  hasTriggered: 0
 --- !u!1 &1677603701
 GameObject:
   m_ObjectHideFlags: 0
@@ -8667,9 +8750,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 667db48489067394cb29822ca4797e96, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  sceneToLoad: NelsenScene
-  playerTag: Player
-  hasTriggered: 0
 --- !u!1001 &1964847889
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -9715,3 +9795,4 @@ SceneRoots:
   - {fileID: 1065315073}
   - {fileID: 1640716990}
   - {fileID: 816369649}
+  - {fileID: 1477774666}

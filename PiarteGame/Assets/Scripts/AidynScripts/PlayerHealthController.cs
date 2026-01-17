@@ -23,9 +23,15 @@ public class PlayerHealthController : MonoBehaviour
 
     private bool deathFired = false;
 
-    // =========================
-    // VFX / Feedback
-    // =========================
+    [Header("Audio")]
+    [SerializeField] private AudioSource audioSource;
+    [Tooltip("Random hurt sounds played when player takes damage")]
+    [SerializeField] private AudioClip[] playerHurtSounds;
+    [SerializeField] private float hurtVolume = 1f;
+    [Tooltip("Sound played when player dies")]
+    [SerializeField] private AudioClip playerDeathSound;
+    [SerializeField] private float deathVolume = 1f;
+
     [Header("Heal Particle System")]
     [SerializeField] private GameObject healParticlePrefab;
     [SerializeField] private Transform playerTransform;
@@ -46,8 +52,8 @@ public class PlayerHealthController : MonoBehaviour
     [SerializeField] private float effectInterruptDuration = 1.0f;
 
     private Coroutine lowHealthPulseCoroutine;
-    private float lastEffectTime = -999f; // Track when last damage/heal occurred
-    private GameObject activeHealParticleInstance; // Track active heal particles
+    private float lastEffectTime = -999f;
+    private GameObject activeHealParticleInstance;
 
     [Header("Testing (Optional)")]
     [SerializeField] private float testDamageAmount = 10f;
@@ -65,6 +71,17 @@ public class PlayerHealthController : MonoBehaviour
 
         CurrentHealth = maxHealth;
         Notify();
+
+        if (audioSource == null)
+        {
+            audioSource = GetComponent<AudioSource>();
+            if (audioSource == null)
+            {
+                audioSource = gameObject.AddComponent<AudioSource>();
+            }
+        }
+
+        audioSource.playOnAwake = false;
     }
 
     private void Start()
@@ -117,23 +134,19 @@ public class PlayerHealthController : MonoBehaviour
         CurrentHealth = Mathf.Clamp(CurrentHealth - amount, 0f, maxHealth);
         Notify();
 
-        // Record time of effect to pause low health pulse
         lastEffectTime = Time.time;
 
-        // IMPORTANT: Stop any active heal particles immediately
         StopHealParticles();
 
-        // IMPORTANT: Stop any ongoing healing effect first
         EffectsController.StopHealing();
 
-        // Trigger shader-based damage effect
         float damageIntensity = Mathf.Clamp01(amount / maxHealth);
         EffectsController.TriggerDamage(damageIntensity);
 
-        // Camera shake
         TriggerDamageShake(amount);
 
-        // Check if low health state changed
+        PlayHurtSound();
+
         CheckLowHealthState();
 
         if (CurrentHealth <= 0f)
@@ -148,15 +161,12 @@ public class PlayerHealthController : MonoBehaviour
         CurrentHealth = Mathf.Clamp(CurrentHealth + amount, 0f, maxHealth);
         Notify();
 
-        // Record time of effect to pause low health pulse
         lastEffectTime = Time.time;
 
         CheckLowHealthState();
 
-        // IMPORTANT: Stop any ongoing damage effect first
         EffectsController.StopDamage();
 
-        // Trigger shader-based healing effect
         float healIntensity = Mathf.Clamp01(amount / maxHealth);
         EffectsController.TriggerHealing(healIntensity);
 
@@ -176,12 +186,13 @@ public class PlayerHealthController : MonoBehaviour
         if (deathFired) return;
         deathFired = true;
 
-        // Stop low health pulse
         if (lowHealthPulseCoroutine != null)
         {
             StopCoroutine(lowHealthPulseCoroutine);
             lowHealthPulseCoroutine = null;
         }
+
+        PlayDeathSound();
 
         Debug.Log("💀 Player died");
         OnDeath?.Invoke();
@@ -196,7 +207,6 @@ public class PlayerHealthController : MonoBehaviour
     {
         if (IsLowHealth && !IsDead)
         {
-            // Start pulsing low health effect using shader
             if (lowHealthPulseCoroutine == null)
             {
                 lowHealthPulseCoroutine = StartCoroutine(LowHealthPulseCoroutine());
@@ -205,7 +215,6 @@ public class PlayerHealthController : MonoBehaviour
         }
         else
         {
-            // Stop pulsing
             if (lowHealthPulseCoroutine != null)
             {
                 StopCoroutine(lowHealthPulseCoroutine);
@@ -219,21 +228,16 @@ public class PlayerHealthController : MonoBehaviour
     {
         while (IsLowHealth && !IsDead)
         {
-            // Check if we should pause pulsing due to recent damage/heal effect
             float timeSinceLastEffect = Time.time - lastEffectTime;
 
             if (timeSinceLastEffect >= effectInterruptDuration)
             {
-                // Calculate pulsing intensity
                 float pingPong = Mathf.PingPong(Time.time * lowHealthPulseSpeed, 1f);
                 float intensity = Mathf.Lerp(0.3f, lowHealthPulseIntensity, pingPong);
 
-                // Trigger damage effect continuously for pulse
                 EffectsController.TriggerDamage(intensity);
             }
-            // else: Skip triggering pulse effect, let damage/heal effect play out
 
-            // Wait for next frame
             yield return new WaitForSeconds(0.1f);
         }
 
@@ -262,7 +266,6 @@ public class PlayerHealthController : MonoBehaviour
             return;
         }
 
-        // Stop any existing heal particles first
         StopHealParticles();
 
         Transform spawnParent = playerTransform != null ? playerTransform : transform;
@@ -303,16 +306,35 @@ public class PlayerHealthController : MonoBehaviour
     {
         if (activeHealParticleInstance != null)
         {
-            // Stop all particle systems immediately
             ParticleSystem[] particleSystems = activeHealParticleInstance.GetComponentsInChildren<ParticleSystem>();
             foreach (ParticleSystem ps in particleSystems)
             {
                 ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             }
 
-            // Destroy the game object
             Destroy(activeHealParticleInstance);
             activeHealParticleInstance = null;
+        }
+    }
+
+    private void PlayHurtSound()
+    {
+        if (playerHurtSounds == null || playerHurtSounds.Length == 0) return;
+
+        int randomIndex = UnityEngine.Random.Range(0, playerHurtSounds.Length);
+        AudioClip randomHurtSound = playerHurtSounds[randomIndex];
+
+        if (randomHurtSound != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(randomHurtSound, hurtVolume);
+        }
+    }
+
+    private void PlayDeathSound()
+    {
+        if (playerDeathSound != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(playerDeathSound, deathVolume);
         }
     }
 }
