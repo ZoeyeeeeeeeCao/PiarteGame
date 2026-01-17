@@ -11,15 +11,9 @@ public class SceneLoaderHoward : MonoBehaviour
     [Header("Settings")]
     public GameObject loadingScreenPrefab;
     [Range(0.1f, 2f)]
-    public float fillSpeed = 0.5f; // Lower = Slower smooth filling
+    public float fillSpeed = 0.5f;
 
-    [Header("Loading Screen Components (Assigned in Prefab)")]
-    public Image progressBar; // Changed from Slider to Image
-    public TextMeshProUGUI loadingText;
-    public Image steeringWheel;
-
-    private Coroutine dotAnimationCoroutine;
-    private Coroutine wheelAnimationCoroutine;
+    // We don't need the public variables here anymore because they are on the prefab script!
 
     private void Awake()
     {
@@ -45,87 +39,69 @@ public class SceneLoaderHoward : MonoBehaviour
         GameObject loadingScreen = Instantiate(loadingScreenPrefab);
         DontDestroyOnLoad(loadingScreen);
 
-        // Get components from the instantiated prefab
-        SceneLoaderHoward loader = loadingScreen.GetComponent<SceneLoaderHoward>();
-        if (loader == null)
+        // --- UPDATED LOGIC ---
+        // Look for the NEW UI script instead of SceneLoaderHoward
+        LoadingScreenUI ui = loadingScreen.GetComponent<LoadingScreenUI>();
+
+        if (ui == null)
         {
-            Debug.LogError("Loading screen prefab must have SceneLoaderHoward component!");
-            yield break;
+            Debug.LogError("Your Loading Screen Prefab is missing the 'LoadingScreenUI' script!");
+            yield break; // Stop if script is missing
         }
 
-        Image bar = loader.progressBar;
-        TextMeshProUGUI text = loader.loadingText;
-        Image wheel = loader.steeringWheel;
+        // Get references from the UI script
+        Image bar = ui.progressBar;
+        TextMeshProUGUI text = ui.loadingText;
+        Image wheel = ui.steeringWheel;
 
         // Set initial values
         if (bar != null) bar.fillAmount = 0f;
         if (text != null) text.text = "Loading";
 
         // Start animations
-        dotAnimationCoroutine = StartCoroutine(AnimateLoadingText(text));
-        wheelAnimationCoroutine = StartCoroutine(AnimateSteeringWheel(wheel));
+        Coroutine dotAnim = StartCoroutine(AnimateLoadingText(text));
+        Coroutine wheelAnim = StartCoroutine(AnimateSteeringWheel(wheel));
 
-        // Wait to ensure the UI is rendered (Fixes the freeze)
+        // Wait to ensure UI renders
         yield return new WaitForSeconds(0.5f);
 
         // 2. Start Async Loading
         AsyncOperation operation = SceneManager.LoadSceneAsync(sceneName);
-
-        // IMPORTANT: Prevent the scene from switching immediately
         operation.allowSceneActivation = false;
 
         float visualProgress = 0f;
 
-        // 3. Loop until the scene is fully loaded AND the bar is fully filled
+        // 3. Loop
         while (!operation.isDone)
         {
-            // The "Real" progress stops at 0.9. We scale it to 1.0.
             float targetProgress = Mathf.Clamp01(operation.progress / 0.9f);
-
-            // --- THE SMOOTHING LOGIC ---
-            // Instead of jumping straight to targetProgress, we move there gradually.
             visualProgress = Mathf.MoveTowards(visualProgress, targetProgress, fillSpeed * Time.deltaTime);
 
-            // Update UI
             if (bar != null) bar.fillAmount = visualProgress;
 
-            // 4. Check if we can finish
+            // 4. Check finish
             if (operation.progress >= 0.9f && visualProgress >= 0.99f)
             {
-                // Stop animations
-                if (dotAnimationCoroutine != null)
-                {
-                    StopCoroutine(dotAnimationCoroutine);
-                }
+                if (dotAnim != null) StopCoroutine(dotAnim);
+                if (wheelAnim != null) StopCoroutine(wheelAnim);
 
-                if (wheelAnimationCoroutine != null)
-                {
-                    StopCoroutine(wheelAnimationCoroutine);
-                }
-
-                // Final state
                 if (bar != null) bar.fillAmount = 1f;
                 if (text != null) text.text = "Complete!";
 
                 yield return new WaitForSeconds(0.5f);
-
-                // Allow the scene to switch
                 operation.allowSceneActivation = true;
             }
 
             yield return null;
         }
 
-        // 5. Cleanup
         Destroy(loadingScreen);
     }
 
     IEnumerator AnimateLoadingText(TextMeshProUGUI loadingText)
     {
         if (loadingText == null) yield break;
-
         int dotCount = 0;
-
         while (true)
         {
             dotCount = (dotCount + 1) % 4;
@@ -137,16 +113,13 @@ public class SceneLoaderHoward : MonoBehaviour
     IEnumerator AnimateSteeringWheel(Image steeringWheel)
     {
         if (steeringWheel == null) yield break;
-
         float currentRotation = 0f;
-        float maxRotation = 750f;
         bool turningRight = true;
 
         while (true)
         {
-            float startRotation = currentRotation;
-            float targetRotation = turningRight ? maxRotation : 0f;
-
+            float start = currentRotation;
+            float target = turningRight ? 750f : 0f;
             float duration = 3.0f;
             float elapsed = 0f;
 
@@ -154,23 +127,14 @@ public class SceneLoaderHoward : MonoBehaviour
             {
                 elapsed += Time.deltaTime;
                 float t = elapsed / duration;
+                // Smooth Step
+                float easedT = t * t * (3f - 2f * t);
 
-                // Improved Ease In-Out (Cubic)
-                float easedT = t < 0.5f
-                    ? 4f * t * t * t
-                    : 1f - Mathf.Pow(-2f * t + 2f, 3f) / 2f;
-
-                currentRotation = Mathf.Lerp(startRotation, targetRotation, easedT);
+                currentRotation = Mathf.Lerp(start, target, easedT);
                 steeringWheel.transform.rotation = Quaternion.Euler(0f, 0f, -currentRotation);
-
                 yield return null;
             }
-
-            currentRotation = targetRotation;
-            steeringWheel.transform.rotation = Quaternion.Euler(0f, 0f, -currentRotation);
-
             turningRight = !turningRight;
-
             yield return new WaitForSeconds(0.3f);
         }
     }
