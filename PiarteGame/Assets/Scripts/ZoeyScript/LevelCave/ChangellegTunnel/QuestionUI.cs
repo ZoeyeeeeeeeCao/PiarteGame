@@ -31,6 +31,10 @@ public class QuestionUI : MonoBehaviour
     [Header("Typewriter")]
     public float charInterval = 0.03f;
 
+    [Header("Ignore These Colliders")]
+    [Tooltip("These colliders will be ignored by this trigger (won't show/hide UI). Drag the specific player colliders here.")]
+    public Collider[] ignoredColliders;
+
     bool playerInside;
     bool hasProceeded;
     bool showing;
@@ -73,9 +77,23 @@ public class QuestionUI : MonoBehaviour
         }
     }
 
+    bool IsIgnored(Collider col)
+    {
+        if (ignoredColliders == null) return false;
+
+        for (int i = 0; i < ignoredColliders.Length; i++)
+        {
+            if (ignoredColliders[i] == col)
+                return true;
+        }
+
+        return false;
+    }
+
     private void OnTriggerEnter(Collider other)
     {
         if (!other.CompareTag("Player")) return;
+        if (IsIgnored(other)) return;
 
         playerInside = true;
         hasProceeded = false;
@@ -86,6 +104,7 @@ public class QuestionUI : MonoBehaviour
     private void OnTriggerExit(Collider other)
     {
         if (!other.CompareTag("Player")) return;
+        if (IsIgnored(other)) return;
 
         playerInside = false;
         hasProceeded = false;
@@ -136,7 +155,7 @@ public class QuestionUI : MonoBehaviour
 
         HideUI();
 
-        // TODO: 在这里加你后续逻辑：
+        // TODO: Add your follow-up logic here, e.g.:
         // SceneManager.LoadScene(...)
         // doorAnimator.SetBool(...)
         // Timeline.Play()
