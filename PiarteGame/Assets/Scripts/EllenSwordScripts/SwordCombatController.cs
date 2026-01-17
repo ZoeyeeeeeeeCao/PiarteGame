@@ -32,6 +32,13 @@ public class SwordCombatController : MonoBehaviour
     [SerializeField] private float rotationSpeed = 1080f;
     [SerializeField] private float animationSpeedMultiplier = 1.3f;
 
+    [Header("Movement During Attack")]
+    [Tooltip("Allow player to move during attacks")]
+    [SerializeField] private bool allowMovementDuringAttack = true;
+    [Tooltip("Speed multiplier when moving during attacks (0.6 = 60% speed)")]
+    [Range(0f, 1f)]
+    [SerializeField] private float attackMovementSpeedMultiplier = 0.6f;
+
     [Header("Camera Rotation During Attack")]
     [SerializeField] private bool enableCameraRotationDuringAttack = true;
     [SerializeField] private float attackRotationSpeed = 720f;
@@ -238,7 +245,7 @@ public class SwordCombatController : MonoBehaviour
             weaponTrail.StopTrail();
         }
 
-        Debug.Log("Combat System initialized - FLUID COMBAT MODE with CAMERA ROTATION");
+        Debug.Log("Combat System initialized - FLUID COMBAT MODE with CAMERA ROTATION & MOVEMENT");
     }
 
     private void Update()
@@ -336,8 +343,6 @@ public class SwordCombatController : MonoBehaviour
         duration /= animationSpeedMultiplier;
 
         currentAttackCoroutine = StartCoroutine(ExecuteAttack(attackHash, attackName, damage, duration, customTrailDuration, isHardAttack));
-
-        // ✅ REMOVED: Counter increment moved to when enemy is actually hit
     }
 
     private IEnumerator ExecuteAttack(int animationHash, string animationName, int damage, float duration, float customTrailDuration, bool isHardAttack)
@@ -448,7 +453,6 @@ public class SwordCombatController : MonoBehaviour
         float recoveryTime = hasQueuedAttack ? comboExecutionDelay : attackCooldown;
         yield return new WaitForSeconds(recoveryTime);
 
-        // ✅ RESET COUNTER AFTER HARD ATTACK
         if (isHardAttack)
         {
             ResetAttackCounter();
@@ -684,7 +688,6 @@ public class SwordCombatController : MonoBehaviour
     public void OnDrawSwordAttach() => AttachSwordToHand();
     public void OnSheathSwordAttach() => AttachSwordToBelt();
 
-    // ✅ NEW: Public methods to manage attack counter
     public void IncrementAttackCounter()
     {
         attackCounter++;
@@ -697,11 +700,15 @@ public class SwordCombatController : MonoBehaviour
         Debug.Log($"🔄 Attack Counter reset to 0");
     }
 
-    // Public properties
+    // Public properties for LocomotionController to access
     public bool IsSwordDrawn => isSwordDrawn;
     public bool IsAttacking => isAttacking;
     public bool CanAttack => canAttack;
     public bool IsRotatingDuringAttack => isRotatingDuringAttack;
     public int AttackCounter => attackCounter;
-    public int HardAttackRequirement => hardAttackRequirement; 
+    public int HardAttackRequirement => hardAttackRequirement;
+
+    // ✅ NEW: Movement control properties
+    public bool AllowMovementDuringAttack => allowMovementDuringAttack;
+    public float AttackMovementSpeedMultiplier => attackMovementSpeedMultiplier;
 }
