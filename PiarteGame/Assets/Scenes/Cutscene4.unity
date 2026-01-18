@@ -149,7 +149,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   videoPlayer: {fileID: 1747730224}
-  nextSceneName: NelsenScene
+  nextSceneName: LV_Caveof Hidden Tomb
   allowSkip: 1
   skipKey: 13
 --- !u!4 &226359458
@@ -326,7 +326,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Texture: {fileID: 8400000, guid: 9f057496eae3bda44a587d65d41aa108, type: 2}
+  m_Texture: {fileID: 8400000, guid: 41ee4b3b48ef51e47ab72a81c0b8375c, type: 2}
   m_UVRect:
     serializedVersion: 2
     x: 0
@@ -487,11 +487,11 @@ VideoPlayer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1747730223}
   m_Enabled: 1
-  m_VideoClip: {fileID: 32900000, guid: f320e862ca8f43b438e4594892db869e, type: 3}
+  m_VideoClip: {fileID: 32900000, guid: fd52da933b5c56f4496eedc338789be4, type: 3}
   m_TargetCameraAlpha: 1
   m_TargetCamera3DLayout: 0
   m_TargetCamera: {fileID: 0}
-  m_TargetTexture: {fileID: 8400000, guid: 9f057496eae3bda44a587d65d41aa108, type: 2}
+  m_TargetTexture: {fileID: 8400000, guid: 41ee4b3b48ef51e47ab72a81c0b8375c, type: 2}
   m_TimeReference: 0
   m_TargetMaterialRenderer: {fileID: 0}
   m_TargetMaterialProperty: <noninit>

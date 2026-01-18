@@ -38,6 +38,12 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Interior NEW.unity
     guid: 618771483ae0134438938c51ead639c9
+  - enabled: 1
+    path: Assets/Scenes/Cutscene4.unity
+    guid: a1a4926fe5ae757479163a2064925aae
+  - enabled: 1
+    path: Assets/Scenes/Cutscene2.unity
+    guid: 9f24989859a08b54d9ce3739aa138a4d
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0
