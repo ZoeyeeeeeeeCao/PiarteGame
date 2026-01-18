@@ -3312,7 +3312,7 @@ MonoBehaviour:
   animator: {fileID: 1827917467057020209}
   enemyAnimationOverride: {fileID: 0}
   agent: {fileID: 2036025497228605363}
-  healthController: {fileID: 0}
+  healthController: {fileID: 5290249601074067856}
   isSpawning: 0
 --- !u!195 &2036025497228605363
 NavMeshAgent:
@@ -3368,7 +3368,7 @@ MonoBehaviour:
   OnTakeDamage:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 5842127691070591014}
         m_TargetAssemblyTypeName: EnemyController, Assembly-CSharp
         m_MethodName: TakeDamage
         m_Mode: 1
@@ -3383,7 +3383,7 @@ MonoBehaviour:
   OnDeath:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 5842127691070591014}
         m_TargetAssemblyTypeName: EnemyController, Assembly-CSharp
         m_MethodName: Die
         m_Mode: 1

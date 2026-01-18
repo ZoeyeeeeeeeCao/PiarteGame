@@ -17,5 +17,5 @@ MonoBehaviour:
   - text: Of course I did. The relic chamber only responds to one who already carries
       a stone.
     audioClip: {fileID: 8300000, guid: e9120a118dc70ce4195665dc08baa8cd, type: 3}
-  - text: Come, pirate! hand it over or i'll take that stone from your corpse.
+  - text: Come on pirate, hand it over, or ill take that stone from you're corpse.
     audioClip: {fileID: 8300000, guid: abe0c38b19a95da47aa0b6fc5b4da601, type: 3}
