@@ -8357,7 +8357,7 @@ Material:
     - _ShadowColor: {r: 0, g: 0, b: 0, a: 1}
     - _ShadowIntensity: {r: 5.13, g: -4.13, b: 0, a: 0}
     - _ToLightDir: {r: 0.34361604, g: 0.86016715, b: 0.3768827, a: 0}
-    - _WindDirection: {r: 0.0959162, g: 0.06394413, b: 0, a: 0}
+    - _WindDirection: {r: 0.030569024, g: 0.020379351, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
 --- !u!4 &135145773 stripped
@@ -48929,7 +48929,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1030972228, guid: abc00000000012246764391484323142, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 2147483647
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1030972229, guid: abc00000000012246764391484323142, type: 3}
       propertyPath: m_LocalScale.x
@@ -48989,27 +48989,27 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1030972232, guid: abc00000000012246764391484323142, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 2147483647
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1030972236, guid: abc00000000012246764391484323142, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 2147483647
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1030972240, guid: abc00000000012246764391484323142, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 2147483647
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1030972244, guid: abc00000000012246764391484323142, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 2147483647
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1030972248, guid: abc00000000012246764391484323142, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 2147483647
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1030972252, guid: abc00000000012246764391484323142, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 2147483647
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -50619,43 +50619,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 66ed0a3c91f024e43a3dddc2512952a2, type: 3}
---- !u!84 &533682413
-RenderTexture:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: 
-  m_ImageContentsHash:
-    serializedVersion: 2
-    Hash: 00000000000000000000000000000000
-  m_IsAlphaChannelOptional: 0
-  serializedVersion: 6
-  m_Width: 1024
-  m_Height: 1024
-  m_AntiAliasing: 1
-  m_MipCount: -1
-  m_DepthStencilFormat: 90
-  m_ColorFormat: 0
-  m_MipMap: 0
-  m_GenerateMips: 1
-  m_SRGB: 0
-  m_UseDynamicScale: 0
-  m_UseDynamicScaleExplicit: 0
-  m_BindMS: 0
-  m_EnableCompatibleFormat: 1
-  m_EnableRandomWrite: 0
-  m_TextureSettings:
-    serializedVersion: 2
-    m_FilterMode: 1
-    m_Aniso: 1
-    m_MipBias: 0
-    m_WrapU: 1
-    m_WrapV: 1
-    m_WrapW: 1
-  m_Dimension: 2
-  m_VolumeDepth: 1
-  m_ShadowSamplingMode: 2
 --- !u!1001 &534683412
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -52788,7 +52751,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1030972228, guid: abc00000000012246764391484323142, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 2147483647
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1030972229, guid: abc00000000012246764391484323142, type: 3}
       propertyPath: m_LocalScale.x
@@ -52844,27 +52807,27 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1030972232, guid: abc00000000012246764391484323142, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 2147483647
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1030972236, guid: abc00000000012246764391484323142, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 2147483647
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1030972240, guid: abc00000000012246764391484323142, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 2147483647
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1030972244, guid: abc00000000012246764391484323142, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 2147483647
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1030972248, guid: abc00000000012246764391484323142, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 2147483647
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1030972252, guid: abc00000000012246764391484323142, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 2147483647
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -124048,7 +124011,7 @@ Camera:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1318876750}
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 2
   m_ClearFlags: 3
   m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
@@ -124082,7 +124045,7 @@ Camera:
     serializedVersion: 2
     m_Bits: 4294967293
   m_RenderingPath: -1
-  m_TargetTexture: {fileID: 533682413}
+  m_TargetTexture: {fileID: 1653161930}
   m_TargetDisplay: 0
   m_TargetEye: 3
   m_HDR: 0
@@ -133734,17 +133697,6 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 7011595875187807708, guid: 5966c3263ac75c5419011697b893d343, type: 3}
   m_PrefabInstance: {fileID: 1212933270}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1481205862 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 7004872029675391019, guid: 5966c3263ac75c5419011697b893d343, type: 3}
-  m_PrefabInstance: {fileID: 1212933270}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1481205860}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1001 &1482737489
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -135483,15 +135435,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5814957930043486004, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 138.63
+      value: -1.16
       objectReference: {fileID: 0}
     - target: {fileID: 5814957930043486004, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 12.58
+      value: -0.12
       objectReference: {fileID: 0}
     - target: {fileID: 5814957930043486004, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -2.54
+      value: 1.14
       objectReference: {fileID: 0}
     - target: {fileID: 5814957930043486004, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
       propertyPath: m_LocalRotation.w
@@ -137511,11 +137463,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f2e2bf9b801e4684cb70812cacc84b9c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  missionBox: {fileID: 1752654249}
-  missionImage: {fileID: 1481205862}
   missionText: {fileID: 1212933272}
   triggerTag: Player
-  explorationEndTrigger: {fileID: 1118173207}
+  explorationEndTrigger: {fileID: 1398136404}
+  exploreAreaQuestID: Explore_Area
   npcMissions:
   - npcObject: {fileID: 913438439}
     compassQuestID: MariaInteraction
@@ -137526,23 +137477,16 @@ MonoBehaviour:
   - npcObject: {fileID: 348008243}
     compassQuestID: BrannInteraction
     hasBeenTalkedTo: 0
-  phase1Text: Talk to the villagers (0/3)
   phase2Text: Talk to Silas
-  newObjectiveMarker: {fileID: 527686645}
-  phase2ObjectToReveal: {fileID: 2188394984081752124}
-  phase2ObjectToHide1: {fileID: 0}
-  phase2ObjectToHide2: {fileID: 0}
-  scriptToUnlock: {fileID: 1781020438}
-  finalMissionText: Follow the wine cart
+  phase2ObjectToReveal: {fileID: 1781020435}
+  silasParticleSystem: {fileID: 527686645}
+  phase2CompassQuestID: SilasInteraction
+  phase3Text: Follow the wine cart
+  phase3CompassQuestID: FollowCart
+  enemiesToKill: 10
   audioSource: {fileID: 1525262785}
   missionUpdateSound: {fileID: 8300000, guid: f9752277acc853e4d85ad6c0d148781e, type: 3}
-  slideSpeed: 500
-  slideDuration: 1
-  yellowColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   compass: {fileID: 1626011512}
-  exploreAreaQuestID: Explore_Area
-  phase2CompassQuestID: SilasInteraction
-  phase3CompassQuestID: FollowCart
 --- !u!4 &1602694281
 Transform:
   m_ObjectHideFlags: 0
@@ -139058,6 +139002,43 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1614062275126464370, guid: b66f9eddb23094a4094eca2bde2f19ed, type: 3}
   m_PrefabInstance: {fileID: 1538355170}
   m_PrefabAsset: {fileID: 0}
+--- !u!84 &1653161930
+RenderTexture:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: 
+  m_ImageContentsHash:
+    serializedVersion: 2
+    Hash: 00000000000000000000000000000000
+  m_IsAlphaChannelOptional: 0
+  serializedVersion: 6
+  m_Width: 1024
+  m_Height: 1024
+  m_AntiAliasing: 1
+  m_MipCount: -1
+  m_DepthStencilFormat: 90
+  m_ColorFormat: 0
+  m_MipMap: 0
+  m_GenerateMips: 1
+  m_SRGB: 0
+  m_UseDynamicScale: 0
+  m_UseDynamicScaleExplicit: 0
+  m_BindMS: 0
+  m_EnableCompatibleFormat: 1
+  m_EnableRandomWrite: 0
+  m_TextureSettings:
+    serializedVersion: 2
+    m_FilterMode: 1
+    m_Aniso: 1
+    m_MipBias: 0
+    m_WrapU: 1
+    m_WrapV: 1
+    m_WrapW: 1
+  m_Dimension: 2
+  m_VolumeDepth: 1
+  m_ShadowSamplingMode: 2
 --- !u!1001 &1653599965
 PrefabInstance:
   m_ObjectHideFlags: 0
