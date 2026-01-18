@@ -303,7 +303,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
+  m_SizeDelta: {x: 1920, y: 1080}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &824517468
 MonoBehaviour:
@@ -325,7 +325,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Texture: {fileID: 8400000, guid: a5405b5f9a8bfa1448ca46a0dc779d2a, type: 2}
+  m_Texture: {fileID: 8400000, guid: 0629d9e03afae2a4eae5cdd4c4a90bd3, type: 2}
   m_UVRect:
     serializedVersion: 2
     x: 0
@@ -486,11 +486,11 @@ VideoPlayer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1747730223}
   m_Enabled: 1
-  m_VideoClip: {fileID: 32900000, guid: b1064b296f3e1ff458834076809c7bd1, type: 3}
+  m_VideoClip: {fileID: 32900000, guid: fdd71215026042d4886650ae6f975828, type: 3}
   m_TargetCameraAlpha: 1
   m_TargetCamera3DLayout: 0
   m_TargetCamera: {fileID: 0}
-  m_TargetTexture: {fileID: 8400000, guid: a5405b5f9a8bfa1448ca46a0dc779d2a, type: 2}
+  m_TargetTexture: {fileID: 8400000, guid: 0629d9e03afae2a4eae5cdd4c4a90bd3, type: 2}
   m_TimeReference: 0
   m_TargetMaterialRenderer: {fileID: 0}
   m_TargetMaterialProperty: <noninit>
