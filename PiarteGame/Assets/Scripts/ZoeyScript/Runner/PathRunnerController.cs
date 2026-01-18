@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using PathCreation;
 
 [RequireComponent(typeof(CharacterController))]
@@ -8,12 +8,16 @@ public class PathRunnerSingleLaneController : MonoBehaviour
     public PathCreator pathCreator;
     public EndOfPathInstruction endOfPathInstruction = EndOfPathInstruction.Stop;
 
+    [Header("Direction")]
+    [Tooltip("If true, start at the end of the path and run backwards (towards 0).")]
+    public bool runFromEnd = true;
+
     [Header("Run")]
     public float forwardSpeed = 8f;          // speed along path (m/s)
     public float followSharpness = 14f;      // how strongly we stick to path center (XZ)
     public float rotateSharpness = 18f;      // how fast we face forward along path
 
-    [Header("Jump & Gravity")]
+    [Header("Jump & Gravity (Y is driven by gravity, NOT by path Y)")]
     public float gravity = -28f;
     public float jumpHeight = 1.4f;
 
@@ -55,14 +59,31 @@ public class PathRunnerSingleLaneController : MonoBehaviour
         c.y = cc.height * 0.5f;
         cc.center = c;
 
-        if (pathCreator != null && pathCreator.path != null)
+        if (pathCreator == null || pathCreator.path == null)
         {
-            // start from closest point along path
-            distanceTravelled = pathCreator.path.GetClosestDistanceAlongPath(transform.position);
+            Debug.LogError("PathCreator not assigned or path is null!");
+            enabled = false;
+            return;
         }
 
-        // small downward bias so grounded behaves nicely
-        verticalVel = -2f;
+        // ✅ Key: choose start distance explicitly
+        distanceTravelled = runFromEnd ? pathCreator.path.length : 0f;
+
+        // Place player to the chosen start point (XZ), Y stays as current + small lift to avoid clipping
+        Vector3 startPos = pathCreator.path.GetPointAtDistance(distanceTravelled, endOfPathInstruction);
+        Vector3 startDir = pathCreator.path.GetDirectionAtDistance(distanceTravelled, endOfPathInstruction);
+        if (runFromEnd) startDir = -startDir;
+
+        startDir.y = 0f;
+        if (startDir.sqrMagnitude < 0.001f) startDir = Vector3.forward;
+        startDir.Normalize();
+
+        cc.enabled = false;
+        transform.position = new Vector3(startPos.x, transform.position.y + 0.2f, startPos.z);
+        transform.rotation = Quaternion.LookRotation(startDir, Vector3.up);
+        cc.enabled = true;
+
+        verticalVel = -2f; // stable grounded behaviour
     }
 
     void Update()
@@ -75,14 +96,23 @@ public class PathRunnerSingleLaneController : MonoBehaviour
 
         UpdateSlide();
 
-        // 1) advance along path
-        distanceTravelled += forwardSpeed * Time.deltaTime;
+        float maxLen = pathCreator.path.length;
+        float dir = runFromEnd ? -1f : 1f;
 
-        // 2) sample path
+        // 1) advance along path (forwardSpeed always positive in Inspector)
+        distanceTravelled += dir * forwardSpeed * Time.deltaTime;
+
+        // clamp to path range
+        distanceTravelled = Mathf.Clamp(distanceTravelled, 0f, maxLen);
+
+        // 2) sample path at current distance
         Vector3 pathPos = pathCreator.path.GetPointAtDistance(distanceTravelled, endOfPathInstruction);
         Vector3 forward = pathCreator.path.GetDirectionAtDistance(distanceTravelled, endOfPathInstruction);
 
-        // IMPORTANT: we only use path for XZ movement (do NOT follow path Y)
+        // if running from end, invert forward so we face our moving direction
+        if (runFromEnd) forward = -forward;
+
+        // IMPORTANT: only use path for XZ (do NOT follow path Y)
         forward.y = 0f;
         if (forward.sqrMagnitude < 0.0001f) forward = transform.forward;
         forward.Normalize();
