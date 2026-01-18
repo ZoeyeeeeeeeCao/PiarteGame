@@ -18,7 +18,7 @@ public class DialogueManager : MonoBehaviour
     public float subtitleAutoDelay = 1.0f;
 
     [Header("Animation Settings")]
-    public float slideSpeed = 0.4f; // Slightly slower for a smoother feel
+    public float slideSpeed = 0.4f;
     public float slideDistance = 300f;
     public float closeDelay = 0.1f;
 
@@ -72,7 +72,7 @@ public class DialogueManager : MonoBehaviour
     {
         StopAllCoroutines();
 
-        // FIX: Clear the text immediately so the old dialogue doesn't show for a brief second
+        // Clear the text immediately so old dialogue doesn't flash
         if (dialogueText != null)
         {
             dialogueText.text = "";
@@ -95,7 +95,6 @@ public class DialogueManager : MonoBehaviour
         }
         else
         {
-            // Force box active but it will now be empty because of the clear above
             dialogueBox.SetActive(true);
             dialogueBoxRect.anchoredPosition = visiblePosition;
             StartCoroutine(TypeLine());
@@ -148,22 +147,29 @@ public class DialogueManager : MonoBehaviour
 
     void NextLine()
     {
+        Debug.Log($"[DIALOGUE] NextLine called. lineIndex: {lineIndex}, total lines: {currentLines.Length}");
+
         lineIndex++;
         if (lineIndex < currentLines.Length)
         {
+            Debug.Log($"[DIALOGUE] More lines to show. Starting next line.");
             StartCoroutine(TypeLine());
         }
         else
         {
-            // Signal finished so the Trigger loop can proceed
-            isDialogueActive = false;
+            Debug.Log($"[DIALOGUE] All lines complete. shouldAutoClose: {shouldAutoClose}");
             isTyping = false;
+
+            // CRITICAL FIX: Set isDialogueActive to false BEFORE starting the close animation
+            // This allows other scripts to detect that dialogue content is done
+            isDialogueActive = false;
+            Debug.Log($"[DIALOGUE] isDialogueActive set to FALSE (dialogue content complete)");
 
             if (shouldAutoClose)
             {
-                CloseDialogueBox();
+                Debug.Log($"[DIALOGUE] Starting close animation...");
+                StartCoroutine(CloseDialogueBoxWithAnimation());
             }
-            // If shouldAutoClose is false, we stay visible and do nothing
         }
     }
 
@@ -174,8 +180,11 @@ public class DialogueManager : MonoBehaviour
 
     IEnumerator CloseDialogueBoxWithAnimation()
     {
+        Debug.Log($"[DIALOGUE] CloseDialogueBoxWithAnimation started. Waiting {closeDelay}s...");
         yield return new WaitForSeconds(closeDelay);
+        Debug.Log($"[DIALOGUE] Starting SlideOut...");
         yield return StartCoroutine(SlideOut());
+        Debug.Log($"[DIALOGUE] SlideOut complete.");
         if (spacePromptText != null) spacePromptText.SetActive(false);
         EnablePlayerControls();
     }
@@ -204,6 +213,7 @@ public class DialogueManager : MonoBehaviour
 
     IEnumerator SlideOut()
     {
+        Debug.Log($"[DIALOGUE] SlideOut started. Duration: {slideSpeed}s");
         isAnimating = true;
         float elapsed = 0f;
         while (elapsed < slideSpeed)
@@ -216,6 +226,7 @@ public class DialogueManager : MonoBehaviour
         dialogueBoxRect.anchoredPosition = hiddenPosition;
         dialogueBox.SetActive(false);
         isAnimating = false;
+        Debug.Log($"[DIALOGUE] SlideOut FINISHED. Box hidden.");
     }
 
     void DisablePlayerControls()
@@ -233,7 +244,6 @@ public class DialogueManager : MonoBehaviour
 
     public bool IsDialogueActive() => isDialogueActive;
 
-    // Added to help FinishLineInstantly respect the new logic
     void FinishLineInstantly()
     {
         StopAllCoroutines();

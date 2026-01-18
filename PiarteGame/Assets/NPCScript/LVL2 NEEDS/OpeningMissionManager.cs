@@ -34,7 +34,6 @@ public class ReusableOpeningMission : MonoBehaviour
     public AudioSource audioSource;
     public AudioClip missionAppearSound;
 
-    // NEW: Compass Integration
     [Header("Compass Integration")]
     [Tooltip("Reference to the Compass script")]
     public Compass compass;
@@ -54,11 +53,10 @@ public class ReusableOpeningMission : MonoBehaviour
         dialogueManager = FindObjectOfType<DialogueManager>();
         if (audioSource == null) audioSource = GetComponent<AudioSource>();
 
-        // NEW: Find compass if not assigned
         if (compass == null)
             compass = FindObjectOfType<Compass>();
 
-        // Initialization: Hide the main box and all mission texts
+        // Hide the main box and all mission texts
         if (sharedMissionBox != null) sharedMissionBox.SetActive(false);
 
         foreach (var mission in missionList)
@@ -91,11 +89,21 @@ public class ReusableOpeningMission : MonoBehaviour
         // Step 1: Subtitles (No freeze)
         if (playSubtitlesFirst && subtitleDialogue != null && dialogueManager != null)
         {
-            dialogueManager.StartDialogue(subtitleDialogue, DialogueManager.DialogueMode.Subtitle);
+            // FIX: Enable animation and auto-close for subtitles
+            dialogueManager.StartDialogue(
+                subtitleDialogue,
+                DialogueManager.DialogueMode.Subtitle,
+                animate: true,      // Slide in
+                autoClose: true     // Slide out when done
+            );
+
             while (dialogueManager.IsDialogueActive())
             {
                 yield return null;
             }
+
+            // Wait for slide-out animation to complete
+            yield return new WaitForSeconds(0.5f);
         }
 
         // Step 2: Show everything and play sound
@@ -109,13 +117,13 @@ public class ReusableOpeningMission : MonoBehaviour
             audioSource.PlayOneShot(missionAppearSound);
         }
 
-        // 1. Turn on the Shared Box
+        // Turn on the Shared Box
         if (sharedMissionBox != null)
         {
             sharedMissionBox.SetActive(true);
         }
 
-        // 2. Turn on and set each individual mission text
+        // Turn on and set each individual mission text
         foreach (var mission in missionList)
         {
             if (mission.textComponent != null)
@@ -125,7 +133,7 @@ public class ReusableOpeningMission : MonoBehaviour
             }
         }
 
-        // NEW: Show compass marker when mission appears
+        // Show compass marker when mission appears
         missionActive = true;
         if (compass != null && !string.IsNullOrEmpty(compassQuestID) && showCompassMarker)
         {
@@ -134,10 +142,6 @@ public class ReusableOpeningMission : MonoBehaviour
         }
     }
 
-    // NEW: Call this when the mission is completed
-    /// <summary>
-    /// Call this method when the player completes the mission
-    /// </summary>
     public void CompleteMission()
     {
         if (!missionActive)
@@ -168,19 +172,11 @@ public class ReusableOpeningMission : MonoBehaviour
         }
     }
 
-    // NEW: Check if mission is currently active
-    /// <summary>
-    /// Returns true if the mission is currently active
-    /// </summary>
     public bool IsMissionActive()
     {
         return missionActive;
     }
 
-    // NEW: Manually show compass marker (if you need it for other purposes)
-    /// <summary>
-    /// Manually show the compass marker
-    /// </summary>
     public void ShowCompassMarker()
     {
         if (compass != null && !string.IsNullOrEmpty(compassQuestID))
@@ -189,10 +185,6 @@ public class ReusableOpeningMission : MonoBehaviour
         }
     }
 
-    // NEW: Manually hide compass marker (if you need it for other purposes)
-    /// <summary>
-    /// Manually hide the compass marker
-    /// </summary>
     public void HideCompassMarker()
     {
         if (compass != null && !string.IsNullOrEmpty(compassQuestID))
