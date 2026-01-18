@@ -3,8 +3,8 @@ using UnityEngine.UI;
 using UnityEngine.Video;
 
 /// <summary>
-/// Simple Main Menu Manager with Video Background Support
-/// Connects the Play button to Howard's Scene Loader
+/// Simple Main Menu Manager with Multiple Video Background Support
+/// Handles separate video players for Main Menu, Settings, and Credits
 /// </summary>
 public class SimpleMenuManager : MonoBehaviour
 {
@@ -13,11 +13,17 @@ public class SimpleMenuManager : MonoBehaviour
     [SerializeField] private GameObject settingsPanel;
     [SerializeField] private GameObject creditsPanel;
 
-    [Header("Video Background (Optional)")]
-    [Tooltip("Drag your VideoPlayer or RawImage with VideoPlayer here")]
-    [SerializeField] private VideoPlayer backgroundVideo;
-    [Tooltip("Pause video when in Settings/Credits?")]
-    [SerializeField] private bool pauseVideoInSubmenus = false; // Changed default to false
+    [Header("Video Players (One per Panel)")]
+    [Tooltip("VideoPlayer on Main Menu canvas")]
+    [SerializeField] private VideoPlayer mainMenuVideo;
+    [Tooltip("VideoPlayer on Settings canvas")]
+    [SerializeField] private VideoPlayer settingsVideo;
+    [Tooltip("VideoPlayer on Credits canvas")]
+    [SerializeField] private VideoPlayer creditsVideo;
+
+    [Header("Auto-Find Video Players")]
+    [Tooltip("Automatically find VideoPlayer components in each panel")]
+    [SerializeField] private bool autoFindVideos = true;
 
     [Header("Scene to Load")]
     [Tooltip("The exact name of the scene you want to play (e.g., 'GameScene')")]
@@ -30,7 +36,13 @@ public class SimpleMenuManager : MonoBehaviour
 
     private void Start()
     {
-        // Auto-find back buttons if enabled and array is empty
+        // Auto-find video players if enabled
+        if (autoFindVideos)
+        {
+            FindAllVideoPlayers();
+        }
+
+        // Auto-find back buttons if enabled
         if (autoFindBackButtons && (backButtons == null || backButtons.Length == 0))
         {
             FindAllBackButtons();
@@ -39,14 +51,8 @@ public class SimpleMenuManager : MonoBehaviour
         // Assign ShowMainMenu to all back buttons
         SetupBackButtons();
 
-        // Show only main menu at start, hide everything else
+        // Show only main menu at start
         ShowMainMenu();
-
-        // Start video if assigned
-        if (backgroundVideo != null && !backgroundVideo.isPlaying)
-        {
-            backgroundVideo.Play();
-        }
     }
 
     // ===== MAIN MENU BUTTONS =====
@@ -54,16 +60,12 @@ public class SimpleMenuManager : MonoBehaviour
     {
         Debug.Log($"▶️ Requesting Load for: {gameSceneName}");
 
-        // Stop video before loading (optional)
-        if (backgroundVideo != null)
-        {
-            backgroundVideo.Stop();
-        }
+        // Stop all videos before loading
+        StopAllVideos();
 
         // Check if Howard's loader exists
         if (SceneLoaderHoward.Instance != null)
         {
-            // Trigger Howard's loading logic
             SceneLoaderHoward.Instance.LoadLevel(gameSceneName);
         }
         else
@@ -74,31 +76,23 @@ public class SimpleMenuManager : MonoBehaviour
 
     public void OpenSettings()
     {
+        // Switch panels
         mainMenuPanel.SetActive(false);
         settingsPanel.SetActive(true);
         creditsPanel.SetActive(false);
 
-        // Only pause video if enabled
-        if (pauseVideoInSubmenus && backgroundVideo != null && backgroundVideo.isPlaying)
-        {
-            backgroundVideo.Pause();
-        }
-
+        // DON'T call PlayVideo - let the ping-pong script handle it via OnEnable
         Debug.Log("⚙️ Settings opened");
     }
 
     public void OpenCredits()
     {
+        // Switch panels
         mainMenuPanel.SetActive(false);
         settingsPanel.SetActive(false);
         creditsPanel.SetActive(true);
 
-        // Only pause video if enabled
-        if (pauseVideoInSubmenus && backgroundVideo != null && backgroundVideo.isPlaying)
-        {
-            backgroundVideo.Pause();
-        }
-
+        // DON'T call PlayVideo - let the ping-pong script handle it via OnEnable
         Debug.Log("📜 Credits opened");
     }
 
@@ -115,17 +109,77 @@ public class SimpleMenuManager : MonoBehaviour
     // ===== BACK BUTTON LOGIC =====
     public void ShowMainMenu()
     {
+        // Switch panels
         mainMenuPanel.SetActive(true);
         settingsPanel.SetActive(false);
         creditsPanel.SetActive(false);
 
-        // Resume video when returning to main menu (only if it was paused)
-        if (pauseVideoInSubmenus && backgroundVideo != null && !backgroundVideo.isPlaying)
+        // DON'T call PlayVideo - let the ping-pong script handle it via OnEnable
+        Debug.Log("🏠 Returned to main menu");
+    }
+
+    // ===== VIDEO MANAGEMENT =====
+    private void PlayVideo(VideoPlayer video)
+    {
+        if (video == null)
         {
-            backgroundVideo.Play();
+            Debug.LogWarning("⚠️ VideoPlayer is null!");
+            return;
         }
 
-        Debug.Log("🏠 Returned to main menu");
+        Debug.Log($"🎬 Starting video: {video.gameObject.name}");
+
+        // Force stop first
+        video.Stop();
+
+        // Check for ping-pong script and restart it
+        VideoBackgroundPingPong pingPong = video.GetComponent<VideoBackgroundPingPong>();
+        if (pingPong != null)
+        {
+            Debug.Log("🔄 Restarting ping-pong script");
+            pingPong.RestartFromBeginning();
+        }
+        else
+        {
+            // No ping-pong script, just play normally
+            video.time = 0;
+            video.Play();
+            Debug.Log("▶️ Playing video normally");
+        }
+    }
+
+    private void StopAllVideos()
+    {
+        if (mainMenuVideo != null) mainMenuVideo.Stop();
+        if (settingsVideo != null) settingsVideo.Stop();
+        if (creditsVideo != null) creditsVideo.Stop();
+    }
+
+    private void FindAllVideoPlayers()
+    {
+        // Find video in main menu panel
+        if (mainMenuPanel != null && mainMenuVideo == null)
+        {
+            mainMenuVideo = mainMenuPanel.GetComponentInChildren<VideoPlayer>(true);
+            if (mainMenuVideo != null)
+                Debug.Log("🎥 Found Main Menu video player");
+        }
+
+        // Find video in settings panel
+        if (settingsPanel != null && settingsVideo == null)
+        {
+            settingsVideo = settingsPanel.GetComponentInChildren<VideoPlayer>(true);
+            if (settingsVideo != null)
+                Debug.Log("🎥 Found Settings video player");
+        }
+
+        // Find video in credits panel
+        if (creditsPanel != null && creditsVideo == null)
+        {
+            creditsVideo = creditsPanel.GetComponentInChildren<VideoPlayer>(true);
+            if (creditsVideo != null)
+                Debug.Log("🎥 Found Credits video player");
+        }
     }
 
     private void FindAllBackButtons()
