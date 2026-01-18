@@ -16,6 +16,7 @@ TagManager:
   - BlackWakeStone
   - GravewindStone
   - EnemyDamage
+  - Obstacle
   layers:
   - Default
   - TransparentFX
