@@ -194,21 +194,29 @@ PrefabInstance:
       propertyPath: m_Name
       value: SkeletonEnemy_V2
       objectReference: {fileID: 0}
+    - target: {fileID: 100174, guid: d86787a2f463c10489d95d7e51adaeba, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 100174, guid: d86787a2f463c10489d95d7e51adaeba, type: 3}
+      propertyPath: m_TagString
+      value: Enemy
+      objectReference: {fileID: 0}
     - target: {fileID: 400174, guid: d86787a2f463c10489d95d7e51adaeba, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.22
+      value: 0.48692322
       objectReference: {fileID: 0}
     - target: {fileID: 400174, guid: d86787a2f463c10489d95d7e51adaeba, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.00000023841858
+      value: 18.155048
       objectReference: {fileID: 0}
     - target: {fileID: 400174, guid: d86787a2f463c10489d95d7e51adaeba, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -6.73
+      value: 24.29808
       objectReference: {fileID: 0}
     - target: {fileID: 400174, guid: d86787a2f463c10489d95d7e51adaeba, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.9962926
+      value: 0.55411434
       objectReference: {fileID: 0}
     - target: {fileID: 400174, guid: d86787a2f463c10489d95d7e51adaeba, type: 3}
       propertyPath: m_LocalRotation.x
@@ -216,7 +224,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 400174, guid: d86787a2f463c10489d95d7e51adaeba, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0.08603011
+      value: 0.8324406
       objectReference: {fileID: 0}
     - target: {fileID: 400174, guid: d86787a2f463c10489d95d7e51adaeba, type: 3}
       propertyPath: m_LocalRotation.z
@@ -228,7 +236,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 400174, guid: d86787a2f463c10489d95d7e51adaeba, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
-      value: 9.871
+      value: 112.701
       objectReference: {fileID: 0}
     - target: {fileID: 400174, guid: d86787a2f463c10489d95d7e51adaeba, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
@@ -279,7 +287,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: badcf9993e2c77841a661f86ac5288ba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  initialType: 0
+  initialType: 2
   viewRadius: 15
   viewAngle: 60
   attackSensorRange: 2
@@ -313,10 +321,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4bcb7b8c56622664ab6ca45ac99328ab, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHealth: 100
+  maxHealth: 50
   currentHealth: 0
   damageTag: EnemyDamage
-  damagePerHit: 10
+  damagePerHit: 15
   audioSource: {fileID: 0}
   hurtSounds:
   - {fileID: 8300000, guid: 0c872830eeac7d24b880c59abf2ee1b9, type: 3}
@@ -333,7 +341,7 @@ MonoBehaviour:
   OnTakeDamage:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 4772457191351570292}
         m_TargetAssemblyTypeName: EnemyController, Assembly-CSharp
         m_MethodName: TakeDamage
         m_Mode: 1
@@ -348,7 +356,7 @@ MonoBehaviour:
   OnDeath:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 4772457191351570292}
         m_TargetAssemblyTypeName: EnemyController, Assembly-CSharp
         m_MethodName: Die
         m_Mode: 1
