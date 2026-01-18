@@ -1866,11 +1866,19 @@ MonoBehaviour:
   currentHealth: 0
   damageTag: EnemyDamage
   damagePerHit: 10
+  audioSource: {fileID: 0}
+  hurtSounds: []
+  hurtVolume: 1
+  deathSoundA: {fileID: 8300000, guid: 9ffc1363e6b553a4bac457dabb083be6, type: 3}
+  deathSoundB: {fileID: 8300000, guid: 887ac4547d36ae44ab2c1ae6f8240662, type: 3}
+  deathVolumeA: 1
+  deathVolumeB: 1
+  deathSoundBDelay: 0.1
   enableDebugKeys: 1
   OnTakeDamage:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 2568022471797740981}
+      - m_Target: {fileID: 7944664344326269697, guid: 3a2015f78e0383f4d874180e5e380360, type: 3}
         m_TargetAssemblyTypeName: EnemyController, Assembly-CSharp
         m_MethodName: TakeDamage
         m_Mode: 1
@@ -1885,7 +1893,7 @@ MonoBehaviour:
   OnDeath:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 2568022471797740981}
+      - m_Target: {fileID: 7944664344326269697, guid: 3a2015f78e0383f4d874180e5e380360, type: 3}
         m_TargetAssemblyTypeName: EnemyController, Assembly-CSharp
         m_MethodName: Die
         m_Mode: 1

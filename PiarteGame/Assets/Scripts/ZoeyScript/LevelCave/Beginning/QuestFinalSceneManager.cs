@@ -25,11 +25,26 @@ public class QuestFinalSceneManager : MonoBehaviour
     public Animator doorAnimator;
     public string doorOpenBool = "Door2Open";
 
+    [Header("Inventory Replacement (Map -> Map_Glow)")]
+    [Tooltip("Drag your initial Map ItemData here.")]
+    public ItemData oldMapItem;
+
+    [Tooltip("Drag your Map_Glow ItemData here.")]
+    public ItemData newGlowMapItem;
+
+    [Min(1)]
+    public int replaceAmount = 1;
+
+    [Tooltip("If true, only replace once even if OpenDoor is called again.")]
+    public bool replaceOnlyOnce = true;
+
     [Header("Optional Debug")]
     public bool logProgress = true;
 
     public event Action OnQuestUIChanged;
-    public event Action OnDoorOpened; // ✅ 新增：CameraCut订阅这个
+    public event Action OnDoorOpened; // CameraCut can subscribe this
+
+    private bool replaced; // 防重复
 
     private void Awake()
     {
@@ -138,7 +153,12 @@ public class QuestFinalSceneManager : MonoBehaviour
 
     private void OpenDoor()
     {
+        if (currentStage == Stage.DoorOpened) return;
+
         currentStage = Stage.DoorOpened;
+
+        // ✅ 在开门这一刻替换背包物品
+        ReplaceInventoryMapToGlow();
 
         if (doorAnimator)
             doorAnimator.SetBool(doorOpenBool, true);
@@ -147,6 +167,49 @@ public class QuestFinalSceneManager : MonoBehaviour
 
         NotifyUI();
 
-        OnDoorOpened?.Invoke(); // ✅ 关键：触发镜头切换
+        OnDoorOpened?.Invoke(); // trigger camera cut etc.
+    }
+
+    private void ReplaceInventoryMapToGlow()
+    {
+        if (replaceOnlyOnce && replaced) return;
+
+        if (oldMapItem == null || newGlowMapItem == null)
+        {
+            if (logProgress) Debug.LogWarning("[QuestFinalSceneManager] Map replacement skipped: oldMapItem/newGlowMapItem not assigned.");
+            return;
+        }
+
+        int amt = Mathf.Max(1, replaceAmount);
+
+        // 如果玩家没有旧地图，也可以选择直接给新地图（这里按“没有就不替换”，你想改我也能改）
+        if (!StaticInventory.Has(oldMapItem, amt))
+        {
+            if (logProgress) Debug.LogWarning($"[QuestFinalSceneManager] Player does not have {oldMapItem.displayName} x{amt}. Skip replacement.");
+            return;
+        }
+
+        // ✅ 事务式替换：先移除旧的 -> 再添加新的
+        // 如果添加失败，回滚把旧的加回去，避免背包丢物品
+        bool removed = StaticInventory.Remove(oldMapItem, amt);
+        if (!removed)
+        {
+            if (logProgress) Debug.LogWarning("[QuestFinalSceneManager] Remove old map failed. Skip replacement.");
+            return;
+        }
+
+        bool added = StaticInventory.Add(newGlowMapItem, amt);
+        if (!added)
+        {
+            // 回滚
+            StaticInventory.Add(oldMapItem, amt);
+            if (logProgress) Debug.LogWarning($"[QuestFinalSceneManager] Add glow map failed. Rolled back old map.");
+            return;
+        }
+
+        replaced = true;
+
+        if (logProgress)
+            Debug.Log($"[QuestFinalSceneManager] Replaced inventory: -{oldMapItem.displayName} x{amt}, +{newGlowMapItem.displayName} x{amt}");
     }
 }

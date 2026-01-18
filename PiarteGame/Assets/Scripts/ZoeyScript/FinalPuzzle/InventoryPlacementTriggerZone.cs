@@ -29,16 +29,34 @@ public class InventoryPlacementTriggerZone : MonoBehaviour
     [Tooltip("If true, hide particle GameObjects at start (recommended if you don't want to see them before success).")]
     public bool hideParticlesUntilSuccess = true;
 
+    [Header("SFX (2D)")]
+    [Tooltip("Optional. Drag an AudioSource here (recommended: Spatial Blend = 0, Play On Awake OFF). If empty, will try GetComponent<AudioSource>().")]
+    public AudioSource sfxSource;
+
+    [Tooltip("Sound to play when the correct prefab is placed.")]
+    public AudioClip correctSfx;
+
+    [Tooltip("Sound to play when the wrong prefab is placed.")]
+    public AudioClip wrongSfx;
+
+    [Tooltip("If true, correct SFX will only play the first time success triggers (until it becomes wrong again).")]
+    public bool correctSfxPlayOnce = true;
+
+    [Tooltip("If true, wrong SFX will only play once for a wrong state (until it becomes correct again).")]
+    public bool wrongSfxPlayOnce = false;
+
     [Header("Debug")]
     public bool debugCompareLog = false;
 
-    // ✅ NEW: exposed solved state for manager/door
-    [HideInInspector]
-    public bool IsSolved;
+    // ✅ Exposed solved state for manager/door
+    [HideInInspector] public bool IsSolved;
 
     bool inRange;
     bool successPlayed;
     bool subscribed;
+
+    bool correctSfxPlayed;
+    bool wrongSfxPlayed;
 
     void Reset()
     {
@@ -55,7 +73,16 @@ public class InventoryPlacementTriggerZone : MonoBehaviour
     {
         if (hintUI) hintUI.SetActive(false);
 
-        // ✅ Ensure particles are NOT visible/playing at start
+        // AudioSource setup (2D)
+        if (!sfxSource) sfxSource = GetComponent<AudioSource>();
+        if (sfxSource)
+        {
+            sfxSource.playOnAwake = false;
+            sfxSource.loop = false;
+            sfxSource.spatialBlend = 0f; // 2D
+        }
+
+        // Ensure particles are NOT visible/playing at start
         if (hideParticlesUntilSuccess)
         {
             SetParticlesActive(false);
@@ -146,7 +173,7 @@ public class InventoryPlacementTriggerZone : MonoBehaviour
         if (!enableGoalCheck)
             return;
 
-        // Goal check enabled but no ideal prefab assigned => do nothing (safe for other scenes)
+        // Goal check enabled but no ideal prefab assigned => do nothing
         if (!idealPrefab)
             return;
 
@@ -164,26 +191,46 @@ public class InventoryPlacementTriggerZone : MonoBehaviour
 
         if (correct)
         {
-            IsSolved = true; // ✅ NEW: mark solved
+            IsSolved = true;
+
+            // Correct state -> allow wrong sfx again later
+            wrongSfxPlayed = false;
+
+            // Gate correct SFX (optional)
+            if (!correctSfxPlayOnce || !correctSfxPlayed)
+            {
+                PlaySfx(correctSfx);
+                correctSfxPlayed = true;
+            }
 
             if (playOnce && successPlayed)
             {
-                if (debugCompareLog) Debug.Log($"[{name}] Already played once, skip.");
+                if (debugCompareLog) Debug.Log($"[{name}] Already played particles once, skip.");
                 return;
             }
 
             successPlayed = true;
 
-            // show (if hidden) and play
+            // show (if hidden) and play particles
             SetParticlesActive(true);
             PlaySuccessParticles();
         }
         else
         {
-            IsSolved = false; // ✅ NEW: mark unsolved if wrong
+            IsSolved = false;
+
+            // Wrong state -> allow correct sfx again later
+            correctSfxPlayed = false;
 
             // wrong -> allow correcting later to play again
             if (playOnce) successPlayed = false;
+
+            // Gate wrong SFX (optional)
+            if (!wrongSfxPlayOnce || !wrongSfxPlayed)
+            {
+                PlaySfx(wrongSfx);
+                wrongSfxPlayed = true;
+            }
 
             // keep hidden/stopped if wrong
             if (hideParticlesUntilSuccess)
@@ -191,6 +238,23 @@ public class InventoryPlacementTriggerZone : MonoBehaviour
             else
                 StopSuccessParticles(clear: true);
         }
+    }
+
+    void PlaySfx(AudioClip clip)
+    {
+        if (!clip) return;
+
+        if (!sfxSource)
+        {
+            // Fallback: play at this position (still okay; spatialBlend will depend on AudioSource if any).
+            AudioSource.PlayClipAtPoint(clip, transform.position, 1f);
+            return;
+        }
+
+        // 2D: already set spatialBlend=0
+        sfxSource.Stop();
+        sfxSource.clip = clip;
+        sfxSource.Play();
     }
 
     void PlaySuccessParticles()

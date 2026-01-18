@@ -15,6 +15,7 @@ TagManager:
   - BloodskullStone
   - BlackWakeStone
   - GravewindStone
+  - EnemyDamage
   layers:
   - Default
   - TransparentFX
@@ -23,7 +24,7 @@ TagManager:
   - Water
   - UI
   - Ground
-  - 
+  - Door
   - Obstacles
   - Ledge
   - Player

@@ -1,4 +1,4 @@
-using FS_Util;
+﻿using FS_Util;
 using System;
 using System.Collections;
 using System.Linq;
@@ -223,6 +223,7 @@ namespace FS_ThirdPerson
         EnvironmentScanner environmentScanner;
         LocomotionInputManager inputManager;
         ItemEquipper itemEquipper;
+        SwordCombatController swordCombatController; // ✅ ADD THIS LINE
 
         private void Awake()
         {
@@ -233,9 +234,9 @@ namespace FS_ThirdPerson
             characterController = GetComponent<CharacterController>();
             inputManager = GetComponent<LocomotionInputManager>();
             itemEquipper = GetComponent<ItemEquipper>();
+            swordCombatController = GetComponent<SwordCombatController>(); // ✅ ADD THIS LINE
 
             Physics.queriesHitTriggers = false;
-
         }
 
         void Start()
@@ -310,6 +311,16 @@ namespace FS_ThirdPerson
 
         public override void HandleUpdate()
         {
+            // ✅ ADD THIS ENTIRE BLOCK
+            if (swordCombatController != null && swordCombatController.IsAttacking)
+            {
+                if (!swordCombatController.AllowMovementDuringAttack)
+                {
+                    return; // Block all movement
+                }
+                // If AllowMovementDuringAttack is true, continue below with reduced speed
+            }
+
             if (preventLocomotion || UseRootMotion)
             {
                 return;
@@ -372,6 +383,12 @@ namespace FS_ThirdPerson
                 SprintDir = SprintDir > sprintDirectionThreshold ? SprintDir : 0;
 
                 moveSpeed = normalizedSpeed == 1.5f ? Mathf.Lerp(moveSpeed, sprintSpeed, Mathf.Clamp01(SprintDir)) : moveSpeed;
+
+                // ✅ ADD THESE 5 LINES
+                if (swordCombatController != null && swordCombatController.IsAttacking && swordCombatController.AllowMovementDuringAttack)
+                {
+                    moveSpeed *= swordCombatController.AttackMovementSpeedMultiplier;
+                }
 
                 var currentRunSpeed = runSpeed;
 

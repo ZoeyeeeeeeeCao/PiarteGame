@@ -21,3 +21,5 @@ MonoBehaviour:
     worldPrefab: {fileID: 7771341805993313999, guid: a9ba52d75e4e2964ead3568b04928ef3, type: 3}
   - item: {fileID: 11400000, guid: 2f6f2d47bad39f14a950c3dbaede5373, type: 2}
     worldPrefab: {fileID: 8855966340449084227, guid: 13665e95d307f1d4ba2c2712c6e04fc6, type: 3}
+  - item: {fileID: 11400000, guid: 0418eb5fa4c0b70429bb36497a335c99, type: 2}
+    worldPrefab: {fileID: 1436201443628672021, guid: 335b96ac53980e340890b3bc59218d4b, type: 3}

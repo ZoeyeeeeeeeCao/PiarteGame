@@ -1,230 +1,242 @@
-using UnityEngine;
+﻿using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
+using System;
 
 public class CelyneMissionManager : MonoBehaviour
 {
+    [System.Serializable]
+    public class NPCMissionData
+    {
+        public GameObject npcObject;
+        public string compassQuestID = "";
+        [HideInInspector] public bool hasBeenTalkedTo = false;
+    }
+
     [Header("Mission UI Group")]
     public GameObject missionBox;
     public Image missionImage;
     public TextMeshProUGUI missionText;
 
-    [Header("Phase 1: Talk to NPCs")]
+    [Header("Exploration Phase")]
     public string triggerTag = "Player";
-    [Tooltip("The object with the Box Collider (Is Trigger must be checked)")]
-    public GameObject startingTrigger;
-    [Tooltip("How long to wait after collision before showing Phase 1 mission")]
-    public float delayAfterCollision = 5.0f;
+    public GameObject explorationEndTrigger;
 
-    public List<GameObject> npcTriggers;
-    public string phase1Text = "Talk to the villagers (0/3)";
+    [Header("Phase 1: Talk to NPCs")]
+    public List<NPCMissionData> npcMissions;
 
-    [Header("Phase 2: New Objective")]
+    [Header("Phase 2: Investigate")]
     public string phase2Text = "Investigate the strange particles.";
     public GameObject newObjectiveMarker;
     public GameObject phase2ObjectToReveal;
     public GameObject phase2ObjectToHide1;
     public GameObject phase2ObjectToHide2;
     public MonoBehaviour scriptToUnlock;
+    public string phase2CompassQuestID = "SilasInteraction";
 
-    [Header("Phase 3: Final Mission")]
-    public string finalMissionText = "Follow the wine cart";
+    [Header("Phase 3: Follow Cart")]
+    public string phase3Text = "Follow the wine cart";
+    public string phase3CompassQuestID = "FollowCart";
+
+    [Header("Phase 4: Kill Enemies")]
+    public int enemiesToKill = 10;
+    private int enemiesKilled = 0;
+    private bool phase4Active = false;
+    private bool phase4Complete = false;
+
+    public static event Action<int> OnMissionEnemyCountUpdated;
 
     [Header("Audio Settings")]
     public AudioSource audioSource;
     public AudioClip missionUpdateSound;
 
-    [Header("Slide Through Settings")]
-    public float slideSpeed = 500f;
-    public float slideDuration = 1f;
-    public Color yellowColor = Color.yellow;
+    [Header("Compass Integration")]
+    public Compass compass;
+    public string exploreAreaQuestID = "Explore_Area";
 
     private int npcsTalkedTo = 0;
-    private bool missionStarted = false;
+    private bool explorationComplete = false;
     private bool phase1Complete = false;
     private bool phase2Complete = false;
-    private bool collisionDetected = false;
-    private bool isSliding = false;
+    private bool phase3Complete = false;
+
+    private void OnEnable()
+    {
+        EnemyHealthController.OnEnemyCountUpdated += OnEnemyCountUpdated;
+    }
+
+    private void OnDisable()
+    {
+        EnemyHealthController.OnEnemyCountUpdated -= OnEnemyCountUpdated;
+    }
 
     void Start()
     {
-        // Mission box stays visible at start (showing "Explore the area" from other script)
-        // We'll hide it when player collides with trigger
-
-        if (newObjectiveMarker != null) newObjectiveMarker.SetActive(false);
-        if (phase2ObjectToReveal != null) phase2ObjectToReveal.SetActive(false);
-        if (phase2ObjectToHide1 != null) phase2ObjectToHide1.SetActive(false);
-        if (phase2ObjectToHide2 != null) phase2ObjectToHide2.SetActive(false);
-        if (scriptToUnlock != null) scriptToUnlock.enabled = false;
-
         if (audioSource == null) audioSource = GetComponent<AudioSource>();
-    }
+        if (compass == null) compass = FindObjectOfType<Compass>();
 
-    private void OnTriggerEnter(Collider other)
-    {
-        // When player collides, hide mission box and start countdown
-        if (other.CompareTag(triggerTag) && !collisionDetected)
-        {
-            Debug.Log("Player collided with trigger! Hiding mission box...");
-            collisionDetected = true;
-            StartCoroutine(WaitForDialogueThenStartMission());
-        }
-    }
+        if (newObjectiveMarker) newObjectiveMarker.SetActive(false);
+        if (phase2ObjectToReveal) phase2ObjectToReveal.SetActive(false);
+        if (phase2ObjectToHide1) phase2ObjectToHide1.SetActive(false);
+        if (phase2ObjectToHide2) phase2ObjectToHide2.SetActive(false);
+        if (scriptToUnlock) scriptToUnlock.enabled = false;
 
-    IEnumerator WaitForDialogueThenStartMission()
-    {
-        // Immediately hide the mission box (while dialogue plays)
-        HideMissionUI();
+        foreach (var npc in npcMissions) npc.hasBeenTalkedTo = false;
 
-        Debug.Log("Waiting " + delayAfterCollision + " seconds for dialogue to finish...");
-
-        // Wait for dialogue to finish (adjust this time based on your dialogue length)
-        yield return new WaitForSeconds(delayAfterCollision);
-
-        // Now start the actual mission
-        missionStarted = true;
-
-        // Show mission box with Phase 1
-        if (missionBox != null) missionBox.SetActive(true);
-        if (missionImage != null) missionImage.gameObject.SetActive(true);
-
-        UpdateMissionUI(phase1Text.Replace("0/3", "0/" + npcTriggers.Count));
-        PlayMissionSound();
-        Debug.Log("Phase 1 Mission Started!");
+        SetupEndTriggerListener();
     }
 
     void Update()
     {
-        if (!missionStarted) return;
+        if (!explorationComplete) return;
+        if (!phase1Complete) CheckNPCProgress();
+    }
 
-        // NPC Tracking
-        if (!phase1Complete && !isSliding)
-        {
-            CheckNPCProgress();
-        }
+    void SetupEndTriggerListener()
+    {
+        if (!explorationEndTrigger) return;
+        TriggerListener listener = explorationEndTrigger.GetComponent<TriggerListener>();
+        if (!listener) listener = explorationEndTrigger.AddComponent<TriggerListener>();
+        listener.triggerTag = triggerTag;
+        listener.onTriggerEnter = OnExplorationEnd;
+    }
 
-        // Phase 2 Tracking
-        if (phase1Complete && !phase2Complete)
-        {
-            if (newObjectiveMarker == null)
-            {
-                CompletePhase2();
-            }
-        }
+    void OnExplorationEnd(Collider other)
+    {
+        if (explorationComplete) return;
+        explorationComplete = true;
+        if (compass && !string.IsNullOrEmpty(exploreAreaQuestID)) compass.HideMarker(exploreAreaQuestID);
+        UpdateMissionUI($"Talk to the villagers (0/{npcMissions.Count})");
+        PlayMissionSound();
+        ShowNPCMarkers();
+    }
+
+    void ShowNPCMarkers()
+    {
+        if (!compass) return;
+        foreach (var npc in npcMissions)
+            if (!npc.hasBeenTalkedTo && !string.IsNullOrEmpty(npc.compassQuestID))
+                compass.ShowMarker(npc.compassQuestID);
     }
 
     void CheckNPCProgress()
     {
-        int currentCount = 0;
-        foreach (GameObject npc in npcTriggers)
+        int count = 0;
+        foreach (var npc in npcMissions)
         {
-            if (npc == null) currentCount++;
+            if (npc.hasBeenTalkedTo) { count++; continue; }
+            if (!npc.npcObject) { npc.hasBeenTalkedTo = true; count++; continue; }
+
+            var interaction = npc.npcObject.GetComponent<TwoWayInteraction>();
+            if (interaction && interaction.IsInteractionFinished())
+            {
+                npc.hasBeenTalkedTo = true;
+                count++;
+                if (compass && !string.IsNullOrEmpty(npc.compassQuestID)) compass.HideMarker(npc.compassQuestID);
+            }
         }
 
-        if (currentCount != npcsTalkedTo)
+        if (count != npcsTalkedTo)
         {
-            npcsTalkedTo = currentCount;
-            Debug.Log("NPC Progress updated: " + npcsTalkedTo + "/" + npcTriggers.Count);
-
-            UpdateMissionUI("Talk to the villagers (" + npcsTalkedTo + "/" + npcTriggers.Count + ")");
+            npcsTalkedTo = count;
+            UpdateMissionUI($"Talk to the villagers ({count}/{npcMissions.Count})");
             PlayMissionSound();
-
-            // Check if all NPCs are destroyed
-            if (npcsTalkedTo >= npcTriggers.Count)
+            if (count >= npcMissions.Count)
             {
-                StartCoroutine(CompletePhase1WithSlide());
+                phase1Complete = true;
+                StartPhase2();
             }
         }
-    }
-
-    IEnumerator CompletePhase1WithSlide()
-    {
-        isSliding = true;
-        phase1Complete = true;
-        Debug.Log("Phase 1 Complete! Starting slide animation...");
-
-        // Change text color to yellow
-        if (missionText != null)
-        {
-            missionText.color = yellowColor;
-        }
-
-        // Slide through animation
-        RectTransform missionRect = missionBox.GetComponent<RectTransform>();
-        if (missionRect != null)
-        {
-            Vector3 startPos = missionRect.anchoredPosition;
-            Vector3 endPos = startPos + new Vector3(slideSpeed, 0, 0);
-
-            float elapsed = 0f;
-            while (elapsed < slideDuration)
-            {
-                elapsed += Time.deltaTime;
-                float t = elapsed / slideDuration;
-                missionRect.anchoredPosition = Vector3.Lerp(startPos, endPos, t);
-                yield return null;
-            }
-        }
-
-        // Reset position and start Phase 2
-        if (missionRect != null)
-        {
-            missionRect.anchoredPosition = Vector3.zero;
-        }
-
-        // Reset text color
-        if (missionText != null)
-        {
-            missionText.color = Color.white;
-        }
-
-        StartPhase2();
-        isSliding = false;
     }
 
     void StartPhase2()
     {
-        Debug.Log("Starting Phase 2...");
-
-        // Reveal the two hidden objects for Phase 2
-        if (phase2ObjectToHide1 != null) phase2ObjectToHide1.SetActive(true);
-        if (phase2ObjectToHide2 != null) phase2ObjectToHide2.SetActive(true);
-
-        // Show phase 2 objects
-        if (newObjectiveMarker != null) newObjectiveMarker.SetActive(true);
-        if (phase2ObjectToReveal != null) phase2ObjectToReveal.SetActive(true);
-        if (scriptToUnlock != null) scriptToUnlock.enabled = true;
-
         UpdateMissionUI(phase2Text);
         PlayMissionSound();
+        if (phase2ObjectToHide1) phase2ObjectToHide1.SetActive(true);
+        if (phase2ObjectToHide2) phase2ObjectToHide2.SetActive(true);
+        if (phase2ObjectToReveal) phase2ObjectToReveal.SetActive(true);
+        if (newObjectiveMarker) newObjectiveMarker.SetActive(true);
+        if (scriptToUnlock) scriptToUnlock.enabled = true;
+        if (compass && !string.IsNullOrEmpty(phase2CompassQuestID)) compass.ShowMarker(phase2CompassQuestID);
     }
 
-    void CompletePhase2()
+    public void CompletePhase2()
     {
+        if (phase2Complete) return;
         phase2Complete = true;
-        Debug.Log("Phase 2 Complete!");
-        UpdateMissionUI(finalMissionText);
+        if (compass && !string.IsNullOrEmpty(phase2CompassQuestID)) compass.HideMarker(phase2CompassQuestID);
+        UpdateMissionUI(phase3Text);
         PlayMissionSound();
+        if (compass && !string.IsNullOrEmpty(phase3CompassQuestID)) compass.ShowMarker(phase3CompassQuestID);
     }
 
-    void HideMissionUI()
+    public void CompletePhase3()
     {
-        if (missionBox != null) missionBox.SetActive(false);
-        if (missionImage != null) missionImage.gameObject.SetActive(false);
+        if (phase3Complete) return;
+        phase3Complete = true;
+        if (compass && !string.IsNullOrEmpty(phase3CompassQuestID)) compass.HideMarker(phase3CompassQuestID);
+
+        // Ensure this is called to enable Phase 4 logic
+        StartPhase4_KillEnemies();
     }
 
-    void UpdateMissionUI(string newText)
+    void StartPhase4_KillEnemies()
     {
-        if (missionText != null) missionText.text = newText;
+        EnemyHealthController.ResetDeathCount();
+        enemiesKilled = 0;
+        phase4Active = true;
+        phase4Complete = false;
+
+        UpdateMissionUI($"Kill enemies (0/{enemiesToKill})");
+        PlayMissionSound();
+
+        OnMissionEnemyCountUpdated?.Invoke(enemiesKilled);
+        Debug.Log("[Mission] Phase 4 started: Kill Enemies");
+    }
+
+    void OnEnemyCountUpdated(int enemyDeathCount)
+    {
+        // CRITICAL: Only update if Phase 4 is actually running
+        if (!phase4Active || phase4Complete) return;
+
+        enemiesKilled = enemyDeathCount;
+
+        UpdateMissionUI($"Kill enemies ({enemiesKilled}/{enemiesToKill})");
+        PlayMissionSound();
+
+        OnMissionEnemyCountUpdated?.Invoke(enemiesKilled);
+
+        if (enemiesKilled >= enemiesToKill)
+        {
+            phase4Complete = true;
+            phase4Active = false;
+            Debug.Log($"[Mission] Phase 4 COMPLETE: Kill Enemies ({enemiesKilled}/{enemiesToKill})");
+
+            // Trigger final mission completion or next phase here
+            UpdateMissionUI("All enemies defeated!");
+        }
+    }
+
+    void UpdateMissionUI(string text)
+    {
+        if (missionText) missionText.text = text;
     }
 
     void PlayMissionSound()
     {
-        if (audioSource != null && missionUpdateSound != null)
+        if (audioSource && missionUpdateSound) audioSource.PlayOneShot(missionUpdateSound);
+    }
+
+    public class TriggerListener : MonoBehaviour
+    {
+        public string triggerTag = "Player";
+        public System.Action<Collider> onTriggerEnter;
+        private void OnTriggerEnter(Collider other)
         {
-            audioSource.PlayOneShot(missionUpdateSound);
+            if (other.CompareTag(triggerTag)) onTriggerEnter?.Invoke(other);
         }
     }
 }

@@ -1,10 +1,13 @@
 using UnityEngine;
-using System.Collections; // Required for Coroutines
+using System.Collections;
 
 public class LeverController : MonoBehaviour
 {
     [SerializeField] public Animator leverAnimator;
     [SerializeField] public CutsceneController cutsceneController;
+
+    [Header("Floating Text")]
+    [SerializeField] private GameObject floatingText; // Assign your floating text GameObject here
 
     [Header("Settings")]
     public float delayBeforeCutscene = 3f;
@@ -23,6 +26,13 @@ public class LeverController : MonoBehaviour
         if (leverStatus) return;
 
         leverStatus = true;
+
+        // Hide/destroy the floating text immediately
+        if (floatingText != null)
+        {
+            Destroy(floatingText);
+            // OR just disable it: floatingText.SetActive(false);
+        }
 
         // Start the process
         StartCoroutine(LeverSequenceRoutine());

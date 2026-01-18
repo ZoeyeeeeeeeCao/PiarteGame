@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using TMPro;
 using System.Collections;
 
@@ -34,15 +34,29 @@ public class ReusableOpeningMission : MonoBehaviour
     public AudioSource audioSource;
     public AudioClip missionAppearSound;
 
+    [Header("Compass Integration")]
+    [Tooltip("Reference to the Compass script")]
+    public Compass compass;
+
+    [Tooltip("Quest ID that matches the compass questPoint - e.g., 'Opening_Mission'")]
+    public string compassQuestID = "";
+
+    [Tooltip("Show compass marker when mission appears?")]
+    public bool showCompassMarker = true;
+
     private DialogueManager dialogueManager;
     private bool hasTriggered = false;
+    private bool missionActive = false;
 
     void Start()
     {
         dialogueManager = FindObjectOfType<DialogueManager>();
         if (audioSource == null) audioSource = GetComponent<AudioSource>();
 
-        // Initialization: Hide the main box and all mission texts
+        if (compass == null)
+            compass = FindObjectOfType<Compass>();
+
+        // Hide the main box and all mission texts
         if (sharedMissionBox != null) sharedMissionBox.SetActive(false);
 
         foreach (var mission in missionList)
@@ -75,12 +89,21 @@ public class ReusableOpeningMission : MonoBehaviour
         // Step 1: Subtitles (No freeze)
         if (playSubtitlesFirst && subtitleDialogue != null && dialogueManager != null)
         {
-            dialogueManager.StartDialogue(subtitleDialogue, DialogueManager.DialogueMode.Subtitle);
+            // FIX: Enable animation and auto-close for subtitles
+            dialogueManager.StartDialogue(
+                subtitleDialogue,
+                DialogueManager.DialogueMode.Subtitle,
+                animate: true,      // Slide in
+                autoClose: true     // Slide out when done
+            );
 
             while (dialogueManager.IsDialogueActive())
             {
                 yield return null;
             }
+
+            // Wait for slide-out animation to complete
+            yield return new WaitForSeconds(0.5f);
         }
 
         // Step 2: Show everything and play sound
@@ -94,13 +117,13 @@ public class ReusableOpeningMission : MonoBehaviour
             audioSource.PlayOneShot(missionAppearSound);
         }
 
-        // 1. Turn on the Shared Box
+        // Turn on the Shared Box
         if (sharedMissionBox != null)
         {
             sharedMissionBox.SetActive(true);
         }
 
-        // 2. Turn on and set each individual mission text
+        // Turn on and set each individual mission text
         foreach (var mission in missionList)
         {
             if (mission.textComponent != null)
@@ -108,6 +131,65 @@ public class ReusableOpeningMission : MonoBehaviour
                 mission.textComponent.text = mission.missionDescription;
                 mission.textComponent.gameObject.SetActive(true);
             }
+        }
+
+        // Show compass marker when mission appears
+        missionActive = true;
+        if (compass != null && !string.IsNullOrEmpty(compassQuestID) && showCompassMarker)
+        {
+            compass.ShowMarker(compassQuestID);
+            Debug.Log($"[MISSION] Compass marker shown for: {compassQuestID}");
+        }
+    }
+
+    public void CompleteMission()
+    {
+        if (!missionActive)
+        {
+            Debug.LogWarning("[MISSION] CompleteMission called but mission is not active!");
+            return;
+        }
+
+        missionActive = false;
+
+        // Hide the mission UI
+        if (sharedMissionBox != null)
+        {
+            sharedMissionBox.SetActive(false);
+        }
+
+        foreach (var mission in missionList)
+        {
+            if (mission.textComponent != null)
+                mission.textComponent.gameObject.SetActive(false);
+        }
+
+        // Hide compass marker when mission completes
+        if (compass != null && !string.IsNullOrEmpty(compassQuestID))
+        {
+            compass.HideMarker(compassQuestID);
+            Debug.Log($"[MISSION] Compass marker hidden for: {compassQuestID}");
+        }
+    }
+
+    public bool IsMissionActive()
+    {
+        return missionActive;
+    }
+
+    public void ShowCompassMarker()
+    {
+        if (compass != null && !string.IsNullOrEmpty(compassQuestID))
+        {
+            compass.ShowMarker(compassQuestID);
+        }
+    }
+
+    public void HideCompassMarker()
+    {
+        if (compass != null && !string.IsNullOrEmpty(compassQuestID))
+        {
+            compass.HideMarker(compassQuestID);
         }
     }
 }
