@@ -5,14 +5,20 @@ using System.Collections.Generic;
 
 public class CombatTutorialSystem : TutorialManagerBase
 {
-    [Header("Audio Settings")]
+    [Header("Target Enemies")]
+    [Tooltip("Drag the enemies ALREADY in your scene here.")]
+    public List<GameObject> targetEnemies;
+
+    [Header("Teleport Points")]
+    public Transform combatArenaPoint;
+    public Transform returnPoint;
+
+    [Header("UI & Audio")]
+    public GameObject missionUI;
+    public TextMeshProUGUI progressText;
     public AudioSource audioSource;
     public AudioClip slideTransitionSound;
     public AudioClip missionStartSound;
-
-    [Header("Target Enemies (Drag Here!)")]
-    [Tooltip("Drag enemy GameObjects (from scene or prefabs) here - any enemy type works!")]
-    public List<GameObject> targetEnemies;
 
     [Header("Tutorial Slides")]
     public GameObject tutorialUI;
@@ -20,36 +26,14 @@ public class CombatTutorialSystem : TutorialManagerBase
     private int currentSlideIndex = 0;
     private bool tutorialActive = false;
 
-    [Header("Intermediate Dialogue (Subtitles)")]
-    public Dialogue afterSlidesDialogue;
-    private bool waitingForPostSlideDialogue = false;
-
-    [Header("Teleport Points")]
-    public Transform combatArenaPoint;
-    public Transform returnPoint;
-
-    [Header("UI")]
-    public GameObject missionUI;
-    public TextMeshProUGUI progressText;
-
     [Header("References")]
     public GameObject player;
     public GameObject npcToDestroy;
     public Dialogue completionDialogue;
-
-    // NEW: Compass Integration
-    [Header("Compass Integration")]
-    [Tooltip("Reference to the Compass script")]
+    public Dialogue afterSlidesDialogue;
     public Compass compass;
-
-    [Tooltip("Quest ID that matches the compass questPoint - e.g., 'Herb_Tutorial'")]
     public string compassQuestID = "CombatTutorial";
 
-    [Tooltip("Show marker during herb collection?")]
-    public bool showMarkerDuringCollection = true;
-
-    // Internal State
-    private int enemiesToDefeat;
     private int kills = 0;
     private DialogueManager dialogueManager;
     private bool missionActive = false;
@@ -57,207 +41,143 @@ public class CombatTutorialSystem : TutorialManagerBase
 
     void Start()
     {
+        // Automatically finds player by tag so you don't have to drag it
         if (player == null) player = GameObject.FindGameObjectWithTag("Player");
-        dialogueManager = FindObjectOfType<DialogueManager>();
 
+        dialogueManager = Object.FindAnyObjectByType<DialogueManager>();
         if (audioSource == null) audioSource = GetComponent<AudioSource>();
-
-        // NEW: Find compass if not assigned
-        if (compass == null)
-            compass = FindObjectOfType<Compass>();
+        if (compass == null) compass = Object.FindAnyObjectByType<Compass>();
 
         if (missionUI != null) missionUI.SetActive(false);
         if (tutorialUI != null) tutorialUI.SetActive(false);
-
-        // Count enemies that are still alive
-        if (targetEnemies != null && targetEnemies.Count > 0)
-        {
-            enemiesToDefeat = targetEnemies.Count;
-            Debug.Log($"Combat Tutorial: Tracking {enemiesToDefeat} enemies to defeat");
-        }
     }
 
     void Update()
     {
-        // 1. Handle Slide Navigation (Works while Time.timeScale is 0)
-        if (tutorialActive && Input.GetKeyDown(KeyCode.Return))
-        {
-            NextTutorialSlide();
-        }
+        // Advance slides with Enter key
+        if (tutorialActive && Input.GetKeyDown(KeyCode.Return)) NextTutorialSlide();
 
-        if (waitingForPostSlideDialogue && dialogueManager != null && !dialogueManager.IsDialogueActive())
-        {
-            waitingForPostSlideDialogue = false;
-        }
-
+        // Check if completion dialogue ended
         if (waitingForCompletionDialogue && dialogueManager != null && !dialogueManager.IsDialogueActive())
         {
             waitingForCompletionDialogue = false;
             StartCoroutine(Finish());
         }
 
-        // Track enemy kills by checking if enemies are destroyed
-        if (missionActive)
-        {
-            CheckEnemyProgress();
-        }
+        // Track kills
+        if (missionActive) CheckEnemyProgress();
     }
 
     void CheckEnemyProgress()
     {
         int currentCount = 0;
-
-        // Count how many enemies have been destroyed (are null)
         foreach (GameObject enemy in targetEnemies)
         {
-            if (enemy == null) currentCount++;
+            // Count as kill if object is destroyed or hidden
+            if (enemy == null || !enemy.activeInHierarchy) currentCount++;
         }
 
-        // If kill count changed, update UI
         if (currentCount != kills)
         {
             kills = currentCount;
-            Debug.Log($"Enemy killed! Progress: {kills}/{enemiesToDefeat}");
             UpdateUI();
 
-            // Check if all enemies defeated
-            if (kills >= enemiesToDefeat)
+            if (kills >= targetEnemies.Count && targetEnemies.Count > 0)
             {
                 CompleteMission();
             }
         }
     }
 
-    public override void OnDialogueComplete() { StartCoroutine(StartSequence()); }
-    public override bool IsMissionActive() { return missionActive; }
+    public override void OnDialogueComplete()
+    {
+        StartCoroutine(StartSequence());
+    }
+
+    public override bool IsMissionActive()
+    {
+        return missionActive;
+    }
 
     IEnumerator StartSequence()
     {
         yield return new WaitForSeconds(0.5f);
 
-        // 1. TELEPORT FIRST
+        // Teleport Player
         if (combatArenaPoint != null && player != null)
         {
             CharacterController cc = player.GetComponent<CharacterController>();
             if (cc != null) cc.enabled = false;
-
             player.transform.position = combatArenaPoint.position;
             player.transform.rotation = combatArenaPoint.rotation;
-
             if (cc != null) cc.enabled = true;
-            Debug.Log("🚀 Player Teleported to Arena");
         }
 
-        // 2. LONGER DELAY (Ensures world settles before freeze)
         yield return new WaitForSeconds(1.0f);
 
-        // 3. Show Slides (Freeze) OR Start Mission
-        if (tutorialUI != null && tutorialSlides != null && tutorialSlides.Length > 0)
-        {
+        if (tutorialUI != null && tutorialSlides.Length > 0)
             ShowTutorialUI();
-        }
         else
-        {
             StartMission();
-        }
     }
 
     void StartMission()
     {
         missionActive = true;
         kills = 0;
-        if (missionUI != null)
-        {
-            missionUI.SetActive(true);
-            if (missionStartSound != null && audioSource != null)
-                audioSource.PlayOneShot(missionStartSound);
-        }
-
-        // NEW: Show compass marker when mission starts (if enabled)
-        if (compass != null && !string.IsNullOrEmpty(compassQuestID) && showMarkerDuringCollection)
-        {
-            compass.ShowMarker(compassQuestID);
-        }
-
+        if (missionUI != null) missionUI.SetActive(true);
+        if (compass != null) compass.ShowMarker(compassQuestID);
+        if (missionStartSound && audioSource) audioSource.PlayOneShot(missionStartSound);
         UpdateUI();
     }
 
-    // --- SLIDE LOGIC ---
     void ShowTutorialUI()
     {
         tutorialActive = true;
         tutorialUI.SetActive(true);
         Time.timeScale = 0f;
-        currentSlideIndex = 0;
         ShowSlide(0);
-
-        // NEW: Hide compass marker during tutorial slides
-        if (compass != null && !string.IsNullOrEmpty(compassQuestID))
-        {
-            compass.HideMarker(compassQuestID);
-        }
     }
 
     void ShowSlide(int index)
     {
-        foreach (var s in tutorialSlides) s.SetActive(false);
-        if (index < tutorialSlides.Length)
-        {
-            tutorialSlides[index].SetActive(true);
-            if (slideTransitionSound != null && audioSource != null)
-                audioSource.PlayOneShot(slideTransitionSound);
-        }
+        for (int i = 0; i < tutorialSlides.Length; i++)
+            tutorialSlides[i].SetActive(i == index);
+
+        if (slideTransitionSound && audioSource)
+            audioSource.PlayOneShot(slideTransitionSound);
     }
 
     void NextTutorialSlide()
     {
         currentSlideIndex++;
-        if (currentSlideIndex < tutorialSlides.Length)
-        {
-            ShowSlide(currentSlideIndex);
-        }
+        if (currentSlideIndex < tutorialSlides.Length) ShowSlide(currentSlideIndex);
         else
         {
             Time.timeScale = 1f;
             tutorialActive = false;
             tutorialUI.SetActive(false);
-
             StartMission();
 
-            if (afterSlidesDialogue != null && afterSlidesDialogue.dialogueLines.Length > 0)
-            {
-                StartCoroutine(StartMiddleSubtitleWithDelay());
-            }
+            if (afterSlidesDialogue != null && dialogueManager != null)
+                dialogueManager.StartDialogue(afterSlidesDialogue, DialogueManager.DialogueMode.Subtitle);
         }
-    }
-
-    IEnumerator StartMiddleSubtitleWithDelay()
-    {
-        yield return new WaitForSecondsRealtime(0.1f);
-        // CHANGED: Triggering as Subtitle Mode (Hands-free)
-        dialogueManager.StartDialogue(afterSlidesDialogue, DialogueManager.DialogueMode.Subtitle);
-        waitingForPostSlideDialogue = true;
     }
 
     void UpdateUI()
     {
-        if (progressText != null) progressText.text = $"Defeated: {kills}/{enemiesToDefeat}";
+        if (progressText != null)
+            progressText.text = $"Defeat the crews ({kills}/{targetEnemies.Count})";
     }
 
     void CompleteMission()
     {
         missionActive = false;
         if (missionUI != null) missionUI.SetActive(false);
+        if (compass != null) compass.HideMarker(compassQuestID);
 
-        // NEW: Hide compass marker when mission completes
-        if (compass != null && !string.IsNullOrEmpty(compassQuestID))
+        if (completionDialogue != null && dialogueManager != null)
         {
-            compass.HideMarker(compassQuestID);
-        }
-
-        if (completionDialogue != null && completionDialogue.dialogueLines.Length > 0)
-        {
-            // CHANGED: Triggering as Subtitle Mode (Hands-free)
             dialogueManager.StartDialogue(completionDialogue, DialogueManager.DialogueMode.Subtitle);
             waitingForCompletionDialogue = true;
         }
@@ -272,11 +192,5 @@ public class CombatTutorialSystem : TutorialManagerBase
         yield return new WaitForSeconds(0.5f);
         if (returnPoint != null) player.transform.position = returnPoint.position;
         if (npcToDestroy != null) Destroy(npcToDestroy);
-
-        // NEW: Make sure marker is hidden after cleanup
-        if (compass != null && !string.IsNullOrEmpty(compassQuestID))
-        {
-            compass.HideMarker(compassQuestID);
-        }
     }
 }

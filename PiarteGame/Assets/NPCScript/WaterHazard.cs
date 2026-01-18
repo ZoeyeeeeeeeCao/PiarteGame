@@ -3,34 +3,55 @@ using UnityEngine;
 public class WaterHazard : MonoBehaviour
 {
     [Header("Settings")]
-    public Transform respawnPoint;      // Where the player goes
-    public bool resetVelocity = true;   // Stop falling momentum
+    public Transform respawnPoint;
+    public bool resetVelocity = true;
 
     [Header("Audio")]
-    public AudioClip splashSound;       // Drag your water splash sound here
+    [Tooltip("If you don't assign an AudioSource, the script will look for one on this object.")]
+    public AudioSource audioSource;
+    public AudioClip splashSound;
     [Range(0f, 1f)]
-    public float soundVolume = 1.0f;    // Adjust volume (0.0 to 1.0)
+    public float soundVolume = 1.0f;
+
+    void Start()
+    {
+        // Automatically try to find an AudioSource if one wasn't dragged in
+        if (audioSource == null)
+        {
+            audioSource = GetComponent<AudioSource>();
+        }
+    }
 
     void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player"))
         {
             // 1. Play Sound
-            if (splashSound != null)
-            {
-                // We play the sound at the Player's position right before they teleport
-                AudioSource.PlayClipAtPoint(splashSound, other.transform.position, soundVolume);
-            }
+            PlaySplashSound();
 
             // 2. Respawn
             RespawnPlayer(other.gameObject);
         }
     }
 
+    void PlaySplashSound()
+    {
+        if (audioSource != null && splashSound != null)
+        {
+            // PlayOneShot is best because it doesn't cut off if the sound triggers again quickly
+            audioSource.PlayOneShot(splashSound, soundVolume);
+        }
+        else if (splashSound != null)
+        {
+            // Fallback if no AudioSource is found
+            AudioSource.PlayClipAtPoint(splashSound, transform.position, soundVolume);
+        }
+    }
+
     void RespawnPlayer(GameObject player)
     {
-        // Handle CharacterController (prevents glitching during teleport)
         CharacterController cc = player.GetComponent<CharacterController>();
+
         if (cc != null)
         {
             cc.enabled = false;
@@ -38,7 +59,6 @@ public class WaterHazard : MonoBehaviour
             player.transform.rotation = respawnPoint.rotation;
             cc.enabled = true;
         }
-        // Handle Rigidbody
         else
         {
             player.transform.position = respawnPoint.position;
@@ -54,5 +74,7 @@ public class WaterHazard : MonoBehaviour
                 }
             }
         }
+
+        Debug.Log("Player Respawned!");
     }
 }
