@@ -35,19 +35,12 @@ public class EnemyHealthController : MonoBehaviour
     private static int globalDeathCount = 0;
     private bool isDead = false;
 
-    /// <summary>
-    /// Resets the counter and immediately notifies listeners (like the UI).
-    /// </summary>
     public static void ResetDeathCount()
     {
         globalDeathCount = 0;
         OnEnemyCountUpdated?.Invoke(globalDeathCount);
     }
 
-    /// <summary>
-    /// Forces the current count to be sent to all listeners.
-    /// Useful for refreshing UI when a script first enables.
-    /// </summary>
     public static void BroadcastCurrentCount()
     {
         OnEnemyCountUpdated?.Invoke(globalDeathCount);
@@ -55,9 +48,25 @@ public class EnemyHealthController : MonoBehaviour
 
     private void Awake()
     {
+        // Debug to confirm script started
+        Debug.Log($"{gameObject.name} Health Controller is waking up!");
+
+        // Ensure the script is actually enabled at runtime
+        this.enabled = true;
+
+        // Fix: Ensure currentHealth is not 0 or negative at start
         currentHealth = maxHealth;
+
+        // Safety check for AudioSource to prevent NullReferenceException
         if (audioSource == null)
-            audioSource = GetComponent<AudioSource>() ?? gameObject.AddComponent<AudioSource>();
+        {
+            audioSource = GetComponent<AudioSource>();
+            if (audioSource == null)
+            {
+                audioSource = gameObject.AddComponent<AudioSource>();
+            }
+        }
+
         audioSource.playOnAwake = false;
         audioSource.spatialBlend = 1f;
     }
@@ -65,13 +74,20 @@ public class EnemyHealthController : MonoBehaviour
     private void Update()
     {
         if (enableDebugKeys && !isDead && Input.GetKeyDown(KeyCode.T))
+        {
             ApplyDamage(damagePerHit);
+        }
     }
 
     private void OnTriggerEnter(Collider other)
     {
         if (isDead) return;
-        if (other.CompareTag(damageTag)) ApplyDamage(damagePerHit);
+
+        // Debug check for tag issues
+        if (other.CompareTag(damageTag))
+        {
+            ApplyDamage(damagePerHit);
+        }
     }
 
     public void ApplyDamage(float amount)
@@ -82,7 +98,9 @@ public class EnemyHealthController : MonoBehaviour
         currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
 
         if (currentHealth <= 0)
+        {
             HandleDeath();
+        }
         else
         {
             PlayHurtSound();
@@ -92,17 +110,21 @@ public class EnemyHealthController : MonoBehaviour
 
     private void HandleDeath()
     {
+        if (isDead) return;
         isDead = true;
-        globalDeathCount++; // Increment count FIRST
+        globalDeathCount++;
 
         PlayDeathSounds();
         OnDeath?.Invoke();
 
-        // Notify Listeners
         EnemyDied?.Invoke(this);
-        OnEnemyCountUpdated?.Invoke(globalDeathCount); // Trigger Update SECOND
+        OnEnemyCountUpdated?.Invoke(globalDeathCount);
 
-        Debug.Log($"[EnemyHealthController] Died. Global Count: {globalDeathCount}");
+        Debug.Log($"[EnemyHealthController] {gameObject.name} Died. Global Count: {globalDeathCount}");
+
+        // Instead of disabling the script, we just stop movement or logic here
+        // If you want the object to vanish, uncomment the line below:
+        // Destroy(gameObject, 1.5f);
     }
 
     private void PlayHurtSound()

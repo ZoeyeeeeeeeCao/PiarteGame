@@ -16,24 +16,21 @@ public class CelyneMissionManager : MonoBehaviour
     }
 
     [Header("Mission UI Group")]
-    public GameObject missionBox;
-    public Image missionImage;
     public TextMeshProUGUI missionText;
 
     [Header("Exploration Phase")]
     public string triggerTag = "Player";
     public GameObject explorationEndTrigger;
+    public string exploreAreaQuestID = "Explore_Area"; // Fixed typo from your error logs
 
     [Header("Phase 1: Talk to NPCs")]
     public List<NPCMissionData> npcMissions;
+    private int npcsTalkedTo = 0;
 
-    [Header("Phase 2: Investigate")]
+    [Header("Phase 2: Investigate Silas")]
     public string phase2Text = "Investigate the strange particles.";
-    public GameObject newObjectiveMarker;
     public GameObject phase2ObjectToReveal;
-    public GameObject phase2ObjectToHide1;
-    public GameObject phase2ObjectToHide2;
-    public MonoBehaviour scriptToUnlock;
+    public GameObject silasParticleSystem;
     public string phase2CompassQuestID = "SilasInteraction";
 
     [Header("Phase 3: Follow Cart")]
@@ -46,59 +43,61 @@ public class CelyneMissionManager : MonoBehaviour
     private bool phase4Active = false;
     private bool phase4Complete = false;
 
-    public static event Action<int> OnMissionEnemyCountUpdated;
-
-    [Header("Audio Settings")]
+    [Header("Audio & Compass")]
     public AudioSource audioSource;
     public AudioClip missionUpdateSound;
-
-    [Header("Compass Integration")]
     public Compass compass;
-    public string exploreAreaQuestID = "Explore_Area";
 
-    private int npcsTalkedTo = 0;
     private bool explorationComplete = false;
     private bool phase1Complete = false;
     private bool phase2Complete = false;
     private bool phase3Complete = false;
 
-    private void OnEnable()
-    {
-        EnemyHealthController.OnEnemyCountUpdated += OnEnemyCountUpdated;
-    }
-
-    private void OnDisable()
-    {
-        EnemyHealthController.OnEnemyCountUpdated -= OnEnemyCountUpdated;
-    }
+    private void OnEnable() { EnemyHealthController.OnEnemyCountUpdated += UpdateKillMissionUI; }
+    private void OnDisable() { EnemyHealthController.OnEnemyCountUpdated -= UpdateKillMissionUI; }
 
     void Start()
     {
         if (audioSource == null) audioSource = GetComponent<AudioSource>();
         if (compass == null) compass = FindObjectOfType<Compass>();
 
-        if (newObjectiveMarker) newObjectiveMarker.SetActive(false);
-        if (phase2ObjectToReveal) phase2ObjectToReveal.SetActive(false);
-        if (phase2ObjectToHide1) phase2ObjectToHide1.SetActive(false);
-        if (phase2ObjectToHide2) phase2ObjectToHide2.SetActive(false);
-        if (scriptToUnlock) scriptToUnlock.enabled = false;
+        UpdateMissionUI("Explore the area");
+
+        // 1. SILAS SETUP: Keep him visible, but turn off his interaction
+        if (phase2ObjectToReveal != null)
+        {
+            phase2ObjectToReveal.SetActive(true); // Make him visible
+
+            // Disable his interaction script so we can't talk to him yet
+            var interaction = phase2ObjectToReveal.GetComponent<TwoWayInteraction>();
+            if (interaction != null) interaction.enabled = false;
+        }
+
+        // Keep particles hidden
+        if (silasParticleSystem != null) silasParticleSystem.SetActive(false);
 
         foreach (var npc in npcMissions) npc.hasBeenTalkedTo = false;
-
         SetupEndTriggerListener();
     }
 
     void Update()
     {
         if (!explorationComplete) return;
-        if (!phase1Complete) CheckNPCProgress();
+
+        if (!phase1Complete)
+            CheckNPCProgress();
+        else if (!phase2Complete)
+            CheckSilasProgress();
     }
 
+    // --- EXPLORATION TRIGGER ---
     void SetupEndTriggerListener()
     {
         if (!explorationEndTrigger) return;
+
         TriggerListener listener = explorationEndTrigger.GetComponent<TriggerListener>();
         if (!listener) listener = explorationEndTrigger.AddComponent<TriggerListener>();
+
         listener.triggerTag = triggerTag;
         listener.onTriggerEnter = OnExplorationEnd;
     }
@@ -106,21 +105,21 @@ public class CelyneMissionManager : MonoBehaviour
     void OnExplorationEnd(Collider other)
     {
         if (explorationComplete) return;
+
         explorationComplete = true;
-        if (compass && !string.IsNullOrEmpty(exploreAreaQuestID)) compass.HideMarker(exploreAreaQuestID);
+
+        // Hide exploration marker
+        if (compass != null && !string.IsNullOrEmpty(exploreAreaQuestID))
+        {
+            compass.HideMarker(exploreAreaQuestID);
+        }
+
         UpdateMissionUI($"Talk to the villagers (0/{npcMissions.Count})");
         PlayMissionSound();
         ShowNPCMarkers();
     }
 
-    void ShowNPCMarkers()
-    {
-        if (!compass) return;
-        foreach (var npc in npcMissions)
-            if (!npc.hasBeenTalkedTo && !string.IsNullOrEmpty(npc.compassQuestID))
-                compass.ShowMarker(npc.compassQuestID);
-    }
-
+    // --- PHASE 1 ---
     void CheckNPCProgress()
     {
         int count = 0;
@@ -141,9 +140,10 @@ public class CelyneMissionManager : MonoBehaviour
         if (count != npcsTalkedTo)
         {
             npcsTalkedTo = count;
-            UpdateMissionUI($"Talk to the villagers ({count}/{npcMissions.Count})");
+            UpdateMissionUI($"Talk to the villagers ({npcsTalkedTo}/{npcMissions.Count})");
             PlayMissionSound();
-            if (count >= npcMissions.Count)
+
+            if (npcsTalkedTo >= npcMissions.Count)
             {
                 phase1Complete = true;
                 StartPhase2();
@@ -151,35 +151,62 @@ public class CelyneMissionManager : MonoBehaviour
         }
     }
 
+    void ShowNPCMarkers()
+    {
+        if (!compass) return;
+        foreach (var npc in npcMissions)
+            if (!npc.hasBeenTalkedTo && !string.IsNullOrEmpty(npc.compassQuestID))
+                compass.ShowMarker(npc.compassQuestID);
+    }
+
+    // --- PHASE 2 ---
     void StartPhase2()
     {
         UpdateMissionUI(phase2Text);
         PlayMissionSound();
-        if (phase2ObjectToHide1) phase2ObjectToHide1.SetActive(true);
-        if (phase2ObjectToHide2) phase2ObjectToHide2.SetActive(true);
-        if (phase2ObjectToReveal) phase2ObjectToReveal.SetActive(true);
-        if (newObjectiveMarker) newObjectiveMarker.SetActive(true);
-        if (scriptToUnlock) scriptToUnlock.enabled = true;
-        if (compass && !string.IsNullOrEmpty(phase2CompassQuestID)) compass.ShowMarker(phase2CompassQuestID);
+
+        // 2. UNLOCK INTERACTION: Now that Phase 2 started, we can talk to him
+        if (phase2ObjectToReveal != null)
+        {
+            var interaction = phase2ObjectToReveal.GetComponent<TwoWayInteraction>();
+            if (interaction != null) interaction.enabled = true;
+        }
+
+        // Show the particles now
+        if (silasParticleSystem != null) silasParticleSystem.SetActive(true);
+
+        if (compass && !string.IsNullOrEmpty(phase2CompassQuestID))
+            compass.ShowMarker(phase2CompassQuestID);
+    }
+
+    void CheckSilasProgress()
+    {
+        if (phase2ObjectToReveal == null) return;
+        var silas = phase2ObjectToReveal.GetComponent<TwoWayInteraction>();
+        if (silas != null && silas.IsInteractionFinished()) CompletePhase2();
     }
 
     public void CompletePhase2()
     {
         if (phase2Complete) return;
         phase2Complete = true;
-        if (compass && !string.IsNullOrEmpty(phase2CompassQuestID)) compass.HideMarker(phase2CompassQuestID);
+
+        if (compass && !string.IsNullOrEmpty(phase2CompassQuestID))
+            compass.HideMarker(phase2CompassQuestID);
+
         UpdateMissionUI(phase3Text);
         PlayMissionSound();
-        if (compass && !string.IsNullOrEmpty(phase3CompassQuestID)) compass.ShowMarker(phase3CompassQuestID);
+
+        if (compass && !string.IsNullOrEmpty(phase3CompassQuestID))
+            compass.ShowMarker(phase3CompassQuestID);
     }
 
+    // --- PHASE 3 & 4 ---
     public void CompletePhase3()
     {
         if (phase3Complete) return;
         phase3Complete = true;
         if (compass && !string.IsNullOrEmpty(phase3CompassQuestID)) compass.HideMarker(phase3CompassQuestID);
-
-        // Ensure this is called to enable Phase 4 logic
         StartPhase4_KillEnemies();
     }
 
@@ -188,48 +215,27 @@ public class CelyneMissionManager : MonoBehaviour
         EnemyHealthController.ResetDeathCount();
         enemiesKilled = 0;
         phase4Active = true;
-        phase4Complete = false;
-
         UpdateMissionUI($"Kill enemies (0/{enemiesToKill})");
         PlayMissionSound();
-
-        OnMissionEnemyCountUpdated?.Invoke(enemiesKilled);
-        Debug.Log("[Mission] Phase 4 started: Kill Enemies");
     }
 
-    void OnEnemyCountUpdated(int enemyDeathCount)
+    private void UpdateKillMissionUI(int currentGlobalDeaths)
     {
-        // CRITICAL: Only update if Phase 4 is actually running
         if (!phase4Active || phase4Complete) return;
-
-        enemiesKilled = enemyDeathCount;
-
+        enemiesKilled = currentGlobalDeaths;
         UpdateMissionUI($"Kill enemies ({enemiesKilled}/{enemiesToKill})");
-        PlayMissionSound();
-
-        OnMissionEnemyCountUpdated?.Invoke(enemiesKilled);
-
         if (enemiesKilled >= enemiesToKill)
         {
             phase4Complete = true;
-            phase4Active = false;
-            Debug.Log($"[Mission] Phase 4 COMPLETE: Kill Enemies ({enemiesKilled}/{enemiesToKill})");
-
-            // Trigger final mission completion or next phase here
-            UpdateMissionUI("All enemies defeated!");
+            UpdateMissionUI("All enemies defeated! Return to Celyne.");
+            PlayMissionSound();
         }
     }
 
-    void UpdateMissionUI(string text)
-    {
-        if (missionText) missionText.text = text;
-    }
+    void UpdateMissionUI(string text) { if (missionText != null) missionText.text = text; }
+    void PlayMissionSound() { if (audioSource != null && missionUpdateSound != null) audioSource.PlayOneShot(missionUpdateSound); }
 
-    void PlayMissionSound()
-    {
-        if (audioSource && missionUpdateSound) audioSource.PlayOneShot(missionUpdateSound);
-    }
-
+    // --- HELPER CLASS ---
     public class TriggerListener : MonoBehaviour
     {
         public string triggerTag = "Player";
