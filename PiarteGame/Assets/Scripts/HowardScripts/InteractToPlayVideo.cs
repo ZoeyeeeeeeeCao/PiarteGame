@@ -4,36 +4,31 @@ using UnityEngine.Video;
 public class InteractToPlayVideo : MonoBehaviour
 {
     [Header("Video Settings")]
-    [Tooltip("Drag the Object that has the Video Player component here")]
     public VideoPlayer videoPlayer;
+    public GameObject videoDisplayScreen; // Drag your Canvas/Panel here
 
-    [Tooltip("Drag the UI RawImage (or the 3D Plane) that shows the video here.")]
-    public GameObject videoDisplayScreen; // <--- NEW: This controls the black screen visibility
+    [Header("Enable After Video")]
+    public GameObject objectToEnable;
 
     [Header("Interaction Settings")]
     public KeyCode interactKey = KeyCode.E;
     public string playerTag = "Player";
-    public GameObject interactTextUI; // The "Press E" text
+    public GameObject interactTextUI;
 
     private bool playerInRange = false;
     private bool hasActivated = false;
 
     void Start()
     {
-        // 1. Hide the "Press E" text at start
+        // Initial setup
         if (interactTextUI != null) interactTextUI.SetActive(false);
+        if (videoDisplayScreen != null) videoDisplayScreen.SetActive(false);
+        if (objectToEnable != null) objectToEnable.SetActive(false);
 
-        // 2. Hide the Video Screen (Black box) at start
-        if (videoDisplayScreen != null)
-        {
-            videoDisplayScreen.SetActive(false);
-        }
-
-        // 3. Setup the video to close automatically when done
         if (videoPlayer != null)
         {
-            videoPlayer.Stop(); // Ensure it's not playing
-            videoPlayer.loopPointReached += OnVideoFinished; // Listen for the end
+            videoPlayer.playOnAwake = false; // Prevent it from starting early
+            videoPlayer.loopPointReached += OnVideoFinished; // Setup end event
         }
     }
 
@@ -48,34 +43,40 @@ public class InteractToPlayVideo : MonoBehaviour
     void PlayTheVideo()
     {
         hasActivated = true;
+        if (interactTextUI != null) interactTextUI.SetActive(false);
 
-        // 1. Turn ON the screen
-        if (videoDisplayScreen != null)
-        {
-            videoDisplayScreen.SetActive(true);
-        }
-
-        // 2. Play the video
         if (videoPlayer != null)
         {
-            videoPlayer.Play();
+            // CRITICAL: Prepare the video so it's ready before showing the UI
+            videoPlayer.Prepare();
+            videoPlayer.prepareCompleted += (vp) =>
+            {
+                if (videoDisplayScreen != null) videoDisplayScreen.SetActive(true);
+                vp.Play();
+            };
         }
-
-        // 3. Hide the "Press E" text
-        if (interactTextUI != null) interactTextUI.SetActive(false);
+        else
+        {
+            // Fallback: If no video is found, just finish immediately
+            OnVideoFinished(null);
+        }
     }
 
-    // Automatically called when video finishes
     void OnVideoFinished(VideoPlayer vp)
     {
-        // Turn the screen OFF again so we can see the game
-        if (videoDisplayScreen != null)
+        if (videoDisplayScreen != null) videoDisplayScreen.SetActive(false);
+
+        // Turn on the portal/object
+        if (objectToEnable != null)
         {
-            videoDisplayScreen.SetActive(false);
+            objectToEnable.SetActive(true);
         }
+
+        Debug.Log("Video finished. Enabling object and destroying this trigger.");
+        Destroy(gameObject); // Now it's safe to destroy
     }
 
-    // --- DETECTION LOGIC ---
+    // --- DETECTION ---
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag(playerTag))
