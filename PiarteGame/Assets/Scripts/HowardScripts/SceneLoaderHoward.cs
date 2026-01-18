@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using UnityEngine.Video;
 using System.Collections;
 using TMPro;
 
@@ -13,7 +14,10 @@ public class SceneLoaderHoward : MonoBehaviour
     [Range(0.1f, 2f)]
     public float fillSpeed = 0.5f;
 
-    // We don't need the public variables here anymore because they are on the prefab script!
+    [Header("Scene Video References")]
+    public VideoPlayer sceneVideoPlayer; // Drag your scene's VideoPlayer here
+    public GameObject sceneVideoCanvas;   // Drag the Canvas holding your RawImage here
+    public bool playVideoBeforeLoading = true;
 
     private void Awake()
     {
@@ -26,6 +30,7 @@ public class SceneLoaderHoward : MonoBehaviour
         {
             Destroy(gameObject);
         }
+        if (sceneVideoCanvas) sceneVideoCanvas.SetActive(false);
     }
 
     public void LoadLevel(string sceneName)
@@ -35,59 +40,57 @@ public class SceneLoaderHoward : MonoBehaviour
 
     IEnumerator LoadProcess(string sceneName)
     {
-        // 1. Spawn Loading Screen
+        if (sceneVideoCanvas) sceneVideoCanvas.SetActive(false);
+        // --- STEP 1: PLAY THE SCENE VIDEO FIRST ---
+        if (playVideoBeforeLoading && sceneVideoPlayer != null)
+        {
+            // Ensure the UI is ready but black initially
+            if (sceneVideoCanvas != null) sceneVideoCanvas.SetActive(true);
+
+            sceneVideoPlayer.Prepare();
+            while (!sceneVideoPlayer.isPrepared) yield return null;
+
+            sceneVideoPlayer.Play();
+
+            // Wait for the video to finish completely
+            while (sceneVideoPlayer.isPlaying)
+            {
+                yield return null;
+            }
+
+            // Hide the video canvas once done
+            if (sceneVideoCanvas != null) sceneVideoCanvas.SetActive(false);
+        }
+
+        // --- STEP 2: RUN THE NORMAL LOADING PREFAB ---
         GameObject loadingScreen = Instantiate(loadingScreenPrefab);
         DontDestroyOnLoad(loadingScreen);
 
-        // --- UPDATED LOGIC ---
-        // Look for the NEW UI script instead of SceneLoaderHoward
         LoadingScreenUI ui = loadingScreen.GetComponent<LoadingScreenUI>();
+        if (ui == null) { yield break; }
 
-        if (ui == null)
-        {
-            Debug.LogError("Your Loading Screen Prefab is missing the 'LoadingScreenUI' script!");
-            yield break; // Stop if script is missing
-        }
+        // Start standard loading animations
+        Coroutine dotAnim = StartCoroutine(AnimateLoadingText(ui.loadingText));
+        Coroutine wheelAnim = StartCoroutine(AnimateSteeringWheel(ui.steeringWheel));
 
-        // Get references from the UI script
-        Image bar = ui.progressBar;
-        TextMeshProUGUI text = ui.loadingText;
-        Image wheel = ui.steeringWheel;
-
-        // Set initial values
-        if (bar != null) bar.fillAmount = 0f;
-        if (text != null) text.text = "Loading";
-
-        // Start animations
-        Coroutine dotAnim = StartCoroutine(AnimateLoadingText(text));
-        Coroutine wheelAnim = StartCoroutine(AnimateSteeringWheel(wheel));
-
-        // Wait to ensure UI renders
-        yield return new WaitForSeconds(0.5f);
-
-        // 2. Start Async Loading
         AsyncOperation operation = SceneManager.LoadSceneAsync(sceneName);
         operation.allowSceneActivation = false;
 
         float visualProgress = 0f;
 
-        // 3. Loop
         while (!operation.isDone)
         {
             float targetProgress = Mathf.Clamp01(operation.progress / 0.9f);
             visualProgress = Mathf.MoveTowards(visualProgress, targetProgress, fillSpeed * Time.deltaTime);
 
-            if (bar != null) bar.fillAmount = visualProgress;
+            if (ui.progressBar != null) ui.progressBar.fillAmount = visualProgress;
 
-            // 4. Check finish
             if (operation.progress >= 0.9f && visualProgress >= 0.99f)
             {
                 if (dotAnim != null) StopCoroutine(dotAnim);
                 if (wheelAnim != null) StopCoroutine(wheelAnim);
 
-                if (bar != null) bar.fillAmount = 1f;
-                if (text != null) text.text = "Complete!";
-
+                if (ui.loadingText != null) ui.loadingText.text = "Complete!";
                 yield return new WaitForSeconds(0.5f);
                 operation.allowSceneActivation = true;
             }
@@ -127,7 +130,6 @@ public class SceneLoaderHoward : MonoBehaviour
             {
                 elapsed += Time.deltaTime;
                 float t = elapsed / duration;
-                // Smooth Step
                 float easedT = t * t * (3f - 2f * t);
 
                 currentRotation = Mathf.Lerp(start, target, easedT);

@@ -289,7 +289,7 @@ public class TwoWayInteraction : MonoBehaviour
         if (countsTowardsMission)
         {
             yield return new WaitForSeconds(2f);
-            Destroy(gameObject);
+            
         }
     }
 
