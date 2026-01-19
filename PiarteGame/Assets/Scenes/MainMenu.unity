@@ -211,15 +211,30 @@ MonoBehaviour:
   mainMenuPanel: {fileID: 551637901}
   settingsPanel: {fileID: 6193915484832386077}
   creditsPanel: {fileID: 1898799728650445071}
+  settingsManager: {fileID: 102210837}
+  audioManager: {fileID: 1200981417}
+  menuBGMManager: {fileID: 0}
   mainMenuVideo: {fileID: 1584691482}
   settingsVideo: {fileID: 96641534}
   creditsVideo: {fileID: 1603958538}
   autoFindVideos: 1
+  autoFindManagers: 1
   gameSceneName: CelyneScene
   backButtons:
   - {fileID: 403135697}
   - {fileID: 4527746004014253037}
   autoFindBackButtons: 0
+--- !u!114 &102210837 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1760888394984098958, guid: 92f0df29612303449a25b944776c04b0, type: 3}
+  m_PrefabInstance: {fileID: 166894643}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 102210833}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f45e1368e87428347b927170adae1b68, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &166894643
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -229,9 +244,17 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 1760888394984098958, guid: 92f0df29612303449a25b944776c04b0, type: 3}
+      propertyPath: audioMixer
+      value: 
+      objectReference: {fileID: 24100000, guid: ef92c20924e21cd47b5b2e4896410471, type: 2}
+    - target: {fileID: 1760888394984098958, guid: 92f0df29612303449a25b944776c04b0, type: 3}
       propertyPath: audioPanel
       value: 
       objectReference: {fileID: 6215739345763781849}
+    - target: {fileID: 1760888394984098958, guid: 92f0df29612303449a25b944776c04b0, type: 3}
+      propertyPath: audioManager
+      value: 
+      objectReference: {fileID: 1200981417}
     - target: {fileID: 1760888394984098958, guid: 92f0df29612303449a25b944776c04b0, type: 3}
       propertyPath: controlsPanel
       value: 
@@ -594,7 +617,7 @@ AudioSource:
   m_GameObject: {fileID: 326910670}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: 8565355743767778105, guid: ef92c20924e21cd47b5b2e4896410471, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: a6192dd0644e1974b88de400be037192, type: 3}
   m_PlayOnAwake: 1
@@ -1265,6 +1288,76 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!1 &1200981416
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1200981418}
+  - component: {fileID: 1200981417}
+  - component: {fileID: 1200981419}
+  m_Layer: 0
+  m_Name: BGM_MainMenu (1)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1200981417
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1200981416}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f2d3a5dbeac5749439fa0a08fd4f0122, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  audioMixer: {fileID: 24100000, guid: ef92c20924e21cd47b5b2e4896410471, type: 2}
+  masterSlider: {fileID: 2031178872}
+  musicSlider: {fileID: 1433908812}
+  sfxSlider: {fileID: 1584975438}
+  minVolume: -80
+  maxVolume: 0
+--- !u!4 &1200981418
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1200981416}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 960, y: 540, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1200981419
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1200981416}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0a1c39e026d57d848bb3dc3368430104, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  mainMenuMusic: {fileID: 8300000, guid: a6192dd0644e1974b88de400be037192, type: 3}
+  settingsMusic: {fileID: 8300000, guid: a6192dd0644e1974b88de400be037192, type: 3}
+  creditsMusic: {fileID: 8300000, guid: a6192dd0644e1974b88de400be037192, type: 3}
+  audioSource: {fileID: 326910671}
+  fadeDuration: 1
+  defaultVolume: 0.7
+  playOnStart: 1
 --- !u!1 &1366942162
 GameObject:
   m_ObjectHideFlags: 0
@@ -2115,12 +2208,36 @@ PrefabInstance:
       propertyPath: m_ReferenceResolution.y
       value: 1080
       objectReference: {fileID: 0}
+    - target: {fileID: 345770606546029218, guid: a7586e9cd78bb354a92ad51ded37fb5f, type: 3}
+      propertyPath: m_Value
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 345770606546029218, guid: a7586e9cd78bb354a92ad51ded37fb5f, type: 3}
+      propertyPath: m_MaxValue
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 1393483983172310812, guid: a7586e9cd78bb354a92ad51ded37fb5f, type: 3}
       propertyPath: m_AnchorMax.x
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1393483983172310812, guid: a7586e9cd78bb354a92ad51ded37fb5f, type: 3}
       propertyPath: m_AnchorMax.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2120053044550018603, guid: a7586e9cd78bb354a92ad51ded37fb5f, type: 3}
+      propertyPath: m_Value
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2120053044550018603, guid: a7586e9cd78bb354a92ad51ded37fb5f, type: 3}
+      propertyPath: m_MaxValue
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2194026734569964360, guid: a7586e9cd78bb354a92ad51ded37fb5f, type: 3}
+      propertyPath: m_Value
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2194026734569964360, guid: a7586e9cd78bb354a92ad51ded37fb5f, type: 3}
+      propertyPath: m_MaxValue
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3731953693868013562, guid: a7586e9cd78bb354a92ad51ded37fb5f, type: 3}
@@ -2390,10 +2507,14 @@ MonoBehaviour:
   mainMenuPanel: {fileID: 551637901}
   settingsPanel: {fileID: 6193915484832386077}
   creditsPanel: {fileID: 1898799728650445071}
+  settingsManager: {fileID: 0}
+  audioManager: {fileID: 0}
+  menuBGMManager: {fileID: 0}
   mainMenuVideo: {fileID: 0}
   settingsVideo: {fileID: 0}
   creditsVideo: {fileID: 0}
   autoFindVideos: 1
+  autoFindManagers: 1
   gameSceneName: CelyneScene
   backButtons:
   - {fileID: 403135697}
@@ -2467,10 +2588,14 @@ MonoBehaviour:
   mainMenuPanel: {fileID: 551637901}
   settingsPanel: {fileID: 6193915484832386077}
   creditsPanel: {fileID: 1898799728650445071}
+  settingsManager: {fileID: 0}
+  audioManager: {fileID: 0}
+  menuBGMManager: {fileID: 0}
   mainMenuVideo: {fileID: 0}
   settingsVideo: {fileID: 0}
   creditsVideo: {fileID: 0}
   autoFindVideos: 1
+  autoFindManagers: 1
   gameSceneName: CelyneScene
   backButtons:
   - {fileID: 403135697}
@@ -2489,3 +2614,4 @@ SceneRoots:
   - {fileID: 1757506989}
   - {fileID: 1626020412}
   - {fileID: 326910672}
+  - {fileID: 1200981418}
