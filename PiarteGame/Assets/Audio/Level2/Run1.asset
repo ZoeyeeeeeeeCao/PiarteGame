@@ -12,7 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0fabe3ebc15f8e14bbd8a86759077960, type: 3}
   m_Name: Run1
   m_EditorClassIdentifier: 
-  clip: {fileID: 0}
-  subtitleLines: []
+  clip: {fileID: 8300000, guid: 3427a7a6afff47948b0a54ba5a90a663, type: 3}
+  subtitleLines:
+  - Oh shit.. Okay..
   useCustomTimings: 0
   customDurations: []
