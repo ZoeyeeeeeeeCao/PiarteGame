@@ -4,14 +4,20 @@ using UnityEngine;
 public class CheckpointTrigger : MonoBehaviour
 {
     [Header("Visual")]
-    [Tooltip("Play 模式下自动隐藏自己的 Mesh / Renderer")]
+    [Tooltip("Hide this checkpoint's renderers on play")]
     public bool hideRenderersOnPlay = true;
+
+    [Header("Checkpoint Behavior")]
+    [Tooltip("Disable this checkpoint after it is activated")]
+    public bool disableAfterTriggered = true;
+
+    private bool hasTriggered = false;
 
     private void Start()
     {
         if (hideRenderersOnPlay)
         {
-            // 把自己和子物体上的所有 Renderer 关掉（MeshRenderer / SkinnedMeshRenderer 都包括）
+            // Hide this object and all child renderers
             var renderers = GetComponentsInChildren<Renderer>();
             foreach (var r in renderers)
             {
@@ -22,12 +28,22 @@ public class CheckpointTrigger : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
+        if (hasTriggered) return;
         if (!other.CompareTag("Player")) return;
+
+        hasTriggered = true;
 
         if (LevelCheckpointManager.Instance != null)
         {
-            // 记录：这个存档点 + 当前 player 位置
+            // Save checkpoint + advance compass marker if this is the next one
             LevelCheckpointManager.Instance.SetCheckpoint(transform, other.transform);
+        }
+
+        // Disable collider so it cannot retrigger
+        if (disableAfterTriggered)
+        {
+            Collider col = GetComponent<Collider>();
+            if (col != null) col.enabled = false;
         }
     }
 }

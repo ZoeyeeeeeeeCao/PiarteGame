@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
@@ -36,6 +37,14 @@ public class PauseManager : MonoBehaviour
 
     [Header("Player Reference")]
     [SerializeField] private GameObject player;
+
+    // ⭐ NEW: Hide these UI roots while Pause menu is open
+    [Header("Optional UI Lock (Hide While Paused)")]
+    [Tooltip("Any UI roots/canvases you want disabled when pause menu opens (HUD, minimap, prompts, etc).")]
+    [SerializeField] private List<GameObject> uiToHideWhilePaused = new();
+
+    // ⭐ NEW: Cache each UI's previous active state so we restore correctly
+    private bool[] _uiPrevActiveStates;
 
     private bool isPaused = false;
     private int currentControlPageIndex = 0;
@@ -143,16 +152,12 @@ public class PauseManager : MonoBehaviour
 
     private void ApplyMouseSensitivity(float value)
     {
-        // Find the Fantacode Studios CameraController
         var cameraController = FindObjectOfType<FS_ThirdPerson.CameraController>();
 
         if (cameraController != null)
         {
-            // Map 0-100 slider to 0.1-2.0 sensitivity range (adjust as needed)
-            // The CameraSettings.sensitivity field uses 0-10 range typically
             float sensitivity = Mathf.Lerp(0.1f, 2.0f, value / 100f);
 
-            // Update both third-person and first-person camera settings
             if (cameraController.thirdPersonCamera != null && cameraController.thirdPersonCamera.defaultSettings != null)
             {
                 cameraController.thirdPersonCamera.defaultSettings.sensitivity = sensitivity;
@@ -182,18 +187,12 @@ public class PauseManager : MonoBehaviour
 
     private void ApplyBrightness(float value)
     {
-        // Use Post-Processing Volume (URP Color Adjustments)
         UnityEngine.Rendering.Volume volume = FindObjectOfType<UnityEngine.Rendering.Volume>();
 
         if (volume != null && volume.profile != null)
         {
-            // Try to get Color Adjustments override
             if (volume.profile.TryGet(out UnityEngine.Rendering.Universal.ColorAdjustments colorAdjustments))
             {
-                // Map 0-100 slider to post-exposure range
-                // 50 = normal (0 exposure)
-                // 0 = darkest (-2 exposure)
-                // 100 = brightest (+2 exposure)
                 float exposure = ((value - 50f) / 50f) * 2f;
 
                 colorAdjustments.postExposure.overrideState = true;
@@ -239,6 +238,9 @@ public class PauseManager : MonoBehaviour
         isInControlsView = false;
         Time.timeScale = 0f;
 
+        // ⭐ NEW: hide other UIs while paused
+        HideBlockedUI();
+
         if (pauseMenuCanvas != null)
             pauseMenuCanvas.SetActive(true);
 
@@ -270,6 +272,9 @@ public class PauseManager : MonoBehaviour
             controlsContainer.SetActive(false);
         if (backButton != null)
             backButton.SetActive(false);
+
+        // ⭐ NEW: restore other UIs after unpausing
+        RestoreBlockedUI();
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
@@ -374,6 +379,57 @@ public class PauseManager : MonoBehaviour
     {
         Time.timeScale = 1f;
         SceneManager.LoadScene(mainMenuSceneName);
+    }
+
+    // =========================
+    // Hide / Restore list of UI
+    // =========================
+    private void HideBlockedUI()
+    {
+        if (uiToHideWhilePaused == null || uiToHideWhilePaused.Count == 0)
+            return;
+
+        _uiPrevActiveStates = new bool[uiToHideWhilePaused.Count];
+
+        for (int i = 0; i < uiToHideWhilePaused.Count; i++)
+        {
+            var go = uiToHideWhilePaused[i];
+            if (go == null)
+            {
+                _uiPrevActiveStates[i] = false;
+                continue;
+            }
+
+            _uiPrevActiveStates[i] = go.activeSelf;
+
+            if (go.activeSelf)
+                go.SetActive(false);
+        }
+    }
+
+    private void RestoreBlockedUI()
+    {
+        if (uiToHideWhilePaused == null || uiToHideWhilePaused.Count == 0)
+            return;
+
+        // If not cached (or list size changed), safest fallback: enable them
+        if (_uiPrevActiveStates == null || _uiPrevActiveStates.Length != uiToHideWhilePaused.Count)
+        {
+            for (int i = 0; i < uiToHideWhilePaused.Count; i++)
+            {
+                var go = uiToHideWhilePaused[i];
+                if (go != null) go.SetActive(true);
+            }
+            return;
+        }
+
+        for (int i = 0; i < uiToHideWhilePaused.Count; i++)
+        {
+            var go = uiToHideWhilePaused[i];
+            if (go == null) continue;
+
+            go.SetActive(_uiPrevActiveStates[i]);
+        }
     }
 
     void OnDestroy()

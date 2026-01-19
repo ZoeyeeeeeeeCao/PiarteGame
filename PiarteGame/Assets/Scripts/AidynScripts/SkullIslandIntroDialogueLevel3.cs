@@ -34,6 +34,13 @@ public class SkullIslandIntroDialogueLevel3 : MonoBehaviour
     [SerializeField] private DialogueUILevel3 dialogueUI;
     [SerializeField] private PlayerLockControllerLevel3 playerLock;
 
+    [Header("UI To Hide During Dialogue")]
+    [Tooltip("Any UI roots you want hidden during dialogue (HUD, minimap, interaction prompts, etc).")]
+    [SerializeField] private GameObject[] uiToHideDuringDialogue;
+
+    // Cache of previous active states so we restore correctly after dialogue
+    private bool[] _uiPrevActiveStates;
+
     [Header("Voice AudioSources")]
     [SerializeField] private AudioSource tribalVoiceSource;
     [SerializeField] private AudioSource playerVoiceSource;
@@ -131,14 +138,16 @@ public class SkullIslandIntroDialogueLevel3 : MonoBehaviour
             yield break;
         }
 
-        // 1) Snap player to stand point (IMPORTANT: move the CharacterController object)
+        // 1) Snap player to stand point
         MovePlayerToStandPoint_Safe();
 
-        // 2) Lock controls (your PlayerLockController disables movement scripts etc.)
+        // 2) Lock controls
         playerLock.Lock();
 
-        // 3) Talking: player talks the entire conversation (your request)
-        // Tribal will toggle per line, player stays ON.
+        // 2.5) Hide other UIs you don't want during dialogue
+        HideDialogueBlockedUI();
+
+        // 3) Talking: player talks the entire conversation
         SetTalkState(tribalTalking: false, playerTalking: true);
 
         // UI setup
@@ -191,6 +200,57 @@ public class SkullIslandIntroDialogueLevel3 : MonoBehaviour
     }
 
     // =========================
+    // UI hide / restore
+    // =========================
+    private void HideDialogueBlockedUI()
+    {
+        if (uiToHideDuringDialogue == null || uiToHideDuringDialogue.Length == 0)
+            return;
+
+        // Allocate cache sized exactly to current list
+        _uiPrevActiveStates = new bool[uiToHideDuringDialogue.Length];
+
+        for (int i = 0; i < uiToHideDuringDialogue.Length; i++)
+        {
+            var go = uiToHideDuringDialogue[i];
+            if (go == null)
+            {
+                _uiPrevActiveStates[i] = false;
+                continue;
+            }
+
+            _uiPrevActiveStates[i] = go.activeSelf;
+            if (go.activeSelf) go.SetActive(false);
+        }
+    }
+
+    private void RestoreDialogueBlockedUI()
+    {
+        if (uiToHideDuringDialogue == null || uiToHideDuringDialogue.Length == 0)
+            return;
+
+        // If something weird happened (not cached), just enable them (safe default)
+        if (_uiPrevActiveStates == null || _uiPrevActiveStates.Length != uiToHideDuringDialogue.Length)
+        {
+            for (int i = 0; i < uiToHideDuringDialogue.Length; i++)
+            {
+                var go = uiToHideDuringDialogue[i];
+                if (go != null) go.SetActive(true);
+            }
+            return;
+        }
+
+        for (int i = 0; i < uiToHideDuringDialogue.Length; i++)
+        {
+            var go = uiToHideDuringDialogue[i];
+            if (go == null) continue;
+
+            // Restore exactly what it was before dialogue started
+            go.SetActive(_uiPrevActiveStates[i]);
+        }
+    }
+
+    // =========================
     // BIG FIX: teleport safely
     // =========================
     private void MovePlayerToStandPoint_Safe()
@@ -201,52 +261,42 @@ public class SkullIslandIntroDialogueLevel3 : MonoBehaviour
             return;
         }
 
-        // The true "movement root" must be the object that has the CharacterController.
         Transform controllerT = null;
 
         if (playerCC == null)
         {
-            // Try to find CC anywhere under playerRoot if not set
             if (playerRoot != null) playerCC = playerRoot.GetComponentInChildren<CharacterController>();
         }
         if (playerCC != null) controllerT = playerCC.transform;
 
-        // Fallback to playerRoot if no CC found (won't be ideal, but won't crash)
         if (controllerT == null)
         {
             controllerT = playerRoot != null ? playerRoot : transform;
             Debug.LogWarning("[SkullIslandIntroDialogueLevel3] CharacterController not found; using playerRoot instead.");
         }
 
-        // Disable CC while teleporting to avoid �pop� / collision push
         bool ccWasEnabled = (playerCC != null && playerCC.enabled);
         if (playerCC != null) playerCC.enabled = false;
 
-        // If RB exists and is different object, freeze it first
         if (playerRB == null && playerRoot != null)
             playerRB = playerRoot.GetComponentInChildren<Rigidbody>();
 
         if (playerRB != null)
         {
-            // Use velocity for widest compatibility
+            // NOTE: Unity Rigidbody uses velocity, not linearVelocity (unless you have DOTS/other extension).
             playerRB.linearVelocity = Vector3.zero;
             playerRB.angularVelocity = Vector3.zero;
         }
 
-        // Teleport the controller object (THIS prevents detaching)
         controllerT.position = standPoint.position;
         controllerT.rotation = standPoint.rotation;
 
-        // Optional: keep visual root aligned if your mesh root is separate from CC root
         if (playerRoot != null && playerRoot != controllerT)
         {
-            // If your mesh is a child of the CC, you can skip this.
-            // If your mesh is NOT parented properly, this will �re-sync�.
             playerRoot.position = controllerT.position;
             playerRoot.rotation = controllerT.rotation;
         }
 
-        // Re-enable CC
         if (playerCC != null) playerCC.enabled = ccWasEnabled;
     }
 
@@ -254,6 +304,9 @@ public class SkullIslandIntroDialogueLevel3 : MonoBehaviour
     {
         // Turn off dialogue UI
         if (dialogueUI != null) dialogueUI.HidePanel();
+
+        // Restore hidden UI
+        RestoreDialogueBlockedUI();
 
         // Restore original camera
         SetActiveCameraModeGameplay();
@@ -276,14 +329,11 @@ public class SkullIslandIntroDialogueLevel3 : MonoBehaviour
     {
         if (line == null) yield break;
 
-        // Switch camera to current speaker
         SetSpeakerCamera(line.speaker);
 
-        // Player talks the whole time; tribal only talks when tribal speaks
         bool tribalTalkingNow = (line.speaker == SpeakerLevel3.Tribal);
         SetTalkState(tribalTalking: tribalTalkingNow, playerTalking: true);
 
-        // Choice A special tribal animations
         if (ctx == PlayContext.AfterChoiceA && line.speaker == SpeakerLevel3.Tribal && tribalAnimator != null)
         {
             if (lineIndex == 0 && !string.IsNullOrWhiteSpace(angryTrigger))
@@ -296,7 +346,6 @@ public class SkullIslandIntroDialogueLevel3 : MonoBehaviour
         string speakerName = line.speaker == SpeakerLevel3.Tribal ? "Guard" : "Ashford";
         dialogueUI.SetLine(speakerName, line.text);
 
-        // Voice
         AudioSource src = (line.speaker == SpeakerLevel3.Tribal) ? tribalVoiceSource : playerVoiceSource;
         float duration = Mathf.Max(0.2f, line.fallbackDuration);
 
@@ -311,7 +360,6 @@ public class SkullIslandIntroDialogueLevel3 : MonoBehaviour
             }
         }
 
-        // Wait OR Enter skip
         float t = 0f;
         while (t < duration)
         {
@@ -324,7 +372,6 @@ public class SkullIslandIntroDialogueLevel3 : MonoBehaviour
             yield return null;
         }
 
-        // Keep player talking on; tribal stops if not tribal
         SetTalkState(tribalTalking: false, playerTalking: true);
     }
 
