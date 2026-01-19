@@ -1,5 +1,5 @@
 using UnityEngine;
-
+using UnityEngine.SceneManagement;
 public class TransitionToRunningScene : MonoBehaviour
 {
     [Header("Settings")]
@@ -31,7 +31,6 @@ public class TransitionToRunningScene : MonoBehaviour
     {
         Debug.Log("BOSS DEAD");
 
-        // FUTURE STEP: Trigger your scene transition or running sequence here
-        // Example: SceneManager.LoadScene("RunningScene");
+        SceneManager.LoadScene("Running");
     }
 }
