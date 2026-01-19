@@ -13,11 +13,13 @@ MonoBehaviour:
   m_Name: Zoey
   m_EditorClassIdentifier: 
   itemId: zoey
-  displayName: ???
+  displayName: CAO ZIYU
   category: 1
-  description: zoey
+  description: "One of the creators of this game.\nCAO ZIYU:\"I\u2019m technically
+    an Easter Egg.\"\nCAO ZIYU (EEE2209276)"
   stackable: 0
   maxStack: 99
+  initialAmount: 1
   isConsumable: 0
   healAmount: 0
   inspectPrefab: {fileID: 919132149155446097, guid: 290d6fa6b6c628d4d9e15a6f50143b86, type: 3}
