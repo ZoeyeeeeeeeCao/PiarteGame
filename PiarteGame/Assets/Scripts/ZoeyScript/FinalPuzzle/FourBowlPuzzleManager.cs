@@ -9,10 +9,22 @@ public class FourBowlPuzzleManager : MonoBehaviour
     public Animator doorAnimator;
     public string doorOpenBool = "DoorOpen";
 
+    [Header("Compass Integration")]
+    [Tooltip("If true, hides all active markers when puzzle complete")]
+    public bool hideAllMarkersOnComplete = true;
+    public Compass compass;
+
     [Header("Debug")]
     public bool debugLog;
 
-    bool puzzleCompleted;
+    private bool puzzleCompleted;
+
+    private void Awake()
+    {
+        // Auto-find compass if not assigned
+        if (compass == null)
+            compass = FindObjectOfType<Compass>();
+    }
 
     void Update()
     {
@@ -27,7 +39,6 @@ public class FourBowlPuzzleManager : MonoBehaviour
                 if (debugLog) Debug.LogWarning("[Puzzle] zones has a null reference.");
                 return;
             }
-
             if (!zones[i].IsSolved)
                 return;
         }
@@ -41,5 +52,12 @@ public class FourBowlPuzzleManager : MonoBehaviour
             doorAnimator.SetBool(doorOpenBool, true);
         else
             Debug.LogWarning("[Puzzle] doorAnimator is not assigned.");
+
+        // ✅ Hide all active compass markers when puzzle complete
+        if (compass != null && hideAllMarkersOnComplete)
+        {
+            compass.HideAllMarkers();
+            if (debugLog) Debug.Log("[Puzzle] All compass markers hidden");
+        }
     }
 }

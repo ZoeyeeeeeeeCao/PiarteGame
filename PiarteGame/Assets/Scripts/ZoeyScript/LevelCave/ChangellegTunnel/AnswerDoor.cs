@@ -1,13 +1,13 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 
 public class AnswerDoor : MonoBehaviour
 {
     [Header("Trigger & Interact")]
     public string playerTag = "Player";
-    public KeyCode interactKey = KeyCode.E; // ¿¿½ü°´E£º´ò¿ªÑ¡ÏîUI£¨²»×ö×îÖÕÑ¡Ôñ£©
+    public KeyCode interactKey = KeyCode.E;
 
     [Header("Hint UI (World Space)")]
-    public GameObject hintCanvas; // ÍÏÃÅÇ°ÃæµÄWorld SpaceÌáÊ¾Canvas£¨Ö»¸ºÔğÏÔÊ¾/Òş²Ø£©
+    public GameObject hintCanvas;
 
     [Header("Answer UI Text (Shown on Screen Space AnswerCanvas)")]
     [TextArea(4, 10)]
@@ -20,21 +20,34 @@ public class AnswerDoor : MonoBehaviour
     public bool isCorrectDoor = true;
 
     [Header("Correct Door - Animator")]
-    public Animator doorAnimator;                 // ÕıÈ·ÃÅÍÏ Animator
-    public string openTriggerName = "AnswerDoorOpen"; // AnimatorÀïTrigger²ÎÊıÃû
+    public Animator doorAnimator;
+    public string openTriggerName = "AnswerDoorOpen";
 
     [Header("Wrong Door - Destroy Target")]
-    public GameObject objectToDestroy;            // ´íÃÅ°´7Ê±Ïú»ÙµÄÎïÌå
+    public GameObject objectToDestroy;
 
     [Header("Lock After Proceed")]
-    public bool lockAfterProceed = true;          // °´7ºóÊÇ·ñËø¶¨ÕâÉÈÃÅ£¨·ÀÖ¹ÖØ¸´´¥·¢£©
-    private bool hasProceeded = false;
+    public bool lockAfterProceed = true;
 
+    [Header("Compass Integration")]
+    [Tooltip("Hide this marker when player reaches door")]
+    public string doorMarkerToHide = "answer_door";
+
+    [Tooltip("This will be handled by AfterDoorTrigger instead")]
+    public bool dontShowNextMarker = true;
+
+    public Compass compass;
+
+    private bool hasProceeded = false;
     private bool playerInside = false;
 
     private void Start()
     {
         SetHint(false);
+
+        // Auto-find compass
+        if (compass == null)
+            compass = FindObjectOfType<Compass>();
     }
 
     private void Update()
@@ -42,24 +55,20 @@ public class AnswerDoor : MonoBehaviour
         if (!playerInside) return;
         if (AnswerUIManager.Instance == null) return;
 
-        // Èç¹ûÒÑ¾­×îÖÕÑ¡Ôñ²¢Ëø¶¨£º²»ÔÙÌáÊ¾¡¢²»ÔÙ½»»¥
         if (hasProceeded && lockAfterProceed)
         {
             SetHint(false);
             return;
         }
 
-        // Èç¹ûÆÁÄ»´ğ°¸UIÕıÔÚÏÔÊ¾£ºÒş²ØÊÀ½çÌáÊ¾£¬±ÜÃâµşUI
         if (AnswerUIManager.Instance.IsShowing)
         {
             SetHint(false);
             return;
         }
 
-        // ¿É½»»¥£ºÏÔÊ¾ÌáÊ¾
         SetHint(true);
 
-        // °´E£ºÖ»ÊÇ´ò¿ªÑ¡ÏîUI£¨²»ÊÇ×îÖÕÑ¡Ôñ£©
         if (Input.GetKeyDown(interactKey))
         {
             AnswerUIManager.Instance.Show(this);
@@ -70,8 +79,16 @@ public class AnswerDoor : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         if (!other.CompareTag(playerTag)) return;
-
         playerInside = true;
+
+        // âœ… Hide door marker when player reaches it
+        if (compass != null && !string.IsNullOrEmpty(doorMarkerToHide))
+        {
+            compass.HideMarker(doorMarkerToHide);
+            Debug.Log($"[AnswerDoor] Player reached door, hiding marker: {doorMarkerToHide}");
+        }
+
+        // Note: Next marker will be shown by AfterDoorTrigger instead
 
         if (!(hasProceeded && lockAfterProceed))
             SetHint(true);
@@ -80,7 +97,6 @@ public class AnswerDoor : MonoBehaviour
     private void OnTriggerExit(Collider other)
     {
         if (!other.CompareTag(playerTag)) return;
-
         playerInside = false;
         SetHint(false);
     }
@@ -90,11 +106,9 @@ public class AnswerDoor : MonoBehaviour
         if (hintCanvas) hintCanvas.SetActive(show);
     }
 
-    // UIÀï°´7Ê±µ÷ÓÃ£¨×îÖÕÈ·ÈÏÑ¡ÔñÕâ¸öÃÅ£©
     public void ConfirmProceed()
     {
         if (hasProceeded && lockAfterProceed) return;
-
         hasProceeded = true;
         SetHint(false);
 
@@ -116,9 +130,8 @@ public class AnswerDoor : MonoBehaviour
             {
                 var rev = objectToDestroy.GetComponent<RevertibleObject>();
                 if (rev != null) rev.FakeDestroy();
-                else objectToDestroy.SetActive(false); // ×îÉÙ±ğDestroy
+                else objectToDestroy.SetActive(false);
             }
-
             else
             {
                 Debug.LogWarning($"{name}: Wrong door missing objectToDestroy.");

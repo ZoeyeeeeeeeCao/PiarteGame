@@ -38,13 +38,31 @@ public class QuestFinalSceneManager : MonoBehaviour
     [Tooltip("If true, only replace once even if OpenDoor is called again.")]
     public bool replaceOnlyOnce = true;
 
+    [Header("Compass Integration")]
+    [Tooltip("Reference to Compass component")]
+    public Compass compass;
+
+    [Header("Compass Marker IDs")]
+    public string godCaveMarkerID = "god_cave";
+    public string[] brazierMarkerIDs = new string[]
+    {
+        "brazier_1", "brazier_2", "brazier_3",
+        "brazier_4", "brazier_5", "brazier_6"
+    };
+    public string npcMarkerID = "npc_return";
+    public string beforeDoorMarkerID = "before_answer_door";
+    public string doorMarkerID = "answer_door";
+    public string afterDoorMarkerID = "after_answer_door";
+
     [Header("Optional Debug")]
     public bool logProgress = true;
 
     public event Action OnQuestUIChanged;
-    public event Action OnDoorOpened; // CameraCut can subscribe this
+    public event Action OnDoorOpened;
+    public event Action<int> OnBrazierLitWithIndex; // New: sends brazier index
 
-    private bool replaced; // 防重复
+    private bool replaced;
+    private bool[] brazierWasLit; // Track which braziers were already lit
 
     private void Awake()
     {
@@ -55,7 +73,23 @@ public class QuestFinalSceneManager : MonoBehaviour
         }
         Instance = this;
 
+        // Initialize brazier tracking
+        if (braziers != null && braziers.Count > 0)
+        {
+            brazierWasLit = new bool[braziers.Count];
+        }
+
+        // Auto-find compass if not assigned
+        if (compass == null)
+            compass = FindObjectOfType<Compass>();
+
         NotifyUI();
+    }
+
+    private void Start()
+    {
+        // Initialize compass markers based on current stage
+        UpdateCompassMarkers();
     }
 
     private void NotifyUI()
@@ -106,6 +140,14 @@ public class QuestFinalSceneManager : MonoBehaviour
         currentStage = Stage.NeedTalkToNpcToStart;
 
         if (logProgress) Debug.Log("Objective complete: Find the God -> Talk to NPC");
+
+        // ✅ Step 2: Remove god cave marker (will show braziers when NPC starts quest)
+        if (compass != null)
+        {
+            compass.HideMarker(godCaveMarkerID);
+            if (logProgress) Debug.Log("[Compass] God cave marker removed");
+        }
+
         NotifyUI();
     }
 
@@ -115,14 +157,37 @@ public class QuestFinalSceneManager : MonoBehaviour
         if (brazier == null) return;
         if (braziers == null || !braziers.Contains(brazier)) return;
 
+        // Find which brazier was lit
+        int brazierIndex = braziers.IndexOf(brazier);
+
         if (logProgress)
             Debug.Log($"Brazier lit: {LitCount}/{TotalCount}");
 
+        // ✅ Step 3: Hide this specific brazier's marker
+        if (compass != null && brazierIndex >= 0 && brazierIndex < brazierMarkerIDs.Length)
+        {
+            if (!brazierWasLit[brazierIndex]) // Only hide once
+            {
+                compass.HideMarker(brazierMarkerIDs[brazierIndex]);
+                brazierWasLit[brazierIndex] = true;
+                if (logProgress) Debug.Log($"[Compass] Brazier {brazierIndex + 1} marker removed");
+            }
+        }
+
+        OnBrazierLitWithIndex?.Invoke(brazierIndex);
         NotifyUI();
 
         if (AllBraziersLit())
         {
             currentStage = Stage.ReturnToNpc;
+
+            // ✅ Step 4: Show NPC marker when all braziers lit
+            if (compass != null)
+            {
+                compass.ShowMarker(npcMarkerID);
+                if (logProgress) Debug.Log("[Compass] NPC return marker shown");
+            }
+
             if (logProgress) Debug.Log("All braziers lit! Return to NPC.");
             NotifyUI();
         }
@@ -133,6 +198,21 @@ public class QuestFinalSceneManager : MonoBehaviour
         if (currentStage != Stage.NeedTalkToNpcToStart) return;
 
         currentStage = Stage.LightAllBraziers;
+
+        // ✅ Step 2: Show all brazier markers
+        if (compass != null)
+        {
+            for (int i = 0; i < Mathf.Min(brazierMarkerIDs.Length, braziers.Count); i++)
+            {
+                // Only show markers for unlit braziers
+                if (braziers[i] != null && !braziers[i].IsLit)
+                {
+                    compass.ShowMarker(brazierMarkerIDs[i]);
+                }
+            }
+            if (logProgress) Debug.Log("[Compass] All brazier markers shown");
+        }
+
         if (logProgress) Debug.Log("Quest started: Light all braziers.");
         NotifyUI();
     }
@@ -157,17 +237,63 @@ public class QuestFinalSceneManager : MonoBehaviour
 
         currentStage = Stage.DoorOpened;
 
-        // ✅ 在开门这一刻替换背包物品
         ReplaceInventoryMapToGlow();
 
         if (doorAnimator)
             doorAnimator.SetBool(doorOpenBool, true);
 
+        // ✅ Step 5: Hide NPC marker, show "before door" marker
+        if (compass != null)
+        {
+            compass.HideMarker(npcMarkerID);
+            compass.ShowMarker(beforeDoorMarkerID);
+            if (logProgress) Debug.Log("[Compass] Before-door marker shown, NPC marker removed");
+        }
+
         if (logProgress) Debug.Log("Door opened!");
 
         NotifyUI();
+        OnDoorOpened?.Invoke();
+    }
 
-        OnDoorOpened?.Invoke(); // trigger camera cut etc.
+    private void UpdateCompassMarkers()
+    {
+        if (compass == null) return;
+
+        // Update markers based on current stage (useful for scene reload)
+        switch (currentStage)
+        {
+            case Stage.FindTheGod:
+                // Step 1: Show god cave marker
+                compass.ShowMarker(godCaveMarkerID);
+                break;
+
+            case Stage.NeedTalkToNpcToStart:
+                // Waiting for NPC interaction
+                compass.HideAllMarkers();
+                break;
+
+            case Stage.LightAllBraziers:
+                // Show unlit brazier markers
+                for (int i = 0; i < Mathf.Min(brazierMarkerIDs.Length, braziers.Count); i++)
+                {
+                    if (braziers[i] != null && !braziers[i].IsLit)
+                    {
+                        compass.ShowMarker(brazierMarkerIDs[i]);
+                    }
+                }
+                break;
+
+            case Stage.ReturnToNpc:
+                // Step 4: Show NPC marker
+                compass.ShowMarker(npcMarkerID);
+                break;
+
+            case Stage.DoorOpened:
+                // Step 5: Show before-door marker
+                compass.ShowMarker(beforeDoorMarkerID);
+                break;
+        }
     }
 
     private void ReplaceInventoryMapToGlow()
@@ -182,15 +308,12 @@ public class QuestFinalSceneManager : MonoBehaviour
 
         int amt = Mathf.Max(1, replaceAmount);
 
-        // 如果玩家没有旧地图，也可以选择直接给新地图（这里按“没有就不替换”，你想改我也能改）
         if (!StaticInventory.Has(oldMapItem, amt))
         {
             if (logProgress) Debug.LogWarning($"[QuestFinalSceneManager] Player does not have {oldMapItem.displayName} x{amt}. Skip replacement.");
             return;
         }
 
-        // ✅ 事务式替换：先移除旧的 -> 再添加新的
-        // 如果添加失败，回滚把旧的加回去，避免背包丢物品
         bool removed = StaticInventory.Remove(oldMapItem, amt);
         if (!removed)
         {
@@ -201,7 +324,6 @@ public class QuestFinalSceneManager : MonoBehaviour
         bool added = StaticInventory.Add(newGlowMapItem, amt);
         if (!added)
         {
-            // 回滚
             StaticInventory.Add(oldMapItem, amt);
             if (logProgress) Debug.LogWarning($"[QuestFinalSceneManager] Add glow map failed. Rolled back old map.");
             return;
