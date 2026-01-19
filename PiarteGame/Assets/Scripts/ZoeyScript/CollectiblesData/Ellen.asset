@@ -15,7 +15,8 @@ MonoBehaviour:
   itemId: ellen
   displayName: ???
   category: 1
-  description: ellen
+  description: "One of the creators of this game.\nEllen:\"Turns out I\u2019m part
+    of the game.\"\nEllen"
   stackable: 0
   maxStack: 99
   initialAmount: 1

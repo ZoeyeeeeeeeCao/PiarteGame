@@ -13,9 +13,10 @@ MonoBehaviour:
   m_Name: Zoey
   m_EditorClassIdentifier: 
   itemId: zoey
-  displayName: ???
+  displayName: CAO ZIYU
   category: 1
-  description: zoey
+  description: "One of the creators of this game.\nCAO ZIYU:\"I\u2019m technically
+    an Easter Egg.\"\nCAO ZIYU (EEE2209276)"
   stackable: 0
   maxStack: 99
   initialAmount: 1

@@ -15,7 +15,12 @@ MonoBehaviour:
   itemId: howard
   displayName: ???
   category: 1
-  description: howard
+  description: 'One of the creators of this game.
+
+    Howard:"Now I know how the
+    items feel."
+
+    Howard'
   stackable: 0
   maxStack: 99
   initialAmount: 1

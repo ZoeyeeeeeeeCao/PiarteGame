@@ -15,7 +15,12 @@ MonoBehaviour:
   itemId: celyne
   displayName: ???
   category: 1
-  description: celyne
+  description: 'One of the creators of this game.
+
+    Breaking the fourth wall,
+    just for you.
+
+    Celyne'
   stackable: 0
   maxStack: 99
   initialAmount: 1

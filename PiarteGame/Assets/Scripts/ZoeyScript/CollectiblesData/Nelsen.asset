@@ -15,7 +15,12 @@ MonoBehaviour:
   itemId: nelsen
   displayName: ???
   category: 1
-  description: nelsen
+  description: 'One of the creators of this game.
+
+    Nelsen:"Apparently, developers
+    are collectibles now."
+
+    Nelsen'
   stackable: 0
   maxStack: 99
   initialAmount: 1
