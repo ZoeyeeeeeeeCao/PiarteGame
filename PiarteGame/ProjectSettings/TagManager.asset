@@ -17,6 +17,7 @@ TagManager:
   - GravewindStone
   - EnemyDamage
   - Obstacle
+  - StairsZone
   layers:
   - Default
   - TransparentFX
