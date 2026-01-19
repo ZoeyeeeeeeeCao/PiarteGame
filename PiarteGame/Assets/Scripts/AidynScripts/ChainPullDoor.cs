@@ -387,7 +387,7 @@ public class ChainPullDoor : MonoBehaviour
         if (cachedCC != null)
         {
             ccWasEnabled = cachedCC.enabled;
-            // do NOT disable CC on enter anymore — only when interaction starts
+            // do NOT disable CC on enter anymore ?only when interaction starts
         }
 
         SetUI(true);          // show small "P" hint immediately
