@@ -14305,7 +14305,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5854a3561f76e24449f8a2e2c270527b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  audioMixer: {fileID: 0}
+  audioManager: {fileID: 0}
   pauseMenuCanvas: {fileID: 2723686517062298686}
   settingsPanel: {fileID: 3836640631889760320}
   mainButtons: {fileID: 0}
@@ -14319,7 +14319,7 @@ MonoBehaviour:
   backButton: {fileID: 860522988451331468}
   masterVolumeSlider: {fileID: 7191012791817386301}
   sfxVolumeSlider: {fileID: 2224073273646525348}
-  bgmVolumeSlider: {fileID: 3492483922134393863}
+  musicVolumeSlider: {fileID: 0}
   mouseSensitivitySlider: {fileID: 7798369969723699391}
   brightnessSlider: {fileID: 5671777706421903062}
   mainMenuSceneName: MainMenu
@@ -24142,6 +24142,10 @@ PrefabInstance:
     - target: {fileID: 1020103400239337491, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
       propertyPath: m_Name
       value: Player's HUD
+      objectReference: {fileID: 0}
+    - target: {fileID: 1020103400239337491, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7622673159634153883, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
       propertyPath: m_Pivot.x
