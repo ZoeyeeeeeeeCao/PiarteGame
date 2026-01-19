@@ -1814,7 +1814,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: -0.0008478121}
+  m_AnchoredPosition: {x: 0, y: -0.00015247642}
   m_SizeDelta: {x: 0, y: 802.7127}
   m_Pivot: {x: 0, y: 1}
 --- !u!1 &1616745164952911787
@@ -2782,7 +2782,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 0.33962262, g: 0.33962262, b: 0.33962262, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -5383,15 +5383,15 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3035561487057845852}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalRotation: {x: 0, y: 0.6097025, z: 0, w: 0.7926303}
+  m_LocalPosition: {x: -19.1, y: 0.393, z: -3.21}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7668396761015259288}
   - {fileID: 4850329355394394914}
   m_Father: {fileID: 1254839621562173614}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 75.136, z: 0}
 --- !u!114 &379438625502565633
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5875,10 +5875,10 @@ MonoBehaviour:
   ropeRadius: 0.025
   ropeMaterial: {fileID: 2100000, guid: 374be49d2aac21541a2db4a8700832ce, type: 2}
   ropeResolution: 50
-  ropeLength: 10
+  ropeLength: 30
   ropeWidth: 0.1
   dampening: 0.5
-  throwHeight: 1
+  throwHeight: 30
   throwDuration: 0.5
   swingForce: 4
   swingRotationSpeed: 100
@@ -6362,7 +6362,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 0.33962262, g: 0.33962262, b: 0.33962262, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -6497,7 +6497,7 @@ AudioSource:
   m_GameObject: {fileID: 3166569676712357249}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: 749164535128574521, guid: ef92c20924e21cd47b5b2e4896410471, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 0}
   m_PlayOnAwake: 1
@@ -10780,7 +10780,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: -0.00058619626}
+  m_AnchoredPosition: {x: 0, y: -0.0010502884}
   m_SizeDelta: {x: 0, y: 3397.4065}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &381945424430782320
@@ -12471,8 +12471,8 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 5497062217308974462}
   m_HandleRect: {fileID: 624819855198024546}
   m_Direction: 2
-  m_Value: 1.0000073
-  m_Size: 0.84230626
+  m_Value: 1.0000005
+  m_Size: 0.8423046
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -13178,7 +13178,13 @@ MonoBehaviour:
   rowPrefab: {fileID: -8672556532286367781, guid: ffaae2d2f9eb53045beb087eb1149f0a, type: 3}
   detailPanel: {fileID: 1976288300001396175}
   inspectManager: {fileID: 8401413241973786853}
-  uiToDisableWhenInventoryOpen: {fileID: 0}
+  uiToDisableWhenInventoryOpen:
+  - {fileID: 0}
+  - {fileID: 1277312786367008400}
+  - {fileID: 4439125163183241361}
+  - {fileID: 9104719026067464613}
+  - {fileID: 2653191097355403895}
+  - {fileID: 1460361007676755546}
 --- !u!1 &6078936213379714534
 GameObject:
   m_ObjectHideFlags: 0
@@ -14319,11 +14325,18 @@ MonoBehaviour:
   backButton: {fileID: 860522988451331468}
   masterVolumeSlider: {fileID: 7191012791817386301}
   sfxVolumeSlider: {fileID: 2224073273646525348}
-  musicVolumeSlider: {fileID: 0}
+  musicVolumeSlider: {fileID: 3492483922134393863}
   mouseSensitivitySlider: {fileID: 7798369969723699391}
   brightnessSlider: {fileID: 5671777706421903062}
   mainMenuSceneName: MainMenu
   player: {fileID: 5384974478494153327}
+  uiToHideWhilePaused:
+  - {fileID: 1460361007676755546}
+  - {fileID: 0}
+  - {fileID: 1277312786367008400}
+  - {fileID: 4439125163183241361}
+  - {fileID: 9104719026067464613}
+  - {fileID: 2653191097355403895}
 --- !u!1 &6770316795914626421
 GameObject:
   m_ObjectHideFlags: 0
@@ -14706,7 +14719,14 @@ MonoBehaviour:
   textScaleTo: 1
   buttonFadeDelay: 0.5
   buttonFadeDuration: 1
-  pauseGame: 0
+  pauseGame: 1
+  uiToHideOnDeath:
+  - {fileID: 1277312786367008400}
+  - {fileID: 4439125163183241361}
+  - {fileID: 9104719026067464613}
+  - {fileID: 1277312786367008400}
+  - {fileID: 2653191097355403895}
+  - {fileID: 0}
   questCanvas: {fileID: 0}
   conversationCanvas: {fileID: 0}
   deathAudioSource: {fileID: 1688989993728423858}
@@ -23032,7 +23052,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 0.33962262, g: 0.33962262, b: 0.33962262, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -23351,8 +23371,8 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1079870899152227851}
   m_HandleRect: {fileID: 5875239307475891790}
   m_Direction: 2
-  m_Value: 1.0000002
-  m_Size: 0.22294945
+  m_Value: 1.0000004
+  m_Size: 0.22294912
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -23654,7 +23674,7 @@ AudioSource:
   m_GameObject: {fileID: 9002948237186215731}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: 24300002, guid: ef92c20924e21cd47b5b2e4896410471, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 0}
   m_PlayOnAwake: 1
@@ -24139,6 +24159,18 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1254839621562173614}
     m_Modifications:
+    - target: {fileID: 676651987084186459, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
+      propertyPath: m_Color.b
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 676651987084186459, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
+      propertyPath: m_Color.g
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 676651987084186459, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
+      propertyPath: m_Color.r
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1020103400239337491, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
       propertyPath: m_Name
       value: Player's HUD
@@ -24153,35 +24185,51 @@ PrefabInstance:
       objectReference: {fileID: 7668396761015259288}
     - target: {fileID: 5288879641449270210, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
       propertyPath: questPoints.Array.size
-      value: 7
+      value: 11
       objectReference: {fileID: 0}
     - target: {fileID: 5288879641449270210, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
       propertyPath: questPoints.Array.data[0].questID
-      value: TomasInteraction
+      value: godCave
       objectReference: {fileID: 0}
     - target: {fileID: 5288879641449270210, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
       propertyPath: questPoints.Array.data[1].questID
-      value: MariaInteraction
+      value: brazier1
       objectReference: {fileID: 0}
     - target: {fileID: 5288879641449270210, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
       propertyPath: questPoints.Array.data[2].questID
-      value: SilasInteraction
+      value: brazier2
       objectReference: {fileID: 0}
     - target: {fileID: 5288879641449270210, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
       propertyPath: questPoints.Array.data[3].questID
-      value: BrannInteraction
+      value: brazier3
       objectReference: {fileID: 0}
     - target: {fileID: 5288879641449270210, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
       propertyPath: questPoints.Array.data[4].questID
-      value: Explore_Area
+      value: brazier4
       objectReference: {fileID: 0}
     - target: {fileID: 5288879641449270210, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
       propertyPath: questPoints.Array.data[5].questID
-      value: FollowCart
+      value: brazier5
       objectReference: {fileID: 0}
     - target: {fileID: 5288879641449270210, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
       propertyPath: questPoints.Array.data[6].questID
-      value: ChiefLocation
+      value: brazier6
+      objectReference: {fileID: 0}
+    - target: {fileID: 5288879641449270210, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
+      propertyPath: questPoints.Array.data[7].questID
+      value: npcReturn
+      objectReference: {fileID: 0}
+    - target: {fileID: 5288879641449270210, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
+      propertyPath: questPoints.Array.data[8].questID
+      value: beforeAnswer
+      objectReference: {fileID: 0}
+    - target: {fileID: 5288879641449270210, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
+      propertyPath: questPoints.Array.data[9].questID
+      value: answerDoor
+      objectReference: {fileID: 0}
+    - target: {fileID: 5288879641449270210, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
+      propertyPath: questPoints.Array.data[10].questID
+      value: afterAnswer
       objectReference: {fileID: 0}
     - target: {fileID: 7622673159634153883, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
       propertyPath: m_Pivot.x
@@ -24315,6 +24363,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!1 &1460361007676755546 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2197415981439203186, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
+  m_PrefabInstance: {fileID: 737170492344285480}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &3600393802726279868 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4309346426809234324, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
