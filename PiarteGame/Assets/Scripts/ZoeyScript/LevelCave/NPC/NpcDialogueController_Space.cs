@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using TMPro;
 using System.Collections;
+using System.Collections.Generic;
 
 public class NpcDialogueController_Space_TMP : MonoBehaviour
 {
@@ -51,6 +52,14 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
     [Header("Typewriter")]
     public float charInterval = 0.03f;
 
+    // ✅ NEW: Disable other UI while dialogue is playing
+    [Header("Optional UI Lock (Hide While Talking)")]
+    [Tooltip("Drag any number of UI roots/Canvases you want to disable while dialogue is showing.")]
+    public List<GameObject> uiToDisableWhileTalking = new List<GameObject>();
+
+    // ✅ Cache initial states so we restore correctly
+    private readonly Dictionary<GameObject, bool> initialUIStates = new Dictionary<GameObject, bool>();
+
     int dialogueIndex;
     bool playerInRange;
     bool dialoguePlaying;
@@ -91,6 +100,42 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
         else
         {
             Debug.LogWarning($"[{name}] dialoguePanel is NULL. Slide animation won't work. Please assign the Panel RectTransform.");
+        }
+
+        CacheInitialUIStates();
+    }
+
+    void CacheInitialUIStates()
+    {
+        initialUIStates.Clear();
+        if (uiToDisableWhileTalking == null) return;
+
+        foreach (var go in uiToDisableWhileTalking)
+        {
+            if (!go) continue;
+            if (!initialUIStates.ContainsKey(go))
+                initialUIStates.Add(go, go.activeSelf);
+        }
+    }
+
+    void SetOtherUIActive(bool active)
+    {
+        if (uiToDisableWhileTalking == null) return;
+
+        foreach (var go in uiToDisableWhileTalking)
+        {
+            if (!go) continue;
+
+            if (active)
+            {
+                // Restore only if it was originally active
+                if (initialUIStates.TryGetValue(go, out bool wasActive) && wasActive)
+                    go.SetActive(true);
+            }
+            else
+            {
+                go.SetActive(false);
+            }
         }
     }
 
@@ -138,6 +183,9 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
         dialogueIndex = 0;
 
         if (pressEIndicator) pressEIndicator.SetActive(false);
+
+        // ✅ Disable other UI while talking
+        SetOtherUIActive(false);
 
         if (dialogueCanvas) dialogueCanvas.SetActive(true);
         ShowPanelAnimated(true);
@@ -256,6 +304,9 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
 
         ShowPanelAnimated(false);
 
+        // ✅ Restore other UI after dialogue ends
+        SetOtherUIActive(true);
+
         // task logic
         if (talkState == TalkState.First)
         {
@@ -310,8 +361,6 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
         if (!show)
         {
             dialoguePanel.gameObject.SetActive(false);
-
-            // If you want canvas off too after slide down:
             if (dialogueCanvas) dialogueCanvas.SetActive(false);
         }
     }

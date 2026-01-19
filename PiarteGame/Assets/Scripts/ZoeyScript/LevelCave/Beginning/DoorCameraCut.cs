@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class DoorCameraCut : MonoBehaviour
@@ -18,6 +19,14 @@ public class DoorCameraCut : MonoBehaviour
     [Tooltip("播放镜头时要临时禁用的脚本（如 ThirdPersonController）")]
     public MonoBehaviour[] disableDuringCut;
 
+    // ✅ NEW: Disable UI roots while cutscene plays
+    [Header("Optional UI Lock (Hide During Cut)")]
+    [Tooltip("Drag any number of UI roots/Canvases you want to disable during the camera cut.")]
+    public List<GameObject> uiToDisableDuringCut = new List<GameObject>();
+
+    // Cache original UI states
+    private readonly Dictionary<GameObject, bool> initialUIStates = new Dictionary<GameObject, bool>();
+
     [Header("Debug")]
     public bool debugLog = false;
 
@@ -29,6 +38,8 @@ public class DoorCameraCut : MonoBehaviour
     {
         // ✅ 门前相机开局必须关
         if (doorCamera) doorCamera.enabled = false;
+
+        CacheInitialUIStates();
     }
 
     private void OnEnable()
@@ -38,13 +49,46 @@ public class DoorCameraCut : MonoBehaviour
 
     private void Start()
     {
-        // ✅ 防执行顺序：Start 更晚，通常能拿到 Instance
         TrySubscribe();
     }
 
     private void OnDisable()
     {
         Unsubscribe();
+    }
+
+    void CacheInitialUIStates()
+    {
+        initialUIStates.Clear();
+        if (uiToDisableDuringCut == null) return;
+
+        foreach (var go in uiToDisableDuringCut)
+        {
+            if (!go) continue;
+            if (!initialUIStates.ContainsKey(go))
+                initialUIStates.Add(go, go.activeSelf);
+        }
+    }
+
+    void SetOtherUIActive(bool active)
+    {
+        if (uiToDisableDuringCut == null) return;
+
+        foreach (var go in uiToDisableDuringCut)
+        {
+            if (!go) continue;
+
+            if (active)
+            {
+                // Restore only if it was originally active
+                if (initialUIStates.TryGetValue(go, out bool wasActive) && wasActive)
+                    go.SetActive(true);
+            }
+            else
+            {
+                go.SetActive(false);
+            }
+        }
     }
 
     private void TrySubscribe()
@@ -87,8 +131,11 @@ public class DoorCameraCut : MonoBehaviour
             yield break;
         }
 
-        // ✅ 保存玩家相机原始渲染层（关键）
+        // ✅ 保存玩家相机原始渲染层
         originalPlayerMask = playerCamera.cullingMask;
+
+        // ✅ Disable UI during cut
+        SetOtherUIActive(false);
 
         // 禁用玩家控制（可选）
         if (disableDuringCut != null)
@@ -99,8 +146,6 @@ public class DoorCameraCut : MonoBehaviour
 
         // =============================
         // ✅ 切到门前镜头（不断声版本）
-        // 不关闭 playerCamera（AudioListener 还在）
-        // 只让 playerCamera 不渲染任何东西
         // =============================
         playerCamera.cullingMask = 0;
         doorCamera.enabled = true;
@@ -123,6 +168,9 @@ public class DoorCameraCut : MonoBehaviour
             for (int i = 0; i < disableDuringCut.Length; i++)
                 if (disableDuringCut[i]) disableDuringCut[i].enabled = true;
         }
+
+        // ✅ Restore UI after cut
+        SetOtherUIActive(true);
 
         playing = false;
     }

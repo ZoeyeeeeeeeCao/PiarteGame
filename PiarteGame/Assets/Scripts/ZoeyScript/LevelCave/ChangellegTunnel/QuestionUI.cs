@@ -1,11 +1,11 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 
 public class QuestionUI : MonoBehaviour
 {
     [Header("UI Root")]
-    [Tooltip("Canvas root. Can be active all the time; we will show/hide panel.")]
     public GameObject uiCanvas;
 
     [Tooltip("Drag the PANEL (RectTransform) you want to slide, NOT the Canvas.")]
@@ -32,8 +32,15 @@ public class QuestionUI : MonoBehaviour
     public float charInterval = 0.03f;
 
     [Header("Ignore These Colliders")]
-    [Tooltip("These colliders will be ignored by this trigger (won't show/hide UI). Drag the specific player colliders here.")]
     public Collider[] ignoredColliders;
+
+    // ✅ NEW: Multiple UI roots to disable while QuestionUI is showing
+    [Header("Optional UI Lock (Hide While Showing)")]
+    [Tooltip("Drag any number of UI roots / Canvases you want to disable while this Question UI is showing.")]
+    public List<GameObject> uiToDisableWhileShowing = new List<GameObject>();
+
+    // ✅ Cache original active states
+    private readonly Dictionary<GameObject, bool> initialUIStates = new Dictionary<GameObject, bool>();
 
     bool playerInside;
     bool hasProceeded;
@@ -46,7 +53,6 @@ public class QuestionUI : MonoBehaviour
 
     void Start()
     {
-        // Initial UI state
         if (uiCanvas) uiCanvas.SetActive(false);
 
         if (uiPanel)
@@ -56,7 +62,44 @@ public class QuestionUI : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning($"[{name}] uiPanel is NULL. Slide will not work. Please assign a Panel RectTransform.");
+            Debug.LogWarning($"[{name}] uiPanel is NULL.");
+        }
+
+        CacheInitialUIStates();
+    }
+
+    void CacheInitialUIStates()
+    {
+        initialUIStates.Clear();
+
+        if (uiToDisableWhileShowing == null) return;
+
+        foreach (var go in uiToDisableWhileShowing)
+        {
+            if (!go) continue;
+            if (!initialUIStates.ContainsKey(go))
+                initialUIStates.Add(go, go.activeSelf);
+        }
+    }
+
+    void SetOtherUIActive(bool active)
+    {
+        if (uiToDisableWhileShowing == null) return;
+
+        foreach (var go in uiToDisableWhileShowing)
+        {
+            if (!go) continue;
+
+            if (active)
+            {
+                // Restore only if it was originally active
+                if (initialUIStates.TryGetValue(go, out bool wasActive) && wasActive)
+                    go.SetActive(true);
+            }
+            else
+            {
+                go.SetActive(false);
+            }
         }
     }
 
@@ -81,9 +124,9 @@ public class QuestionUI : MonoBehaviour
     {
         if (ignoredColliders == null) return false;
 
-        for (int i = 0; i < ignoredColliders.Length; i++)
+        foreach (var c in ignoredColliders)
         {
-            if (ignoredColliders[i] == col)
+            if (c == col)
                 return true;
         }
 
@@ -118,17 +161,17 @@ public class QuestionUI : MonoBehaviour
 
         if (uiCanvas) uiCanvas.SetActive(true);
 
-        // Pause + cursor
+        // ✅ Disable other UI
+        SetOtherUIActive(false);
+
         ApplyPause(true);
 
-        // Set text (typewriter)
         if (messageText)
         {
             if (typeRoutine != null) StopCoroutine(typeRoutine);
             typeRoutine = StartCoroutine(TypeText(message));
         }
 
-        // Slide up
         ShowPanelAnimated(true);
     }
 
@@ -136,29 +179,25 @@ public class QuestionUI : MonoBehaviour
     {
         showing = false;
 
-        // Stop typing
         if (typeRoutine != null) StopCoroutine(typeRoutine);
         typing = false;
 
-        // Slide down then close
         ShowPanelAnimated(false);
 
-        // Resume + cursor back
         ApplyPause(false);
+
+        // ✅ Restore other UI
+        SetOtherUIActive(true);
     }
 
     void Proceed()
     {
         hasProceeded = true;
-
         Debug.Log("Proceed pressed");
 
         HideUI();
 
-        // TODO: Add your follow-up logic here, e.g.:
-        // SceneManager.LoadScene(...)
-        // doorAnimator.SetBool(...)
-        // Timeline.Play()
+        // Your follow-up logic here
     }
 
     IEnumerator TypeText(string line)

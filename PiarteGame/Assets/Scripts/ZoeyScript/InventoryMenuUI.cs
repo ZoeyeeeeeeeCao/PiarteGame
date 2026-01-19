@@ -14,7 +14,7 @@ public class InventoryMenuUI : MonoBehaviour
     [Header("Column Buttons")]
     public Button herbsButton;
     public Button stonesButton;
-    public Button mapsButton; // optional
+    public Button mapsButton; // 可选，不用可以不拖
 
     [Header("Column Highlight")]
     public Color normalColor = new Color(1f, 1f, 1f, 0.25f);
@@ -30,16 +30,16 @@ public class InventoryMenuUI : MonoBehaviour
     [Header("Inspect (optional but recommended)")]
     public InspectManager inspectManager;
 
-    // ✅ UPDATED: Support multiple UI roots to hide while inventory is open
+    // ⭐ NEW: List of UI roots to hide while inventory is open
     [Header("Optional UI Lock (Hide While Inventory Open)")]
-    [Tooltip("Drag any number of UI roots/Canvases you want to disable when the inventory is open.")]
-    public List<GameObject> uiToDisableWhenInventoryOpen = new List<GameObject>();
+    [Tooltip("Any UI roots/canvases you want disabled when inventory opens (HUD, minimap, prompts, etc).")]
+    public List<GameObject> uiToDisableWhenInventoryOpen = new();
 
-    // ✅ Cache initial active states for correct restore
-    private readonly Dictionary<GameObject, bool> initialUIActiveStates = new Dictionary<GameObject, bool>();
+    // ⭐ NEW: Cache each UI's previous active state so we restore correctly
+    private bool[] _uiPrevActiveStates;
 
     PickUpItemCategory currentCategory = PickUpItemCategory.Herbs;
-    readonly List<GameObject> spawnedRows = new List<GameObject>();
+    readonly List<GameObject> spawnedRows = new();
 
     void OnEnable()
     {
@@ -56,13 +56,10 @@ public class InventoryMenuUI : MonoBehaviour
         if (windowRoot) windowRoot.SetActive(false);
         if (detailPanel) detailPanel.Hide();
 
-        // ✅ Initialize initial items
+        // ✅ 初始化初始量（你之前要求的）
         StaticInventory.InitializeFromDatabase(database);
 
-        // ✅ Cache initial active states for all UI roots
-        CacheInitialUIStates();
-
-        // Ensure detail panel has inspect manager
+        // Make sure detail panel has the inspect manager reference
         if (detailPanel && detailPanel.inspectManager == null)
             detailPanel.inspectManager = inspectManager;
 
@@ -89,52 +86,11 @@ public class InventoryMenuUI : MonoBehaviour
         }
     }
 
-    void CacheInitialUIStates()
-    {
-        initialUIActiveStates.Clear();
-
-        if (uiToDisableWhenInventoryOpen == null) return;
-
-        for (int i = 0; i < uiToDisableWhenInventoryOpen.Count; i++)
-        {
-            var go = uiToDisableWhenInventoryOpen[i];
-            if (!go) continue;
-
-            // Avoid duplicates
-            if (!initialUIActiveStates.ContainsKey(go))
-                initialUIActiveStates.Add(go, go.activeSelf);
-        }
-    }
-
-    void SetOtherUIActive(bool active)
-    {
-        if (uiToDisableWhenInventoryOpen == null) return;
-
-        for (int i = 0; i < uiToDisableWhenInventoryOpen.Count; i++)
-        {
-            var go = uiToDisableWhenInventoryOpen[i];
-            if (!go) continue;
-
-            if (active)
-            {
-                // Restore only if it was originally active
-                if (initialUIActiveStates.TryGetValue(go, out bool wasActive) && wasActive)
-                    go.SetActive(true);
-            }
-            else
-            {
-                // Disable regardless (if it's already off, no harm)
-                go.SetActive(false);
-            }
-        }
-    }
-
     void OpenUI()
     {
         if (windowRoot) windowRoot.SetActive(true);
 
-        // ✅ Hide multiple UI roots while inventory is open
-        SetOtherUIActive(false);
+        HideBlockedUI();
 
         Time.timeScale = 0f;
         Cursor.lockState = CursorLockMode.None;
@@ -148,6 +104,7 @@ public class InventoryMenuUI : MonoBehaviour
     {
         if (windowRoot) windowRoot.SetActive(false);
 
+        // Stop inspection if it was open
         if (inspectManager) inspectManager.Hide();
 
         Time.timeScale = 1f;
@@ -156,8 +113,60 @@ public class InventoryMenuUI : MonoBehaviour
 
         if (detailPanel) detailPanel.Hide();
 
-        // ✅ Restore multiple UI roots to original state
-        SetOtherUIActive(true);
+        RestoreBlockedUI();
+    }
+
+    // =========================
+    // Hide / Restore list of UI
+    // =========================
+    private void HideBlockedUI()
+    {
+        if (uiToDisableWhenInventoryOpen == null || uiToDisableWhenInventoryOpen.Count == 0)
+            return;
+
+        _uiPrevActiveStates = new bool[uiToDisableWhenInventoryOpen.Count];
+
+        for (int i = 0; i < uiToDisableWhenInventoryOpen.Count; i++)
+        {
+            var go = uiToDisableWhenInventoryOpen[i];
+            if (go == null)
+            {
+                _uiPrevActiveStates[i] = false;
+                continue;
+            }
+
+            _uiPrevActiveStates[i] = go.activeSelf;
+
+            // Only disable if it was enabled
+            if (go.activeSelf)
+                go.SetActive(false);
+        }
+    }
+
+    private void RestoreBlockedUI()
+    {
+        if (uiToDisableWhenInventoryOpen == null || uiToDisableWhenInventoryOpen.Count == 0)
+            return;
+
+        // If not cached (or list size changed), safest fallback: enable them
+        if (_uiPrevActiveStates == null || _uiPrevActiveStates.Length != uiToDisableWhenInventoryOpen.Count)
+        {
+            for (int i = 0; i < uiToDisableWhenInventoryOpen.Count; i++)
+            {
+                var go = uiToDisableWhenInventoryOpen[i];
+                if (go != null) go.SetActive(true);
+            }
+            return;
+        }
+
+        for (int i = 0; i < uiToDisableWhenInventoryOpen.Count; i++)
+        {
+            var go = uiToDisableWhenInventoryOpen[i];
+            if (go == null) continue;
+
+            // Restore exactly what it was before inventory opened
+            go.SetActive(_uiPrevActiveStates[i]);
+        }
     }
 
     void SetCategory(PickUpItemCategory cat)
@@ -191,8 +200,8 @@ public class InventoryMenuUI : MonoBehaviour
     {
         if (!database || !contentRoot || !rowPrefab) return;
 
-        for (int i = 0; i < spawnedRows.Count; i++)
-            if (spawnedRows[i]) Destroy(spawnedRows[i]);
+        foreach (var go in spawnedRows)
+            if (go) Destroy(go);
         spawnedRows.Clear();
 
         foreach (var item in database.items)

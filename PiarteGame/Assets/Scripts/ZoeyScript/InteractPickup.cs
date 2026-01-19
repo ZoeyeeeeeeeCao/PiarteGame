@@ -38,6 +38,7 @@ public class InteractPickup : MonoBehaviour
 
             if (!ok)
             {
+                TryPickup();
                 Debug.Log($"Pickup failed (rule blocked / full): {item?.displayName}");
                 return;
             }
@@ -46,7 +47,20 @@ public class InteractPickup : MonoBehaviour
             Destroy(gameObject);
         }
     }
+    public bool TryPickup()
+    {
+        bool ok = StaticInventory.Add(item, amount);
 
+        if (!ok)
+        {
+            Debug.Log($"Pickup failed (rule blocked / full): {item?.displayName}");
+            return false;
+        }
+
+        if (hintUI) hintUI.SetActive(false);
+        Destroy(gameObject);
+        return true;
+    }
     private void OnTriggerEnter(Collider other)
     {
         if (!other.CompareTag(playerTag)) return;
