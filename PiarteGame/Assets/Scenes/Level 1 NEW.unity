@@ -9208,7 +9208,7 @@ Material:
     - _ShadowColor: {r: 0, g: 0, b: 0, a: 1}
     - _ShadowIntensity: {r: 5.13, g: -4.13, b: 0, a: 0}
     - _ToLightDir: {r: 0.34361604, g: 0.86016715, b: 0.3768827, a: 0}
-    - _WindDirection: {r: 0.25860235, g: 0.17240156, b: 0, a: 0}
+    - _WindDirection: {r: 0.89134365, g: 0.5942289, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
 --- !u!4 &135145773 stripped
@@ -15380,6 +15380,7 @@ MonoBehaviour:
   compass: {fileID: 1626011512}
   compassQuestID: TomasInteraction
   hideMarkerOnComplete: 1
+  missionManager: {fileID: 1602694280}
 --- !u!95 &172433208 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 95066430432270582, guid: 7d110d041610e064482565d6f73c82ca, type: 3}
@@ -21402,6 +21403,8 @@ MonoBehaviour:
   enemyAnimationOverride: {fileID: 22100000, guid: 9a3dc51969c4fd543a5bcf09772c38e5, type: 2}
   agent: {fileID: 199756296}
   healthController: {fileID: 199756297}
+  attackTrail: {fileID: 0}
+  swordHitboxObject: {fileID: 0}
   isSpawning: 0
 --- !u!195 &199756296
 NavMeshAgent:
@@ -21480,6 +21483,9 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+  OnHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!95 &199756298 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 2364181186230523343, guid: ff80d3a0647060647a34ae95ba26c892, type: 3}
@@ -36527,6 +36533,7 @@ MonoBehaviour:
   compass: {fileID: 1626011512}
   compassQuestID: BrannInteraction
   hideMarkerOnComplete: 1
+  missionManager: {fileID: 1602694280}
 --- !u!95 &348008247 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 4100336566119743106, guid: c622c8200a19d784182e1b4e119cd26a, type: 3}
@@ -44895,6 +44902,8 @@ MonoBehaviour:
   enemyAnimationOverride: {fileID: 22100000, guid: 9a3dc51969c4fd543a5bcf09772c38e5, type: 2}
   agent: {fileID: 433589727}
   healthController: {fileID: 433589728}
+  attackTrail: {fileID: 0}
+  swordHitboxObject: {fileID: 0}
   isSpawning: 0
 --- !u!195 &433589727
 NavMeshAgent:
@@ -44973,6 +44982,9 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+  OnHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1001 &434998296
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -52050,6 +52062,8 @@ MonoBehaviour:
   enemyAnimationOverride: {fileID: 22100000, guid: 6332346bb898c094b97f93d138a232fc, type: 2}
   agent: {fileID: 488937729}
   healthController: {fileID: 488937730}
+  attackTrail: {fileID: 0}
+  swordHitboxObject: {fileID: 0}
   isSpawning: 0
 --- !u!195 &488937729
 NavMeshAgent:
@@ -52128,6 +52142,9 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+  OnHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!95 &488937731 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 1172300169969955962, guid: 39c1b5d479a1d2d4a84bfb8d55a630e4, type: 3}
@@ -72885,6 +72902,8 @@ MonoBehaviour:
   enemyAnimationOverride: {fileID: 22100000, guid: 9a3dc51969c4fd543a5bcf09772c38e5, type: 2}
   agent: {fileID: 862138775}
   healthController: {fileID: 862138776}
+  attackTrail: {fileID: 0}
+  swordHitboxObject: {fileID: 0}
   isSpawning: 0
 --- !u!195 &862138775
 NavMeshAgent:
@@ -72963,6 +72982,9 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+  OnHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!95 &862138777 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 2364181186230523343, guid: ff80d3a0647060647a34ae95ba26c892, type: 3}
@@ -76021,6 +76043,7 @@ MonoBehaviour:
   compass: {fileID: 1626011512}
   compassQuestID: MariaInteraction
   hideMarkerOnComplete: 1
+  missionManager: {fileID: 1602694280}
 --- !u!95 &913438442 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 2015965338822481673, guid: 78aeafe058f46d14484b800081ebdb64, type: 3}
@@ -81517,6 +81540,43 @@ PrefabInstance:
       addedObject: {fileID: 1032215454}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: addc0d71c52b0b8469425a9fce5aaff5, type: 3}
+--- !u!84 &930501739
+RenderTexture:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: 
+  m_ImageContentsHash:
+    serializedVersion: 2
+    Hash: 00000000000000000000000000000000
+  m_IsAlphaChannelOptional: 0
+  serializedVersion: 6
+  m_Width: 1024
+  m_Height: 1024
+  m_AntiAliasing: 1
+  m_MipCount: -1
+  m_DepthStencilFormat: 90
+  m_ColorFormat: 0
+  m_MipMap: 0
+  m_GenerateMips: 1
+  m_SRGB: 0
+  m_UseDynamicScale: 0
+  m_UseDynamicScaleExplicit: 0
+  m_BindMS: 0
+  m_EnableCompatibleFormat: 1
+  m_EnableRandomWrite: 0
+  m_TextureSettings:
+    serializedVersion: 2
+    m_FilterMode: 1
+    m_Aniso: 1
+    m_MipBias: 0
+    m_WrapU: 1
+    m_WrapV: 1
+    m_WrapW: 1
+  m_Dimension: 2
+  m_VolumeDepth: 1
+  m_ShadowSamplingMode: 2
 --- !u!4 &930638982 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4000010409153280, guid: 3228a22491941734bb83ad691d17fcb9, type: 3}
@@ -96937,43 +96997,6 @@ MonoBehaviour:
   m_LightCookieSize: {x: 1, y: 1}
   m_LightCookieOffset: {x: 0, y: 0}
   m_SoftShadowQuality: 0
---- !u!84 &977633273
-RenderTexture:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: 
-  m_ImageContentsHash:
-    serializedVersion: 2
-    Hash: 00000000000000000000000000000000
-  m_IsAlphaChannelOptional: 0
-  serializedVersion: 6
-  m_Width: 1024
-  m_Height: 1024
-  m_AntiAliasing: 1
-  m_MipCount: -1
-  m_DepthStencilFormat: 90
-  m_ColorFormat: 0
-  m_MipMap: 0
-  m_GenerateMips: 1
-  m_SRGB: 0
-  m_UseDynamicScale: 0
-  m_UseDynamicScaleExplicit: 0
-  m_BindMS: 0
-  m_EnableCompatibleFormat: 1
-  m_EnableRandomWrite: 0
-  m_TextureSettings:
-    serializedVersion: 2
-    m_FilterMode: 1
-    m_Aniso: 1
-    m_MipBias: 0
-    m_WrapU: 1
-    m_WrapV: 1
-    m_WrapW: 1
-  m_Dimension: 2
-  m_VolumeDepth: 1
-  m_ShadowSamplingMode: 2
 --- !u!1001 &981781148
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -110665,6 +110688,11 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8964030299033142035, guid: 3009ff3450fad3246b40f496375a6e8d, type: 3}
   m_PrefabInstance: {fileID: 1119291910}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1121631171 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 293532270386194747, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
+  m_PrefabInstance: {fileID: 1531178651}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &1122158754 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -4216859302048453862, guid: 307f4f5f7b584b14487722d463484425, type: 3}
@@ -116129,6 +116157,7 @@ MonoBehaviour:
   - {fileID: 1590356840}
   - {fileID: 1752654249}
   - {fileID: 1212933273}
+  - {fileID: 1121631171}
   showOnDialogue: []
   typeSpeed: 0.02
   subtitleAutoDelay: 1
@@ -121558,6 +121587,8 @@ MonoBehaviour:
   enemyAnimationOverride: {fileID: 22100000, guid: 9a3dc51969c4fd543a5bcf09772c38e5, type: 2}
   agent: {fileID: 1183798229}
   healthController: {fileID: 1183798230}
+  attackTrail: {fileID: 0}
+  swordHitboxObject: {fileID: 0}
   isSpawning: 0
 --- !u!195 &1183798229
 NavMeshAgent:
@@ -121636,6 +121667,9 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+  OnHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!95 &1183798231 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 7583070698492495340, guid: 9360f2d5bd890ca42aa359bfbba76ae0, type: 3}
@@ -130808,7 +130842,7 @@ Camera:
     serializedVersion: 2
     m_Bits: 4294967293
   m_RenderingPath: -1
-  m_TargetTexture: {fileID: 977633273}
+  m_TargetTexture: {fileID: 930501739}
   m_TargetDisplay: 0
   m_TargetEye: 3
   m_HDR: 0
@@ -139767,6 +139801,8 @@ MonoBehaviour:
   enemyAnimationOverride: {fileID: 22100000, guid: 6332346bb898c094b97f93d138a232fc, type: 2}
   agent: {fileID: 1441201814}
   healthController: {fileID: 1441201815}
+  attackTrail: {fileID: 0}
+  swordHitboxObject: {fileID: 0}
   isSpawning: 0
 --- !u!195 &1441201814
 NavMeshAgent:
@@ -139845,6 +139881,9 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+  OnHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!95 &1441201816 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 1172300169969955962, guid: 39c1b5d479a1d2d4a84bfb8d55a630e4, type: 3}
@@ -143043,6 +143082,30 @@ PrefabInstance:
       propertyPath: m_AnchorMin.x
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1195192248270073217, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
+      propertyPath: uiToDisableWhenInventoryOpen.Array.size
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 1195192248270073217, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
+      propertyPath: 'uiToDisableWhenInventoryOpen.Array.data[0]'
+      value: 
+      objectReference: {fileID: 366736386}
+    - target: {fileID: 1195192248270073217, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
+      propertyPath: 'uiToDisableWhenInventoryOpen.Array.data[1]'
+      value: 
+      objectReference: {fileID: 855986511}
+    - target: {fileID: 1195192248270073217, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
+      propertyPath: 'uiToDisableWhenInventoryOpen.Array.data[2]'
+      value: 
+      objectReference: {fileID: 1451857935}
+    - target: {fileID: 1195192248270073217, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
+      propertyPath: 'uiToDisableWhenInventoryOpen.Array.data[3]'
+      value: 
+      objectReference: {fileID: 1590356840}
+    - target: {fileID: 1195192248270073217, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
+      propertyPath: 'uiToDisableWhenInventoryOpen.Array.data[4]'
+      value: 
+      objectReference: {fileID: 1121631171}
     - target: {fileID: 1254839621562173614, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
       propertyPath: m_LocalPosition.x
       value: 53.94569
@@ -143123,6 +143186,30 @@ PrefabInstance:
       propertyPath: musicVolumeSlider
       value: 
       objectReference: {fileID: 1824876104}
+    - target: {fileID: 2371495054851379793, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
+      propertyPath: uiToHideWhilePaused.Array.size
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2371495054851379793, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
+      propertyPath: 'uiToHideWhilePaused.Array.data[0]'
+      value: 
+      objectReference: {fileID: 366736386}
+    - target: {fileID: 2371495054851379793, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
+      propertyPath: 'uiToHideWhilePaused.Array.data[1]'
+      value: 
+      objectReference: {fileID: 855986511}
+    - target: {fileID: 2371495054851379793, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
+      propertyPath: 'uiToHideWhilePaused.Array.data[2]'
+      value: 
+      objectReference: {fileID: 1451857935}
+    - target: {fileID: 2371495054851379793, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
+      propertyPath: 'uiToHideWhilePaused.Array.data[3]'
+      value: 
+      objectReference: {fileID: 1590356840}
+    - target: {fileID: 2371495054851379793, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
+      propertyPath: 'uiToHideWhilePaused.Array.data[4]'
+      value: 
+      objectReference: {fileID: 1121631171}
     - target: {fileID: 2965781503678262320, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
       propertyPath: m_LocalPosition.x
       value: 156.00218
@@ -143269,15 +143356,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5814957930043486004, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -1.16
+      value: -5.99
       objectReference: {fileID: 0}
     - target: {fileID: 5814957930043486004, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.12
+      value: -0.68
       objectReference: {fileID: 0}
     - target: {fileID: 5814957930043486004, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 1.14
+      value: 9.25
       objectReference: {fileID: 0}
     - target: {fileID: 5814957930043486004, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
       propertyPath: m_LocalRotation.w
@@ -143437,11 +143524,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8843158972043563975, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -0.000050173243
+      value: -0.000011580963
       objectReference: {fileID: 0}
     - target: {fileID: 9156422547322117320, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -0.000023116401
+      value: 0.0000063333205
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -145594,6 +145681,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   missionText: {fileID: 1212933272}
+  uiRootsToHide:
+  - {fileID: 366736386}
+  - {fileID: 855986511}
+  - {fileID: 1451857935}
+  - {fileID: 1590356840}
+  - {fileID: 1121631171}
+  - {fileID: 1752654249}
+  - {fileID: 1212933273}
+  hideCompassMarkersDuringDialogue: 0
   triggerTag: Player
   explorationEndTrigger: {fileID: 1398136404}
   exploreAreaQuestID: Explore_Area
@@ -145794,7 +145890,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4854621648394236650, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
   m_PrefabInstance: {fileID: 1531178651}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_GameObject: {fileID: 1121631171}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: eebd7901fd9486247b7cf6308c168a1d, type: 3}
@@ -155085,6 +155181,7 @@ MonoBehaviour:
   compass: {fileID: 1626011512}
   compassQuestID: SilasInteraction
   hideMarkerOnComplete: 1
+  missionManager: {fileID: 1602694280}
 --- !u!82 &1781020439
 AudioSource:
   m_ObjectHideFlags: 0
@@ -164527,6 +164624,8 @@ MonoBehaviour:
   enemyAnimationOverride: {fileID: 22100000, guid: 9a3dc51969c4fd543a5bcf09772c38e5, type: 2}
   agent: {fileID: 1916534994}
   healthController: {fileID: 1916534995}
+  attackTrail: {fileID: 0}
+  swordHitboxObject: {fileID: 0}
   isSpawning: 0
 --- !u!195 &1916534994
 NavMeshAgent:
@@ -164605,6 +164704,9 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+  OnHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!95 &1916534996 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 7583070698492495340, guid: 9360f2d5bd890ca42aa359bfbba76ae0, type: 3}
@@ -174694,6 +174796,8 @@ MonoBehaviour:
   enemyAnimationOverride: {fileID: 22100000, guid: 9a3dc51969c4fd543a5bcf09772c38e5, type: 2}
   agent: {fileID: 2045089494}
   healthController: {fileID: 2045089495}
+  attackTrail: {fileID: 0}
+  swordHitboxObject: {fileID: 0}
   isSpawning: 0
 --- !u!195 &2045089494
 NavMeshAgent:
@@ -174772,6 +174876,9 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+  OnHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!136 &2045089496
 CapsuleCollider:
   m_ObjectHideFlags: 0

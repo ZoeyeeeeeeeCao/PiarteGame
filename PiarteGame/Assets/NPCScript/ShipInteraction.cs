@@ -1,132 +1,126 @@
-using UnityEngine;
-using UnityEngine.Video;
-using UnityEngine.SceneManagement;
+﻿using UnityEngine;
 
-public class ShipInteraction : MonoBehaviour
+[RequireComponent(typeof(Collider))]
+public class WorldSpaceSceneTransitionPromptLevel3 : MonoBehaviour
 {
-    [Header("Detection Settings")]
-    public float interactionRadius = 5f;
+    [Header("Prompt UI")]
+    [SerializeField] private GameObject root;          // canvas root (or same object)
+    [SerializeField] private Transform lookAtCamera;   // optional; auto uses Camera.main
+
+    [Header("Transition Settings")]
+    public string sceneToLoad;
     public string playerTag = "Player";
+    public KeyCode interactKey = KeyCode.E;
 
-    [Header("Visuals")]
-    public GameObject interactImage;
+    [Tooltip("If true, loads immediately when player enters trigger (like your example). If false, requires pressing E.")]
+    public bool autoLoadOnEnter = false;
 
-    [Header("Video Settings")]
-    public VideoPlayer videoPlayer;
-    public GameObject videoUICanvas;
+    [Header("Debug")]
+    public bool debugLog;
 
-    [Header("After Video")]
-    public string nextSceneName = "CreditsScene";
-    public bool allowSkip = true;
+    private bool playerInRange;
+    private bool hasTriggered;
 
-    [Header("Player Control")]
-    public MonoBehaviour playerController;
-    public MonoBehaviour locomotionController;
-
-    private bool playerInRange = false;
-    private bool hasTriggered = false;
-    private bool isPlayingVideo = false;
-
-    void Start()
+    private void Reset()
     {
-        if (interactImage != null) interactImage.SetActive(false);
-        if (videoUICanvas != null) videoUICanvas.SetActive(false);
-
-        if (videoPlayer != null)
-        {
-            // We removed the error-prone line. 
-            // VideoPlayer follows Time.timeScale by default.
-            videoPlayer.Stop();
-            videoPlayer.loopPointReached += OnVideoFinished;
-        }
+        // Make collider a trigger automatically
+        var col = GetComponent<Collider>();
+        if (col) col.isTrigger = true;
     }
 
-    void Update()
+    private void Awake()
     {
-        // Only allow skipping if the game is NOT paused (Time.timeScale > 0)
-        if (isPlayingVideo && allowSkip && Time.timeScale > 0)
-        {
-            if (Input.GetKeyDown(KeyCode.Return))
-            {
-                EndCutsceneAndLoad();
-                return;
-            }
-        }
+        if (root == null) root = gameObject;
+        SetVisible(false);
 
+        // Ensure trigger
+        var col = GetComponent<Collider>();
+        if (col && !col.isTrigger) col.isTrigger = true;
+    }
+
+    private void Update()
+    {
         if (hasTriggered) return;
 
-        CheckForPlayer();
-
-        if (playerInRange && Input.GetKeyDown(KeyCode.E))
+        // Press-to-load mode
+        if (!autoLoadOnEnter && playerInRange && Input.GetKeyDown(interactKey))
         {
-            StartVideoCutscene();
+            TriggerLoad();
         }
     }
 
-    void CheckForPlayer()
+    private void LateUpdate()
     {
-        Collider[] hits = Physics.OverlapSphere(transform.position, interactionRadius);
-        bool currentlyInRange = false;
+        if (root == null || !root.activeSelf) return;
 
-        foreach (Collider hit in hits)
+        var cam = lookAtCamera != null ? lookAtCamera : (Camera.main != null ? Camera.main.transform : null);
+        if (cam == null) return;
+
+        // Billboard: face camera
+        Vector3 dir = root.transform.position - cam.position;
+        if (dir.sqrMagnitude < 0.0001f) return;
+
+        root.transform.rotation = Quaternion.LookRotation(dir);
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (hasTriggered) return;
+
+        if (other.CompareTag(playerTag))
         {
-            if (hit.CompareTag(playerTag))
+            playerInRange = true;
+            SetVisible(true);
+
+            if (debugLog) Debug.Log("[WorldSpaceTransition] Player entered trigger.");
+
+            // Auto-load mode (like your SceneTransitionTrigger example)
+            if (autoLoadOnEnter)
             {
-                currentlyInRange = true;
-                break;
+                TriggerLoad();
             }
         }
+    }
 
-        if (currentlyInRange != playerInRange)
+    private void OnTriggerExit(Collider other)
+    {
+        if (hasTriggered) return;
+
+        if (other.CompareTag(playerTag))
         {
-            playerInRange = currentlyInRange;
-            if (interactImage != null)
-                interactImage.SetActive(playerInRange);
+            playerInRange = false;
+            SetVisible(false);
+
+            if (debugLog) Debug.Log("[WorldSpaceTransition] Player left trigger.");
         }
     }
 
-    void StartVideoCutscene()
+    private void TriggerLoad()
     {
+        if (hasTriggered) return;
         hasTriggered = true;
-        isPlayingVideo = true;
 
-        if (interactImage != null) interactImage.SetActive(false);
+        SetVisible(false);
 
-        // Disable movement scripts so player can't walk away during video
-        if (playerController != null) playerController.enabled = false;
-        if (locomotionController != null) locomotionController.enabled = false;
-
-        if (videoUICanvas != null) videoUICanvas.SetActive(true);
-
-        if (videoPlayer != null)
+        if (string.IsNullOrEmpty(sceneToLoad))
         {
-            videoPlayer.Play();
+            Debug.LogWarning("[WorldSpaceTransition] sceneToLoad is empty.");
+            return;
+        }
+
+        if (SceneLoaderHoward.Instance != null)
+        {
+            if (debugLog) Debug.Log($"[WorldSpaceTransition] Loading scene: {sceneToLoad}");
+            SceneLoaderHoward.Instance.LoadLevel(sceneToLoad);
         }
         else
         {
-            EndCutsceneAndLoad();
+            Debug.LogError("[WorldSpaceTransition] SceneLoaderHoward Instance not found! Check your GameManager.");
         }
     }
 
-    void OnVideoFinished(VideoPlayer vp)
+    public void SetVisible(bool visible)
     {
-        // If the game is paused, wait to load the next scene until it's unpaused
-        if (Time.timeScale > 0)
-        {
-            EndCutsceneAndLoad();
-        }
-    }
-
-    void EndCutsceneAndLoad()
-    {
-        // Reset timeScale just in case, then load
-        Time.timeScale = 1f;
-        SceneManager.LoadScene(nextSceneName);
-    }
-
-    void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.cyan;
-        Gizmos.DrawWireSphere(transform.position, interactionRadius);
+        if (root != null) root.SetActive(visible);
     }
 }

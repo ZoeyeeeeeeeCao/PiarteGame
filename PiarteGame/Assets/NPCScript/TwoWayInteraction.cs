@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections;
@@ -33,9 +33,7 @@ public class TwoWayInteraction : MonoBehaviour
     public bool slideFromBottom = true;
 
     [Header("Custom Position Settings")]
-    [Tooltip("Check this to ignore where the UI is in the Editor and force it to a specific position when talking.")]
     public bool useCustomPosition = false;
-    [Tooltip("The anchored position the UI should appear at (e.g., X=0, Y=0)")]
     public Vector2 customVisiblePos = Vector2.zero;
 
     [Header("Audio")]
@@ -45,7 +43,6 @@ public class TwoWayInteraction : MonoBehaviour
     public GameObject dialoguePanel;
     public TextMeshProUGUI nameText;
     public TextMeshProUGUI dialogueText;
-    [Tooltip("The 'Press E' UI Image/Object")]
     public GameObject interactionPrompt;
 
     [Header("Detection Settings")]
@@ -69,6 +66,11 @@ public class TwoWayInteraction : MonoBehaviour
     public string compassQuestID = "";
     public bool hideMarkerOnComplete = true;
 
+    // ✅ NEW: Hide UI During Dialogue (hooks into your mission manager)
+    [Header("Hide UI During Dialogue")]
+    [Tooltip("Optional. If left empty, it will auto-find one in the scene.")]
+    public CelyneMissionManager missionManager;
+
     // --- PRIVATE ---
     private bool playerInRange = false;
     private bool isTalking = false;
@@ -91,17 +93,8 @@ public class TwoWayInteraction : MonoBehaviour
             dialogueBoxRect = dialoguePanel.GetComponent<RectTransform>();
             if (dialogueBoxRect != null)
             {
-                // --- FIX: Logic to handle Position Issues ---
-                if (useCustomPosition)
-                {
-                    // Use the user-defined position
-                    visiblePosition = customVisiblePos;
-                }
-                else
-                {
-                    // Use whatever position the UI is currently sitting at in the Editor
-                    visiblePosition = dialogueBoxRect.anchoredPosition;
-                }
+                if (useCustomPosition) visiblePosition = customVisiblePos;
+                else visiblePosition = dialogueBoxRect.anchoredPosition;
             }
             dialoguePanel.SetActive(false);
         }
@@ -110,11 +103,12 @@ public class TwoWayInteraction : MonoBehaviour
         if (particleEffect != null) particleEffect.SetActive(true);
         if (audioSource == null) audioSource = GetComponent<AudioSource>();
         if (cutsceneCamera != null) cutsceneCamera.SetActive(false);
-        if (shouldStandUp && npcAnimator != null)
-            npcAnimator.SetBool(standParameter, false);
+        if (shouldStandUp && npcAnimator != null) npcAnimator.SetBool(standParameter, false);
 
-        if (compass == null)
-            compass = FindObjectOfType<Compass>();
+        if (compass == null) compass = FindObjectOfType<Compass>();
+
+        // ✅ auto-find mission manager if not assigned
+        if (missionManager == null) missionManager = FindObjectOfType<CelyneMissionManager>();
     }
 
     void Update()
@@ -166,19 +160,20 @@ public class TwoWayInteraction : MonoBehaviour
         if (interactionPrompt != null) interactionPrompt.SetActive(false);
         if (particleEffect != null) particleEffect.SetActive(false);
 
+        // ✅ HIDE OTHER UI WHILE TALKING
+        if (missionManager != null)
+            missionManager.EnterDialogueMode();
+
         if (dialoguePanel != null && dialogueBoxRect != null)
         {
             float yOffset = slideFromBottom ? -slideDistance : slideDistance;
 
-            // Calculate hidden position relative to the correct Visible position
             hiddenPosition = new Vector2(visiblePosition.x, visiblePosition.y + yOffset);
 
-            // Snap to hidden immediately
             dialogueBoxRect.anchoredPosition = hiddenPosition;
             dialoguePanel.SetActive(true);
 
             if (animationCoroutine != null) StopCoroutine(animationCoroutine);
-            // Slide TO the Visible Position
             animationCoroutine = StartCoroutine(SlideUI(hiddenPosition, visiblePosition));
         }
 
@@ -261,14 +256,11 @@ public class TwoWayInteraction : MonoBehaviour
             hasCounted = true;
 
         if (hideMarkerOnComplete && compass != null && !string.IsNullOrEmpty(compassQuestID))
-        {
             compass.HideMarker(compassQuestID);
-        }
 
         if (dialoguePanel != null && dialogueBoxRect != null)
         {
             if (animationCoroutine != null) StopCoroutine(animationCoroutine);
-            // Slide Back to Hidden
             yield return StartCoroutine(SlideUI(visiblePosition, hiddenPosition));
             dialoguePanel.SetActive(false);
         }
@@ -286,10 +278,13 @@ public class TwoWayInteraction : MonoBehaviour
         StartCoroutine(ResetNPC());
         isTalking = false;
 
+        // ✅ SHOW UI BACK AFTER DIALOGUE IS FULLY DONE (and cutscene is done)
+        if (missionManager != null)
+            missionManager.ExitDialogueMode();
+
         if (countsTowardsMission)
         {
             yield return new WaitForSeconds(2f);
-            
         }
     }
 
@@ -330,13 +325,7 @@ public class TwoWayInteraction : MonoBehaviour
         transform.rotation = originalRotation;
     }
 
-    public bool IsInteractionFinished()
-    {
-        return interactionFinished;
-    }
+    public bool IsInteractionFinished() => interactionFinished;
 
-    public bool CountsTowardsMission()
-    {
-        return countsTowardsMission && hasCounted;
-    }
+    public bool CountsTowardsMission() => countsTowardsMission && hasCounted;
 }

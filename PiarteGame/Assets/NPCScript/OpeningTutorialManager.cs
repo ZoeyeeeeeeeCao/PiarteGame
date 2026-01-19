@@ -1,8 +1,9 @@
-﻿using UnityEngine;
+﻿using System.Collections;
+using System.Collections.Generic;
+using TMPro;
+using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Video;
-using TMPro;
-using System.Collections;
 
 public class OpeningTutorialManager : MonoBehaviour
 {
@@ -28,6 +29,14 @@ public class OpeningTutorialManager : MonoBehaviour
     public GameObject videoUICanvas;
     [Tooltip("Allow skipping video with Enter key")]
     public bool allowVideoSkip = true;
+
+    [Header("Hide UI During Video / Dialogue")]
+    [Tooltip("Drag HUD roots here (mission box, compass UI, prompts, etc). DO NOT include videoUICanvas or tutorialUIPanel.")]
+    public List<GameObject> uiToHide = new();
+
+    private bool[] _uiPrevStates;
+    private bool _uiHidden;
+
 
     [Header("Audio Settings")]
     public AudioSource audioSource;
@@ -75,6 +84,54 @@ public class OpeningTutorialManager : MonoBehaviour
     private bool isPlayingVideo = false;
     private float movementTimer = 0f;
     private Vector3 lastPlayerPosition;
+
+    private void HideUIRoots()
+    {
+        if (_uiHidden) return;
+        if (uiToHide == null || uiToHide.Count == 0) return;
+
+        _uiPrevStates = new bool[uiToHide.Count];
+
+        for (int i = 0; i < uiToHide.Count; i++)
+        {
+            var go = uiToHide[i];
+            if (go == null)
+            {
+                _uiPrevStates[i] = false;
+                continue;
+            }
+
+            _uiPrevStates[i] = go.activeSelf;
+            if (go.activeSelf) go.SetActive(false);
+        }
+
+        _uiHidden = true;
+    }
+
+    private void RestoreUIRoots()
+    {
+        if (!_uiHidden) return;
+        if (uiToHide == null || uiToHide.Count == 0) return;
+
+        if (_uiPrevStates == null || _uiPrevStates.Length != uiToHide.Count)
+        {
+            // fallback: enable everything in list
+            for (int i = 0; i < uiToHide.Count; i++)
+                if (uiToHide[i] != null) uiToHide[i].SetActive(true);
+
+            _uiHidden = false;
+            return;
+        }
+
+        for (int i = 0; i < uiToHide.Count; i++)
+        {
+            var go = uiToHide[i];
+            if (go == null) continue;
+            go.SetActive(_uiPrevStates[i]);
+        }
+
+        _uiHidden = false;
+    }
 
     void Start()
     {
@@ -145,9 +202,10 @@ public class OpeningTutorialManager : MonoBehaviour
     IEnumerator PlayOpeningVideo()
     {
         yield return new WaitForSeconds(0.1f);
+        
 
         isPlayingVideo = true;
-
+        HideUIRoots();
         // Disable player controls
         DisablePlayerControls();
 
@@ -196,6 +254,7 @@ public class OpeningTutorialManager : MonoBehaviour
     {
         isPlayingVideo = false;
         videoCompleted = true;
+        RestoreUIRoots();
 
         // Hide and destroy video UI
         if (videoUICanvas != null)

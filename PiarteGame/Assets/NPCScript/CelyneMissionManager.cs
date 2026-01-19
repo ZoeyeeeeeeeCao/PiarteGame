@@ -17,6 +17,17 @@ public class CelyneMissionManager : MonoBehaviour
     [Header("Mission UI Group")]
     public TextMeshProUGUI missionText;
 
+    // ✅ NEW: UI to hide during dialogue
+    [Header("Hide UI During Dialogue")]
+    [Tooltip("Drag any UI roots you want hidden during dialogue (mission canvas, compass UI canvas, interact prompts, etc.)")]
+    public GameObject[] uiRootsToHide;
+
+    [Tooltip("If true, compass markers will be hidden while in dialogue and restored after.")]
+    public bool hideCompassMarkersDuringDialogue = false;
+
+    private bool inDialogue = false;
+    private readonly List<string> markersHiddenForDialogue = new();
+
     [Header("Exploration Phase")]
     public string triggerTag = "Player";
     public GameObject explorationEndTrigger;
@@ -37,8 +48,6 @@ public class CelyneMissionManager : MonoBehaviour
     public GameObject wineCartTrigger;
     public string phase3CompassQuestID = "FollowCart";
 
-    // Note: Phase 3.5 (Ambush Location) logic removed to streamline flow
-
     [Header("Phase 4: Kill Enemies")]
     public int enemiesToKill = 10;
     private int enemiesKilled = 0;
@@ -47,7 +56,7 @@ public class CelyneMissionManager : MonoBehaviour
 
     [Header("Phase 5: Enter Interior")]
     public string phase5Text = "Enter the Main Hall";
-    public GameObject interiorEntranceTrigger; // Drag your door trigger here
+    public GameObject interiorEntranceTrigger;
     public string phase5CompassQuestID = "EnterInterior";
     private bool phase5Complete = false;
 
@@ -71,7 +80,6 @@ public class CelyneMissionManager : MonoBehaviour
 
         UpdateMissionUI("Explore the area");
 
-        // 1. SILAS SETUP: Keep him visible, but turn off his interaction
         if (phase2ObjectToReveal != null)
         {
             phase2ObjectToReveal.SetActive(true);
@@ -85,17 +93,114 @@ public class CelyneMissionManager : MonoBehaviour
 
         SetupEndTriggerListener();
         SetupWineCartTriggerListener();
-        SetupInteriorTriggerListener(); // Initialize Phase 5 listener
+        SetupInteriorTriggerListener();
     }
 
     void Update()
     {
+        // ✅ If you want missions to STILL update during dialogue, remove this early return.
+        // I recommend pausing mission updates so UI doesn't change while talking.
+        if (inDialogue) return;
+
         if (!explorationComplete) return;
 
         if (!phase1Complete)
             CheckNPCProgress();
         else if (!phase2Complete)
             CheckSilasProgress();
+    }
+
+    // =========================
+    // ✅ PUBLIC API FOR DIALOGUE
+    // =========================
+    public void EnterDialogueMode()
+    {
+        if (inDialogue) return;
+        inDialogue = true;
+
+        // Hide chosen UI roots
+        if (uiRootsToHide != null)
+        {
+            for (int i = 0; i < uiRootsToHide.Length; i++)
+            {
+                if (uiRootsToHide[i] != null)
+                    uiRootsToHide[i].SetActive(false);
+            }
+        }
+
+        // Optional: hide compass markers during dialogue
+        if (hideCompassMarkersDuringDialogue && compass != null)
+        {
+            // If your Compass has HideAllMarkers(), use it:
+            // BUT we need to restore after. If your Compass doesn't support "get active markers",
+            // you can either skip restore or manually list IDs to hide.
+            // Here is a safe minimal behavior: hide all (no restore) OR hide specific known IDs.
+            compass.HideAllMarkers();
+        }
+    }
+
+    public void ExitDialogueMode()
+    {
+        if (!inDialogue) return;
+        inDialogue = false;
+
+        // Show UI again
+        if (uiRootsToHide != null)
+        {
+            for (int i = 0; i < uiRootsToHide.Length; i++)
+            {
+                if (uiRootsToHide[i] != null)
+                    uiRootsToHide[i].SetActive(true);
+            }
+        }
+
+        // If you hid all markers above and want them back,
+        // you should re-show the current objective marker(s) here.
+        // (Best approach: just show markers relevant to current phase.)
+        RestoreCurrentObjectiveMarkers();
+    }
+
+    private void RestoreCurrentObjectiveMarkers()
+    {
+        if (compass == null) return;
+
+        // Re-show only what should be visible for the current mission state.
+        // This avoids needing a "get all active markers" function.
+        if (!explorationComplete)
+        {
+            if (!string.IsNullOrEmpty(exploreAreaQuestID)) compass.ShowMarker(exploreAreaQuestID);
+            return;
+        }
+
+        if (!phase1Complete)
+        {
+            ShowNPCMarkers();
+            return;
+        }
+
+        if (!phase2Complete)
+        {
+            if (!string.IsNullOrEmpty(phase2CompassQuestID)) compass.ShowMarker(phase2CompassQuestID);
+            return;
+        }
+
+        if (!phase3Complete)
+        {
+            if (!string.IsNullOrEmpty(phase3CompassQuestID)) compass.ShowMarker(phase3CompassQuestID);
+            return;
+        }
+
+        if (phase4Active && !phase4Complete)
+        {
+            // No marker necessarily; do nothing
+            return;
+        }
+
+        if (phase4Complete && !phase5Complete)
+        {
+            if (!string.IsNullOrEmpty(phase5CompassQuestID)) compass.ShowMarker(phase5CompassQuestID);
+            return;
+        }
     }
 
     // --- EXPLORATION TRIGGER ---
@@ -201,7 +306,7 @@ public class CelyneMissionManager : MonoBehaviour
             compass.ShowMarker(phase3CompassQuestID);
     }
 
-    // --- PHASE 3: WINE CART TRIGGER ---
+    // --- PHASE 3 ---
     void SetupWineCartTriggerListener()
     {
         if (!wineCartTrigger) return;
@@ -222,16 +327,13 @@ public class CelyneMissionManager : MonoBehaviour
         if (phase3Complete) return;
         phase3Complete = true;
 
-        Debug.Log("✅ Phase 3 Complete - Wine cart reached");
-
         if (compass && !string.IsNullOrEmpty(phase3CompassQuestID))
             compass.HideMarker(phase3CompassQuestID);
 
-        // DIRECTLY START PHASE 4 (Kill Enemies)
         StartPhase4_KillEnemies();
     }
 
-    // --- PHASE 4: KILL ENEMIES ---
+    // --- PHASE 4 ---
     void StartPhase4_KillEnemies()
     {
         EnemyHealthController.ResetDeathCount();
@@ -240,13 +342,10 @@ public class CelyneMissionManager : MonoBehaviour
 
         UpdateMissionUI($"Kill enemies (0/{enemiesToKill})");
         PlayMissionSound();
-
-        Debug.Log("⚔️ Phase 4 Started - Kill enemies phase active");
     }
 
     private void UpdateKillMissionUI(int currentGlobalDeaths)
     {
-        // Only update if Phase 4 is active and not yet complete
         if (!phase4Active || phase4Complete) return;
 
         enemiesKilled = currentGlobalDeaths;
@@ -261,19 +360,14 @@ public class CelyneMissionManager : MonoBehaviour
     void CompletePhase4()
     {
         phase4Complete = true;
-        Debug.Log("✅ Phase 4 Complete - All enemies defeated");
-
-        // DIRECTLY START PHASE 5 (Enter Interior)
         StartPhase5_EnterInterior();
     }
 
-    // --- PHASE 5: ENTER INTERIOR ---
+    // --- PHASE 5 ---
     void StartPhase5_EnterInterior()
     {
         UpdateMissionUI(phase5Text);
         PlayMissionSound();
-
-        Debug.Log("🏠 Phase 5 Started - Enter the interior.");
 
         if (compass && !string.IsNullOrEmpty(phase5CompassQuestID))
             compass.ShowMarker(phase5CompassQuestID);
@@ -291,25 +385,19 @@ public class CelyneMissionManager : MonoBehaviour
 
     void OnInteriorEntered(Collider other)
     {
-        // Only trigger if Phase 4 is finished
         if (phase5Complete || !phase4Complete) return;
-
         CompletePhase5();
     }
 
     void CompletePhase5()
     {
         phase5Complete = true;
-        Debug.Log("✅ Phase 5 Complete - Entered Interior");
 
         if (compass && !string.IsNullOrEmpty(phase5CompassQuestID))
             compass.HideMarker(phase5CompassQuestID);
 
         UpdateMissionUI("Mission Complete!");
         PlayMissionSound();
-
-        // Optional: Load Scene Logic
-        // UnityEngine.SceneManagement.SceneManager.LoadScene("InteriorLevel");
     }
 
     // --- HELPER CLASS ---
