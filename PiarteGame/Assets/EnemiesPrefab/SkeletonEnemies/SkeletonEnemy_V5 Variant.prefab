@@ -2830,6 +2830,8 @@ MonoBehaviour:
   enemyAnimationOverride: {fileID: 0}
   agent: {fileID: 1783386734094871480}
   healthController: {fileID: 5022774138175430422}
+  attackTrail: {fileID: 0}
+  swordHitboxObject: {fileID: 887085738937868294}
   isSpawning: 0
 --- !u!114 &5022774138175430422
 MonoBehaviour:
@@ -2863,7 +2865,7 @@ MonoBehaviour:
   OnTakeDamage:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 6827709828339521057}
         m_TargetAssemblyTypeName: EnemyController, Assembly-CSharp
         m_MethodName: TakeDamage
         m_Mode: 1
@@ -2878,7 +2880,7 @@ MonoBehaviour:
   OnDeath:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 6827709828339521057}
         m_TargetAssemblyTypeName: EnemyController, Assembly-CSharp
         m_MethodName: Die
         m_Mode: 1
@@ -2890,6 +2892,9 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+  OnHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &7869919452191296817
 GameObject:
   m_ObjectHideFlags: 0

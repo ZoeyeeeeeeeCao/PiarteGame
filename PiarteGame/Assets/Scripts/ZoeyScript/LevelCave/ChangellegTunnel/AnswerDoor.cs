@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 public class AnswerDoor : MonoBehaviour
 {
@@ -30,13 +31,17 @@ public class AnswerDoor : MonoBehaviour
     public bool lockAfterProceed = true;
 
     [Header("Compass Integration")]
-    [Tooltip("Hide this marker when player reaches door")]
     public string doorMarkerToHide = "answer_door";
-
-    [Tooltip("This will be handled by AfterDoorTrigger instead")]
     public bool dontShowNextMarker = true;
-
     public Compass compass;
+
+    // ✅ NEW: UI to disable while Answer UI is showing
+    [Header("Optional UI Lock (Hide While Answer UI Showing)")]
+    [Tooltip("Drag any UI roots / Canvases you want to disable while the Answer UI is open.")]
+    public List<GameObject> uiToDisableWhileAnswerShowing = new List<GameObject>();
+
+    // Cache original active states
+    private readonly Dictionary<GameObject, bool> initialUIStates = new Dictionary<GameObject, bool>();
 
     private bool hasProceeded = false;
     private bool playerInside = false;
@@ -48,6 +53,43 @@ public class AnswerDoor : MonoBehaviour
         // Auto-find compass
         if (compass == null)
             compass = FindObjectOfType<Compass>();
+
+        CacheInitialUIStates();
+    }
+
+    void CacheInitialUIStates()
+    {
+        initialUIStates.Clear();
+
+        if (uiToDisableWhileAnswerShowing == null) return;
+
+        foreach (var go in uiToDisableWhileAnswerShowing)
+        {
+            if (!go) continue;
+            if (!initialUIStates.ContainsKey(go))
+                initialUIStates.Add(go, go.activeSelf);
+        }
+    }
+
+    void SetOtherUIActive(bool active)
+    {
+        if (uiToDisableWhileAnswerShowing == null) return;
+
+        foreach (var go in uiToDisableWhileAnswerShowing)
+        {
+            if (!go) continue;
+
+            if (active)
+            {
+                // Restore only if it was originally active
+                if (initialUIStates.TryGetValue(go, out bool wasActive) && wasActive)
+                    go.SetActive(true);
+            }
+            else
+            {
+                go.SetActive(false);
+            }
+        }
     }
 
     private void Update()
@@ -71,6 +113,9 @@ public class AnswerDoor : MonoBehaviour
 
         if (Input.GetKeyDown(interactKey))
         {
+            // ✅ Disable other UI before showing Answer UI
+            SetOtherUIActive(false);
+
             AnswerUIManager.Instance.Show(this);
             SetHint(false);
         }
@@ -81,14 +126,11 @@ public class AnswerDoor : MonoBehaviour
         if (!other.CompareTag(playerTag)) return;
         playerInside = true;
 
-        // ✅ Hide door marker when player reaches it
         if (compass != null && !string.IsNullOrEmpty(doorMarkerToHide))
         {
             compass.HideMarker(doorMarkerToHide);
             Debug.Log($"[AnswerDoor] Player reached door, hiding marker: {doorMarkerToHide}");
         }
-
-        // Note: Next marker will be shown by AfterDoorTrigger instead
 
         if (!(hasProceeded && lockAfterProceed))
             SetHint(true);
@@ -137,5 +179,8 @@ public class AnswerDoor : MonoBehaviour
                 Debug.LogWarning($"{name}: Wrong door missing objectToDestroy.");
             }
         }
+
+        // ✅ Restore other UI after decision is made
+        SetOtherUIActive(true);
     }
 }

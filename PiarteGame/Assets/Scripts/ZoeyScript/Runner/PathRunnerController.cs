@@ -4,7 +4,7 @@ using System.Collections;
 using UnityEngine;
 
 [RequireComponent(typeof(CharacterController))]
-public class PathRunnerSingleLaneController : MonoBehaviour
+public class PathRunnerController : MonoBehaviour
 {
     [Header("Path Sequence")]
     public PathCreator path1;
@@ -42,14 +42,21 @@ public class PathRunnerSingleLaneController : MonoBehaviour
     public KeyCode keySlide = KeyCode.LeftControl;
 
     [Header("Animation")]
-    public Animator animator;                 // drag your Animator here
+    public Animator animator;
     public string stairsZoneTag = "StairsZone";
     public string obstacleTag = "Obstacle";
 
+    [Header("Audio")]
+    public AudioSource audioSource;
+    public AudioClip runningSound;
+    public AudioClip slidingSound;
+    [Range(0f, 1f)] public float runningSoundVolume = 0.7f;
+    [Range(0f, 1f)] public float slidingSoundVolume = 0.8f;
+
     [Header("Cinematics")]
-    public CinemachineCamera gameplayCam;   // optional (for returning)
-    public CinemachineCamera camPath1End;   // surprised + turn
-    public CinemachineCamera camPath2End;   // show enemies
+    public CinemachineCamera gameplayCam;
+    public CinemachineCamera camPath1End;
+    public CinemachineCamera camPath2End;
     public float cinematicCamPriority = 20f;
     public float gameplayCamPriority = 10f;
 
@@ -60,7 +67,7 @@ public class PathRunnerSingleLaneController : MonoBehaviour
     public float turnSpeed = 2.0f;
 
     [Header("Enemies Reveal (end of Path 2)")]
-    public GameObject enemiesGroup;           // disable at start; enable at Path2 end
+    public GameObject enemiesGroup;
     public float enemiesRevealDuration = 2.0f;
 
     [Header("Hit (Obstacle Fail)")]
@@ -74,7 +81,7 @@ public class PathRunnerSingleLaneController : MonoBehaviour
     static readonly int H_YVel = Animator.StringToHash("YVel");
     static readonly int H_Jump = Animator.StringToHash("Jump");
     static readonly int H_Hit = Animator.StringToHash("Hit");
-    static int H_Surprised; // set in Awake from surprisedTrigger string
+    static int H_Surprised;
 
     CharacterController cc;
 
@@ -94,7 +101,11 @@ public class PathRunnerSingleLaneController : MonoBehaviour
     float hitLockTimer;
 
     bool cinematicLock;
-    int currentPathIndex = 1; // 1,2,3
+    int currentPathIndex = 1;
+
+    // Sound state tracking
+    bool wasGrounded;
+    bool wasSliding;
 
     void Awake()
     {
@@ -103,18 +114,50 @@ public class PathRunnerSingleLaneController : MonoBehaviour
         if (animator == null)
             animator = GetComponentInChildren<Animator>();
 
+        if (audioSource == null)
+            audioSource = GetComponent<AudioSource>();
+
+        // If no AudioSource exists, add one
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+            audioSource.playOnAwake = false;
+            audioSource.loop = true;
+        }
+
         H_Surprised = Animator.StringToHash(surprisedTrigger);
+    }
+
+    void OnEnable()
+    {
+        // Subscribe to player death event
+        if (PlayerHealthController.Instance != null)
+        {
+            PlayerHealthController.Instance.OnDeath += HandlePlayerDeath;
+        }
+    }
+
+    void OnDisable()
+    {
+        // Unsubscribe from player death event
+        if (PlayerHealthController.Instance != null)
+        {
+            PlayerHealthController.Instance.OnDeath -= HandlePlayerDeath;
+        }
+    }
+
+    void HandlePlayerDeath()
+    {
+        StopSounds();
     }
 
     void Start()
     {
-        // init controller height
         cc.height = standHeight;
         var c = cc.center;
         c.y = cc.height * 0.5f;
         cc.center = c;
 
-        // Start with path1 if provided, otherwise fallback to assigned pathCreator
         if (path1 != null)
         {
             pathCreator = path1;
@@ -128,13 +171,10 @@ public class PathRunnerSingleLaneController : MonoBehaviour
             return;
         }
 
-        // Hide enemies at start
         if (enemiesGroup) enemiesGroup.SetActive(false);
 
-        // Choose start distance explicitly
         distanceTravelled = runFromEnd ? pathCreator.path.length : 0f;
 
-        // Place player to the chosen start point (XZ), Y stays as current + small lift to avoid clipping
         Vector3 startPos = pathCreator.path.GetPointAtDistance(distanceTravelled, endOfPathInstruction);
         Vector3 startDir = pathCreator.path.GetDirectionAtDistance(distanceTravelled, endOfPathInstruction);
         if (runFromEnd) startDir = -startDir;
@@ -152,6 +192,10 @@ public class PathRunnerSingleLaneController : MonoBehaviour
 
         SetGameplayCamera();
         PushAnimParams();
+
+        // Initialize sound state
+        wasGrounded = cc.isGrounded;
+        wasSliding = false;
     }
 
     void Update()
@@ -159,7 +203,6 @@ public class PathRunnerSingleLaneController : MonoBehaviour
         if (pathCreator == null || pathCreator.path == null)
             return;
 
-        // lock input during cinematics
         if (!cinematicLock)
         {
             HandleSwipeInput();
@@ -169,7 +212,6 @@ public class PathRunnerSingleLaneController : MonoBehaviour
         UpdateSlide();
         UpdateHitLock();
 
-        // If hit/cinematic is playing, don’t advance along path
         if (!hitLocked && !cinematicLock)
         {
             float maxLen = pathCreator.path.length;
@@ -187,7 +229,6 @@ public class PathRunnerSingleLaneController : MonoBehaviour
         if (forward.sqrMagnitude < 0.0001f) forward = transform.forward;
         forward.Normalize();
 
-        // Horizontal magnet (XZ only)
         Vector3 pos = transform.position;
         Vector3 desiredHorizontal = new Vector3(pathPos.x, pos.y, pathPos.z);
         Vector3 horizontalDelta = desiredHorizontal - pos;
@@ -198,19 +239,16 @@ public class PathRunnerSingleLaneController : MonoBehaviour
             1f - Mathf.Exp(-followSharpness * Time.deltaTime)
         );
 
-        // Gravity + jump
         if (cc.isGrounded && verticalVel < 0f)
             verticalVel = -2f;
 
         verticalVel += gravity * Time.deltaTime;
         Vector3 verticalMove = Vector3.up * verticalVel * Time.deltaTime;
 
-        // Move (reduce horizontal during hit/cinematic to avoid jitter)
         float horizMul = (hitLocked || cinematicLock) ? 0.15f : 1f;
         Vector3 finalMove = (horizontalMove * horizMul) + verticalMove;
         cc.Move(finalMove);
 
-        // Face forward (unless in cinematic)
         if (!cinematicLock)
         {
             Quaternion targetRot = Quaternion.LookRotation(forward, Vector3.up);
@@ -221,17 +259,14 @@ public class PathRunnerSingleLaneController : MonoBehaviour
             );
         }
 
-        // Height blend
         float desiredHeight = sliding ? slideHeight : standHeight;
         cc.height = Mathf.Lerp(cc.height, desiredHeight, 1f - Mathf.Exp(-heightLerpSpeed * Time.deltaTime));
         Vector3 center = cc.center;
         center.y = cc.height * 0.5f;
         cc.center = center;
 
-        // Animator parameters every frame
         PushAnimParams();
-
-        // Path end detection for cinematics
+        UpdateSounds();
         CheckPathEnd();
     }
 
@@ -243,6 +278,80 @@ public class PathRunnerSingleLaneController : MonoBehaviour
         animator.SetBool(H_IsSliding, sliding);
         animator.SetBool(H_OnStairs, onStairs);
         animator.SetFloat(H_YVel, verticalVel);
+    }
+
+    // -------------------- SOUND MANAGEMENT --------------------
+
+    void UpdateSounds()
+    {
+        if (!audioSource) return;
+
+        // Check if player is dead - if so, stop all sounds
+        if (PlayerHealthController.Instance != null && PlayerHealthController.Instance.IsDead)
+        {
+            if (audioSource.isPlaying)
+            {
+                audioSource.Stop();
+            }
+            return;
+        }
+
+        bool isGrounded = cc.isGrounded;
+        bool isSliding = sliding;
+        bool isMoving = !hitLocked && !cinematicLock;
+
+        // Determine which sound should be playing
+        if (isGrounded && isMoving)
+        {
+            if (isSliding)
+            {
+                // Should play sliding sound
+                if (!wasSliding || !audioSource.isPlaying || audioSource.clip != slidingSound)
+                {
+                    PlaySound(slidingSound, slidingSoundVolume);
+                }
+            }
+            else
+            {
+                // Should play running sound
+                if (wasSliding || !audioSource.isPlaying || audioSource.clip != runningSound)
+                {
+                    PlaySound(runningSound, runningSoundVolume);
+                }
+            }
+        }
+        else
+        {
+            // Not grounded or not moving - stop sounds
+            if (audioSource.isPlaying)
+            {
+                audioSource.Stop();
+            }
+        }
+
+        wasGrounded = isGrounded;
+        wasSliding = isSliding;
+    }
+
+    void PlaySound(AudioClip clip, float volume)
+    {
+        if (!audioSource || !clip) return;
+
+        if (audioSource.isPlaying)
+            audioSource.Stop();
+
+        audioSource.clip = clip;
+        audioSource.volume = volume;
+        audioSource.loop = true;
+        audioSource.Play();
+    }
+
+    void StopSounds()
+    {
+        if (audioSource && audioSource.isPlaying)
+        {
+            audioSource.Stop();
+        }
     }
 
     // -------------------- PATH END SEQUENCES --------------------
@@ -269,17 +378,15 @@ public class PathRunnerSingleLaneController : MonoBehaviour
     {
         cinematicLock = true;
         hitLocked = true;
+        StopSounds();
 
         SetCamera(camPath1End);
 
-        // Play surprised animation
         if (animator && !string.IsNullOrEmpty(surprisedTrigger))
             animator.SetTrigger(H_Surprised);
 
-        // small beat for reaction
         yield return new WaitForSeconds(0.6f);
 
-        // Turn around 180 degrees
         Quaternion startRot = transform.rotation;
         Quaternion targetRot = Quaternion.LookRotation(-transform.forward, Vector3.up);
 
@@ -293,7 +400,6 @@ public class PathRunnerSingleLaneController : MonoBehaviour
 
         yield return new WaitForSeconds(0.5f);
 
-        // Switch to Path 2 (usually continue forward, set reverse if you want)
         SwitchPath(path2);
         currentPathIndex = 2;
 
@@ -307,16 +413,15 @@ public class PathRunnerSingleLaneController : MonoBehaviour
     {
         cinematicLock = true;
         hitLocked = true;
+        StopSounds();
 
         SetCamera(camPath2End);
 
-        // Reveal enemies (you can also trigger their run script here)
         if (enemiesGroup)
             enemiesGroup.SetActive(true);
 
         yield return new WaitForSeconds(enemiesRevealDuration);
 
-        // Switch to Path 3
         SwitchPath(path3);
         currentPathIndex = 3;
 
@@ -335,7 +440,6 @@ public class PathRunnerSingleLaneController : MonoBehaviour
         }
 
         pathCreator = newPath;
-        
 
         distanceTravelled = runFromEnd ? pathCreator.path.length : 0f;
 
@@ -448,8 +552,8 @@ public class PathRunnerSingleLaneController : MonoBehaviour
         hitLocked = true;
         hitLockTimer = hitLockTime;
 
-        // cancel slide if we got hit
         sliding = false;
+        StopSounds();
 
         if (animator)
         {
@@ -473,7 +577,6 @@ public class PathRunnerSingleLaneController : MonoBehaviour
         if (!hit.collider.CompareTag(obstacleTag)) return;
         if (cinematicLock) return;
 
-        // If you were sliding OR clearly airborne (jumping), don’t count it as a fail.
         bool airborne = !cc.isGrounded && verticalVel > -0.5f;
 
         if (sliding) return;

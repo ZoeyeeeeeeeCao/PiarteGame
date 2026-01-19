@@ -3,13 +3,13 @@ using UnityEngine;
 public class EnemyAttackingState : EnemyBaseState
 {
     private float _timer;
-    private float _torchWeightTransitionSpeed = 3f; // Speed of torch layer weight transitions
-    private float _rotationSpeed = 8f; // Rotation speed toward player
+    private float _torchWeightTransitionSpeed = 3f;
 
     public override void EnterState(EnemyController enemy)
     {
-        //enemy.ToggleNavMesh(false);
-        _timer = enemy.attackCooldown; // Start ready to attack
+        // Ensure we start with a fresh cooldown or ready to strike
+        _timer = enemy.attackCooldown;
+        enemy.SetCombatActive(1);
     }
 
     public override void UpdateState(EnemyController enemy)
@@ -33,7 +33,7 @@ public class EnemyAttackingState : EnemyBaseState
             }
         }
 
-        // Only rotate and manage torch when NOT attacking
+        // Rotate and manage torch ONLY when not in the middle of a swing
         if (!isAttacking)
         {
             // Rotate to face player
@@ -45,31 +45,27 @@ public class EnemyAttackingState : EnemyBaseState
                 enemy.transform.rotation = Quaternion.Slerp(enemy.transform.rotation, lookRotation, Time.deltaTime * 5f);
             }
 
-            // Smoothly restore torch layer weight after a brief delay
+            // Restore torch layer weight
             if (enemy.hasTorch && _timer > 0.2f)
             {
                 float currentWeight = enemy.animator.GetLayerWeight(enemy.torchLayerIndex);
-                float targetWeight = 1f;
-                float newWeight = Mathf.Lerp(currentWeight, targetWeight, Time.deltaTime * _torchWeightTransitionSpeed);
+                float newWeight = Mathf.Lerp(currentWeight, 1f, Time.deltaTime * _torchWeightTransitionSpeed);
                 enemy.animator.SetLayerWeight(enemy.torchLayerIndex, newWeight);
             }
         }
         else
         {
-            // Smoothly lower torch layer weight during attacks if torch attack is active
+            // Lower torch during torch attacks
             if (enemy.hasTorch && enemy.animator.GetBool("TorchAttack"))
             {
                 float currentWeight = enemy.animator.GetLayerWeight(enemy.torchLayerIndex);
-                float targetWeight = 0f;
-                float newWeight = Mathf.Lerp(currentWeight, targetWeight, Time.deltaTime * _torchWeightTransitionSpeed);
+                float newWeight = Mathf.Lerp(currentWeight, 0f, Time.deltaTime * _torchWeightTransitionSpeed);
                 enemy.animator.SetLayerWeight(enemy.torchLayerIndex, newWeight);
             }
         }
 
-        // Increment attack cooldown timer
         _timer += Time.deltaTime;
 
-        // Trigger attack when cooldown is ready and not currently attacking
         if (_timer >= enemy.attackCooldown && !isAttacking)
         {
             PerformRandomAttack(enemy);
@@ -80,61 +76,37 @@ public class EnemyAttackingState : EnemyBaseState
     {
         if (enemy.animator == null) return;
 
-        // CRITICAL: Reset timer FIRST to prevent immediate re-triggering
         _timer = 0f;
 
-        // Determine if using torch attack (50/50 chance if enemy has torch)
         bool useTorchAttack = false;
         if (enemy.hasTorch)
         {
             useTorchAttack = Random.Range(0, 2) == 0;
         }
 
-        Debug.Log("Attack Triggered: " + (useTorchAttack ? "Torch Attack" : "Normal Attack"));
-
-        // Set attack type bools
         enemy.animator.SetBool("TorchAttack", useTorchAttack);
         enemy.animator.SetBool("NormalAttack", !useTorchAttack);
 
-        // Note: Torch layer weight will be smoothly transitioned in UpdateState
-        // No instant change here
-
-        // Select random attack variation (0, 1, or 3)
+        // Select random variation
         int rand = Random.Range(0, 3);
-        int attackIndex = 0;
-        switch (rand)
-        {
-            case 0: attackIndex = 0; break;
-            case 1: attackIndex = 1; break;
-            case 2: attackIndex = 3; break;
-        }
+        int attackIndex = (rand == 2) ? 3 : rand; // Maps 0,1,2 to 0,1,3
 
         enemy.animator.SetInteger("AttackIndex", attackIndex);
     }
 
     public override void ExitState(EnemyController enemy)
     {
-        // Clean up attack parameters
+        // CRITICAL: Safety turn off for hitbox and trail when leaving state
+        enemy.DisableCombat();
+
         if (enemy.animator != null)
         {
-            Debug.Log("Attacks Disabled - Exiting Attack State");
             enemy.animator.SetBool("TorchAttack", false);
             enemy.animator.SetBool("NormalAttack", false);
-        }
 
-        // Smoothly restore torch layer weight based on whether enemy has torch
-        if (enemy.hasTorch)
-        {
-            // Start smooth transition to weight 1
-            float currentWeight = enemy.animator.GetLayerWeight(enemy.torchLayerIndex);
-            float targetWeight = 1f;
-            // Use a faster transition speed on exit for responsiveness
-            float newWeight = Mathf.Lerp(currentWeight, targetWeight, 0.5f);
-            enemy.animator.SetLayerWeight(enemy.torchLayerIndex, newWeight);
-        }
-        else
-        {
-            enemy.animator.SetLayerWeight(enemy.torchLayerIndex, 0f);
+            // Restore torch layer if they have one
+            if (enemy.hasTorch)
+                enemy.animator.SetLayerWeight(enemy.torchLayerIndex, 1f);
         }
     }
 }

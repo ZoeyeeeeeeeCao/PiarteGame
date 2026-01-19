@@ -3313,6 +3313,8 @@ MonoBehaviour:
   enemyAnimationOverride: {fileID: 0}
   agent: {fileID: 2036025497228605363}
   healthController: {fileID: 5290249601074067856}
+  attackTrail: {fileID: 0}
+  swordHitboxObject: {fileID: 5010290272372243993}
   isSpawning: 0
 --- !u!195 &2036025497228605363
 NavMeshAgent:
@@ -3395,6 +3397,9 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+  OnHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!136 &2499127260833221513
 CapsuleCollider:
   m_ObjectHideFlags: 0

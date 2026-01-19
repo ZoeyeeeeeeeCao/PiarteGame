@@ -13,11 +13,17 @@ MonoBehaviour:
   m_Name: Aidyn
   m_EditorClassIdentifier: 
   itemId: aidyn
-  displayName: ???
+  displayName: Aidyn Sartayeva
   category: 1
-  description: aidyn
+  description: 'One of the creators of this game.
+
+    Aidyn:"We decided to hide
+    ourselves in the game."
+
+    Aidyn Sartayeva (DMT2309286)'
   stackable: 0
   maxStack: 99
+  initialAmount: 0
   isConsumable: 0
   healAmount: 0
   inspectPrefab: {fileID: 919132149155446097, guid: 11c7314e294b65d4eb96769702b13571, type: 3}

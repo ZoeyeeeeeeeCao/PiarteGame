@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Video;
 using TMPro;
 using System.Collections;
 
@@ -13,13 +14,20 @@ public class OpeningTutorialManager : MonoBehaviour
         public TextMeshProUGUI missionText;
         public string missionDescription = "Talk to NPC";
 
-        // NEW: Add Quest ID for compass
         [Tooltip("The Quest ID that matches the compass questPoint")]
         public string compassQuestID = "";
 
         [HideInInspector]
         public bool isCompleted = false;
     }
+
+    [Header("Opening Video")]
+    [Tooltip("Video Player to play at scene start")]
+    public VideoPlayer openingVideoPlayer;
+    [Tooltip("Canvas/UI for displaying the video")]
+    public GameObject videoUICanvas;
+    [Tooltip("Allow skipping video with Enter key")]
+    public bool allowVideoSkip = true;
 
     [Header("Audio Settings")]
     public AudioSource audioSource;
@@ -49,12 +57,13 @@ public class OpeningTutorialManager : MonoBehaviour
 
     [Header("Player Control")]
     public GameObject player;
+    public MonoBehaviour playerController;
+    public MonoBehaviour locomotionController;
 
     [Header("Movement Detection")]
     public float movementTimeRequired = 1.5f;
     public float minMovementSpeed = 0.1f;
 
-    // NEW: Add reference to compass
     [Header("Compass Integration")]
     public Compass compass;
 
@@ -62,6 +71,8 @@ public class OpeningTutorialManager : MonoBehaviour
     private bool missionActive = false;
     private bool tutorialStarted = false;
     private bool allMissionsCompleted = false;
+    private bool videoCompleted = false;
+    private bool isPlayingVideo = false;
     private float movementTimer = 0f;
     private Vector3 lastPlayerPosition;
 
@@ -78,9 +89,29 @@ public class OpeningTutorialManager : MonoBehaviour
         if (player != null)
             lastPlayerPosition = player.transform.position;
 
-        // NEW: Find compass if not assigned
         if (compass == null)
             compass = FindObjectOfType<Compass>();
+
+        // Find player controllers if not assigned
+        if (playerController == null || locomotionController == null)
+        {
+            if (player != null)
+            {
+                MonoBehaviour[] scripts = player.GetComponents<MonoBehaviour>();
+                foreach (var script in scripts)
+                {
+                    string scriptName = script.GetType().Name;
+                    if (playerController == null && (scriptName.Contains("Player") || scriptName.Contains("Controller")))
+                    {
+                        playerController = script;
+                    }
+                    if (locomotionController == null && (scriptName.Contains("Locomotion") || scriptName.Contains("Movement")))
+                    {
+                        locomotionController = script;
+                    }
+                }
+            }
+        }
 
         // Hide Mission Box and NPC mission HUD elements initially
         if (missionBoxUI != null) missionBoxUI.SetActive(false);
@@ -94,10 +125,113 @@ public class OpeningTutorialManager : MonoBehaviour
                     m.missionText.gameObject.SetActive(false);
             }
         }
+
+        // Setup and play opening video
+        if (openingVideoPlayer != null)
+        {
+            if (videoUICanvas != null)
+                videoUICanvas.SetActive(false);
+
+            openingVideoPlayer.loopPointReached += OnVideoFinished;
+            StartCoroutine(PlayOpeningVideo());
+        }
+        else
+        {
+            // No video - start tutorial immediately
+            videoCompleted = true;
+        }
+    }
+
+    IEnumerator PlayOpeningVideo()
+    {
+        yield return new WaitForSeconds(0.1f);
+
+        isPlayingVideo = true;
+
+        // Disable player controls
+        DisablePlayerControls();
+
+        // Show cursor
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+
+        // Show video UI
+        if (videoUICanvas != null)
+            videoUICanvas.SetActive(true);
+
+        // Play video
+        if (openingVideoPlayer != null)
+        {
+            openingVideoPlayer.Play();
+            Debug.Log("Opening video playing... Press Enter to skip.");
+        }
+    }
+
+    void OnVideoFinished(VideoPlayer vp)
+    {
+        if (!isPlayingVideo) return;
+
+        Debug.Log("Opening video finished.");
+        EndVideo();
+    }
+
+    void SkipVideo()
+    {
+        Debug.Log("Opening video skipped.");
+
+        if (openingVideoPlayer != null && openingVideoPlayer.isPlaying)
+        {
+            openingVideoPlayer.Stop();
+        }
+
+        if (openingVideoPlayer != null)
+        {
+            openingVideoPlayer.loopPointReached -= OnVideoFinished;
+        }
+
+        EndVideo();
+    }
+
+    void EndVideo()
+    {
+        isPlayingVideo = false;
+        videoCompleted = true;
+
+        // Hide and destroy video UI
+        if (videoUICanvas != null)
+        {
+            videoUICanvas.SetActive(false);
+            Destroy(videoUICanvas);
+        }
+
+        // Destroy video player
+        if (openingVideoPlayer != null)
+        {
+            Destroy(openingVideoPlayer.gameObject);
+        }
+
+        // Re-enable player controls
+        EnablePlayerControls();
+
+        // Hide cursor
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+
+        Debug.Log("Video ended. Tutorial system ready.");
     }
 
     void Update()
     {
+        // Handle video skip
+        if (isPlayingVideo && allowVideoSkip && Input.GetKeyDown(KeyCode.Return))
+        {
+            SkipVideo();
+            return;
+        }
+
+        // Wait for video to complete before starting tutorial
+        if (!videoCompleted) return;
+
         if (!tutorialStarted && player != null)
             DetectPlayerMovement();
 
@@ -109,6 +243,22 @@ public class OpeningTutorialManager : MonoBehaviour
 
         if (!allMissionsCompleted)
             HandleNPCMissionVisibility();
+    }
+
+    void DisablePlayerControls()
+    {
+        if (playerController != null)
+            playerController.enabled = false;
+        if (locomotionController != null)
+            locomotionController.enabled = false;
+    }
+
+    void EnablePlayerControls()
+    {
+        if (playerController != null)
+            playerController.enabled = true;
+        if (locomotionController != null)
+            locomotionController.enabled = true;
     }
 
     void HandleNPCMissionVisibility()
@@ -144,7 +294,6 @@ public class OpeningTutorialManager : MonoBehaviour
                 }
             }
 
-            // NEW: Hide compass markers when generic mission is active
             if (compass != null && anyGenericMissionActive)
             {
                 foreach (var mission in missions)
@@ -157,7 +306,6 @@ public class OpeningTutorialManager : MonoBehaviour
             }
             else if (compass != null && !anyGenericMissionActive)
             {
-                // Show markers again when generic mission ends
                 foreach (var mission in missions)
                 {
                     if (!mission.isCompleted && !string.IsNullOrEmpty(mission.compassQuestID))
@@ -267,7 +415,6 @@ public class OpeningTutorialManager : MonoBehaviour
                     m.missionText.color = Color.white;
                 }
 
-                // NEW: Show compass marker when mission starts
                 if (compass != null && !string.IsNullOrEmpty(m.compassQuestID))
                 {
                     compass.ShowMarker(m.compassQuestID);
@@ -299,7 +446,6 @@ public class OpeningTutorialManager : MonoBehaviour
                     }
                 }
 
-                // NEW: Hide compass marker when mission completes
                 if (compass != null && !string.IsNullOrEmpty(mission.compassQuestID))
                 {
                     compass.HideMarker(mission.compassQuestID);
@@ -334,6 +480,14 @@ public class OpeningTutorialManager : MonoBehaviour
                     mission.missionText.gameObject.SetActive(false);
                 }
             }
+        }
+    }
+
+    void OnDestroy()
+    {
+        if (openingVideoPlayer != null)
+        {
+            openingVideoPlayer.loopPointReached -= OnVideoFinished;
         }
     }
 }

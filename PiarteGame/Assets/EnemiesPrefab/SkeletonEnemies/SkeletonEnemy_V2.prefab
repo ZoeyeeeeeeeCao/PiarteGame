@@ -196,7 +196,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 100174, guid: d86787a2f463c10489d95d7e51adaeba, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 100174, guid: d86787a2f463c10489d95d7e51adaeba, type: 3}
       propertyPath: m_TagString
@@ -308,6 +308,8 @@ MonoBehaviour:
   enemyAnimationOverride: {fileID: 0}
   agent: {fileID: 857959209986833741}
   healthController: {fileID: 4796243222630704940}
+  attackTrail: {fileID: 0}
+  swordHitboxObject: {fileID: 755697833143604559}
   isSpawning: 0
 --- !u!114 &4796243222630704940
 MonoBehaviour:
@@ -368,6 +370,9 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+  OnHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!136 &4504576095503658972
 CapsuleCollider:
   m_ObjectHideFlags: 0
