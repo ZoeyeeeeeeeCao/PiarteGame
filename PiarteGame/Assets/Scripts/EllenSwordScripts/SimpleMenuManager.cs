@@ -4,7 +4,7 @@ using UnityEngine.Video;
 
 /// <summary>
 /// Simple Main Menu Manager with Multiple Video Background Support
-/// Handles separate video players for Main Menu, Settings, and Credits
+/// Now connects to SettingsManager for audio/control settings
 /// </summary>
 public class SimpleMenuManager : MonoBehaviour
 {
@@ -12,6 +12,14 @@ public class SimpleMenuManager : MonoBehaviour
     [SerializeField] private GameObject mainMenuPanel;
     [SerializeField] private GameObject settingsPanel;
     [SerializeField] private GameObject creditsPanel;
+
+    [Header("Manager References")]
+    [Tooltip("Reference to SettingsManager (handles all settings)")]
+    [SerializeField] private SettingsManager settingsManager;
+    [Tooltip("Reference to AudioManager (handles audio)")]
+    [SerializeField] private AudioManager audioManager;
+    [Tooltip("Reference to MenuBGMManager (handles menu music)")]
+    [SerializeField] private MenuBGMManager menuBGMManager;
 
     [Header("Video Players (One per Panel)")]
     [Tooltip("VideoPlayer on Main Menu canvas")]
@@ -21,9 +29,11 @@ public class SimpleMenuManager : MonoBehaviour
     [Tooltip("VideoPlayer on Credits canvas")]
     [SerializeField] private VideoPlayer creditsVideo;
 
-    [Header("Auto-Find Video Players")]
+    [Header("Auto-Find Components")]
     [Tooltip("Automatically find VideoPlayer components in each panel")]
     [SerializeField] private bool autoFindVideos = true;
+    [Tooltip("Automatically find SettingsManager and AudioManager")]
+    [SerializeField] private bool autoFindManagers = true;
 
     [Header("Scene to Load")]
     [Tooltip("The exact name of the scene you want to play (e.g., 'GameScene')")]
@@ -34,8 +44,16 @@ public class SimpleMenuManager : MonoBehaviour
     [Tooltip("Automatically find all buttons named 'BackButton' if array is empty")]
     [SerializeField] private bool autoFindBackButtons = true;
 
+    private bool hasStartedMusic = false; // Track if music has been started
+
     private void Start()
     {
+        // Auto-find managers if enabled
+        if (autoFindManagers)
+        {
+            FindAllManagers();
+        }
+
         // Auto-find video players if enabled
         if (autoFindVideos)
         {
@@ -51,11 +69,76 @@ public class SimpleMenuManager : MonoBehaviour
         // Assign ShowMainMenu to all back buttons
         SetupBackButtons();
 
+        // Initialize managers
+        InitializeManagers();
+
         // Show only main menu at start
         ShowMainMenu();
     }
 
+    // ===== INITIALIZATION =====
+
+    private void InitializeManagers()
+    {
+        // Initialize AudioManager if available - ONLY ONCE
+        if (audioManager != null)
+        {
+            audioManager.InitializeAudio();
+            Debug.Log("✅ AudioManager initialized from SimpleMenuManager");
+        }
+        else
+        {
+            Debug.LogWarning("⚠️ AudioManager not found! Audio controls may not work.");
+        }
+
+        // SettingsManager initializes itself in its own Start()
+        if (settingsManager != null)
+        {
+            Debug.Log("✅ SettingsManager connected");
+        }
+        else
+        {
+            Debug.LogWarning("⚠️ SettingsManager not found! Settings panel may not work properly.");
+        }
+
+        // Start the music immediately on initialization
+        if (menuBGMManager != null && !hasStartedMusic)
+        {
+            menuBGMManager.PlayMainMenuMusic();
+            hasStartedMusic = true;
+            Debug.Log("🎵 Started music during initialization");
+        }
+    }
+
+    private void FindAllManagers()
+    {
+        // Find SettingsManager
+        if (settingsManager == null)
+        {
+            settingsManager = FindObjectOfType<SettingsManager>();
+            if (settingsManager != null)
+                Debug.Log("🔍 Found SettingsManager");
+        }
+
+        // Find AudioManager
+        if (audioManager == null)
+        {
+            audioManager = FindObjectOfType<AudioManager>();
+            if (audioManager != null)
+                Debug.Log("🔍 Found AudioManager");
+        }
+
+        // Find MenuBGMManager
+        if (menuBGMManager == null)
+        {
+            menuBGMManager = FindObjectOfType<MenuBGMManager>();
+            if (menuBGMManager != null)
+                Debug.Log("🔍 Found MenuBGMManager");
+        }
+    }
+
     // ===== MAIN MENU BUTTONS =====
+
     public void PlayGame()
     {
         Debug.Log($"▶️ Requesting Load for: {gameSceneName}");
@@ -81,8 +164,8 @@ public class SimpleMenuManager : MonoBehaviour
         settingsPanel.SetActive(true);
         creditsPanel.SetActive(false);
 
-        // DON'T call PlayVideo - let the ping-pong script handle it via OnEnable
-        Debug.Log("⚙️ Settings opened");
+        // DON'T do anything with music - let it continue playing naturally
+        Debug.Log("⚙️ Settings panel opened (music continues)");
     }
 
     public void OpenCredits()
@@ -92,8 +175,8 @@ public class SimpleMenuManager : MonoBehaviour
         settingsPanel.SetActive(false);
         creditsPanel.SetActive(true);
 
-        // DON'T call PlayVideo - let the ping-pong script handle it via OnEnable
-        Debug.Log("📜 Credits opened");
+        // DON'T do anything with music - let it continue playing naturally
+        Debug.Log("📜 Credits opened (music continues)");
     }
 
     public void QuitGame()
@@ -107,6 +190,7 @@ public class SimpleMenuManager : MonoBehaviour
     }
 
     // ===== BACK BUTTON LOGIC =====
+
     public void ShowMainMenu()
     {
         // Switch panels
@@ -114,11 +198,27 @@ public class SimpleMenuManager : MonoBehaviour
         settingsPanel.SetActive(false);
         creditsPanel.SetActive(false);
 
-        // DON'T call PlayVideo - let the ping-pong script handle it via OnEnable
-        Debug.Log("🏠 Returned to main menu");
+        // Music is already started in InitializeManagers, don't touch it here
+        Debug.Log("🏠 Returned to main menu (music continues)");
+    }
+
+    // You can also call SettingsManager's back navigation if needed
+    public void HandleBackFromSettings()
+    {
+        if (settingsManager != null && settingsManager.isInsideKeyboardSubmenu)
+        {
+            // If inside keyboard submenu, close it and return to main settings
+            settingsManager.CloseKeyboardSettings();
+        }
+        else
+        {
+            // Otherwise, go back to main menu
+            ShowMainMenu();
+        }
     }
 
     // ===== VIDEO MANAGEMENT =====
+
     private void PlayVideo(VideoPlayer video)
     {
         if (video == null)
@@ -207,9 +307,47 @@ public class SimpleMenuManager : MonoBehaviour
         {
             if (backButton != null)
             {
-                backButton.onClick.RemoveListener(ShowMainMenu);
-                backButton.onClick.AddListener(ShowMainMenu);
+                // Check if this back button is in the settings panel
+                bool isSettingsBackButton = settingsPanel != null &&
+                                           backButton.transform.IsChildOf(settingsPanel.transform);
+
+                // Check if this back button is in the credits panel
+                bool isCreditsBackButton = creditsPanel != null &&
+                                           backButton.transform.IsChildOf(creditsPanel.transform);
+
+                if (isSettingsBackButton && settingsManager != null)
+                {
+                    // Use SettingsManager's smart back navigation
+                    backButton.onClick.RemoveListener(HandleBackFromSettings);
+                    backButton.onClick.AddListener(HandleBackFromSettings);
+                    Debug.Log($"✅ Setup back button for Settings: {backButton.name}");
+                }
+                else
+                {
+                    // Regular back button - go to main menu PANEL (don't reload scene!)
+                    backButton.onClick.RemoveListener(ShowMainMenu);
+                    backButton.onClick.AddListener(ShowMainMenu);
+                    Debug.Log($"✅ Setup back button for panel switching: {backButton.name}");
+                }
             }
         }
+    }
+
+    // ===== PUBLIC HELPER METHODS =====
+
+    /// <summary>
+    /// Get reference to AudioManager
+    /// </summary>
+    public AudioManager GetAudioManager()
+    {
+        return audioManager;
+    }
+
+    /// <summary>
+    /// Get reference to SettingsManager
+    /// </summary>
+    public SettingsManager GetSettingsManager()
+    {
+        return settingsManager;
     }
 }

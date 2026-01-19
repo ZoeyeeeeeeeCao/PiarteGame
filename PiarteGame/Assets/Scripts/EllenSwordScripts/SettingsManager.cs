@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Audio;
 using UnityEngine.SceneManagement;
@@ -19,7 +19,11 @@ public class SettingsManager : MonoBehaviour
     [SerializeField] private Button universalBackButton;
     [SerializeField] private string mainMenuSceneName = "MainMenu";
 
-    [Header("Audio Settings")]
+    [Header("Audio Manager Reference")]
+    [Tooltip("Reference to AudioManager - handles all audio")]
+    [SerializeField] private AudioManager audioManager;
+
+    [Header("Audio Settings (Optional - if not using AudioManager)")]
     [SerializeField] private Slider masterVolumeSlider;
     [SerializeField] private Slider sfxVolumeSlider;
     [SerializeField] private Slider bgmVolumeSlider;
@@ -41,25 +45,21 @@ public class SettingsManager : MonoBehaviour
     [SerializeField] private Color unselectedTabColor = Color.gray;
 
     private int currentKeyboardPageIndex = 0;
-    private bool isInsideKeyboardSubmenu = false;
+
+    // Made public so SimpleMenuManager can check this
+    public bool isInsideKeyboardSubmenu { get; private set; } = false;
 
     // Brightness overlay variables
     private Image brightnessOverlay;
     private Canvas brightnessCanvas;
 
     // PlayerPrefs Keys
-    private const string MASTER_VOLUME_KEY = "MasterVolume";
-    private const string SFX_VOLUME_KEY = "SFXVolume";
-    private const string BGM_VOLUME_KEY = "BGMVolume";
     private const string MOUSE_SENSITIVITY_KEY = "MouseSensitivity";
     private const string BRIGHTNESS_KEY = "Brightness";
 
-    // Defaults
-    private const float DEFAULT_MASTER_VOLUME = 1f;
-    private const float DEFAULT_SFX_VOLUME = 1f;
-    private const float DEFAULT_BGM_VOLUME = 1f;
-    private const float DEFAULT_MOUSE_SENSITIVITY = 2f;
-    private const float DEFAULT_BRIGHTNESS = 1f;
+    // Defaults (0-100 scale for mouse/brightness)
+    private const float DEFAULT_MOUSE_SENSITIVITY = 50f;
+    private const float DEFAULT_BRIGHTNESS = 50f;
 
     private void Awake()
     {
@@ -68,9 +68,8 @@ public class SettingsManager : MonoBehaviour
 
     private void Start()
     {
-        // 1. Setup Navigation
-        if (universalBackButton != null)
-            universalBackButton.onClick.AddListener(HandleBackNavigation);
+        // 1. Setup Navigation - DON'T use universalBackButton here
+        // Let SimpleMenuManager handle the back button instead
 
         if (audioTabButton != null)
             audioTabButton.onClick.AddListener(() => ShowPanel(audioPanel, audioTabButton));
@@ -91,33 +90,52 @@ public class SettingsManager : MonoBehaviour
         if (keyboardSettingsContainer != null)
             keyboardSettingsContainer.SetActive(false);
 
-        // 3. Setup Sliders
-        if (masterVolumeSlider != null) masterVolumeSlider.onValueChanged.AddListener(SetMasterVolume);
-        if (sfxVolumeSlider != null) sfxVolumeSlider.onValueChanged.AddListener(SetSFXVolume);
-        if (bgmVolumeSlider != null) bgmVolumeSlider.onValueChanged.AddListener(SetBGMVolume);
-        if (mouseSensitivitySlider != null) mouseSensitivitySlider.onValueChanged.AddListener(SetMouseSensitivity);
-        if (brightnessSlider != null) brightnessSlider.onValueChanged.AddListener(SetBrightness);
+        // 3. Setup Audio - Use AudioManager if available
+        if (audioManager != null)
+        {
+            // AudioManager handles its own sliders, just initialize it
+            audioManager.InitializeAudio();
+            Debug.Log("✅ Using AudioManager for audio controls");
+        }
+        else
+        {
+            // Fallback: Manual audio slider setup
+            Debug.LogWarning("⚠️ AudioManager not assigned! Using manual audio setup.");
+            SetupManualAudioSliders();
+        }
 
-        // 4. Initialization
-        LoadSettings();
+        // 4. Setup Control Sliders
+        if (mouseSensitivitySlider != null)
+            mouseSensitivitySlider.onValueChanged.AddListener(SetMouseSensitivity);
+        if (brightnessSlider != null)
+            brightnessSlider.onValueChanged.AddListener(SetBrightness);
+
+        // 5. Load Settings
+        LoadControlSettings();
         ShowPanel(audioPanel, audioTabButton);
+    }
+
+    private void SetupManualAudioSliders()
+    {
+        // Only use this if AudioManager is not assigned
+        if (masterVolumeSlider != null)
+            masterVolumeSlider.onValueChanged.AddListener(SetMasterVolumeManual);
+        if (sfxVolumeSlider != null)
+            sfxVolumeSlider.onValueChanged.AddListener(SetSFXVolumeManual);
+        if (bgmVolumeSlider != null)
+            bgmVolumeSlider.onValueChanged.AddListener(SetBGMVolumeManual);
     }
 
     #region Smart Navigation Logic
 
-    /// <summary>
-    /// Handles the logic for the single top-left back button.
-    /// </summary>
     public void HandleBackNavigation()
     {
         if (isInsideKeyboardSubmenu)
         {
-            // If we are deep in keyboard settings, go back to the main Controls panel
             CloseKeyboardSettings();
         }
         else
         {
-            // If we are on the main tabs, exit to the Main Menu
             ReturnToMainMenu();
         }
     }
@@ -130,6 +148,8 @@ public class SettingsManager : MonoBehaviour
 
         currentKeyboardPageIndex = 0;
         UpdateKeyboardPageVisibility();
+
+        Debug.Log("⌨️ Opened keyboard settings submenu");
     }
 
     public void CloseKeyboardSettings()
@@ -137,6 +157,8 @@ public class SettingsManager : MonoBehaviour
         isInsideKeyboardSubmenu = false;
         if (keyboardSettingsContainer != null) keyboardSettingsContainer.SetActive(false);
         if (controlsPanel != null) controlsPanel.SetActive(true);
+
+        Debug.Log("⌨️ Closed keyboard settings submenu");
     }
 
     public void ReturnToMainMenu()
@@ -153,8 +175,6 @@ public class SettingsManager : MonoBehaviour
     public void NextKeyboardPage()
     {
         if (keyboardPages.Length == 0) return;
-
-        // Loop using modulo
         currentKeyboardPageIndex = (currentKeyboardPageIndex + 1) % keyboardPages.Length;
         UpdateKeyboardPageVisibility();
     }
@@ -162,13 +182,9 @@ public class SettingsManager : MonoBehaviour
     public void PreviousKeyboardPage()
     {
         if (keyboardPages.Length == 0) return;
-
         currentKeyboardPageIndex--;
-
-        // Loop back to end if below zero
         if (currentKeyboardPageIndex < 0)
             currentKeyboardPageIndex = keyboardPages.Length - 1;
-
         UpdateKeyboardPageVisibility();
     }
 
@@ -187,7 +203,6 @@ public class SettingsManager : MonoBehaviour
 
     private void ShowPanel(GameObject panelToShow, Button selectedButton)
     {
-        // If the user clicks a top tab, they are no longer in the keyboard sub-menu depth
         isInsideKeyboardSubmenu = false;
 
         if (audioPanel != null) audioPanel.SetActive(false);
@@ -216,12 +231,12 @@ public class SettingsManager : MonoBehaviour
 
     #endregion
 
-    #region Audio Settings
+    #region Manual Audio Settings (Fallback)
 
-    public void SetMasterVolume(float volume)
+    private void SetMasterVolumeManual(float volume)
     {
         AudioListener.volume = volume;
-        PlayerPrefs.SetFloat(MASTER_VOLUME_KEY, volume);
+        PlayerPrefs.SetFloat("MasterVolume", volume);
         PlayerPrefs.Save();
 
         if (audioMixer != null)
@@ -231,9 +246,9 @@ public class SettingsManager : MonoBehaviour
         }
     }
 
-    public void SetSFXVolume(float volume)
+    private void SetSFXVolumeManual(float volume)
     {
-        PlayerPrefs.SetFloat(SFX_VOLUME_KEY, volume);
+        PlayerPrefs.SetFloat("SFXVolume", volume);
         PlayerPrefs.Save();
 
         if (audioMixer != null)
@@ -243,65 +258,122 @@ public class SettingsManager : MonoBehaviour
         }
     }
 
-    public void SetBGMVolume(float volume)
+    private void SetBGMVolumeManual(float volume)
     {
-        PlayerPrefs.SetFloat(BGM_VOLUME_KEY, volume);
+        PlayerPrefs.SetFloat("BGMVolume", volume);
         PlayerPrefs.Save();
 
         if (audioMixer != null)
         {
             float db = volume > 0 ? 20f * Mathf.Log10(volume) : -80f;
-            audioMixer.SetFloat("BGMVolume", db);
+            audioMixer.SetFloat("MusicVolume", db);
         }
     }
 
     #endregion
 
-    #region Control Settings
+    #region Control Settings - SAME AS PAUSEMANAGER
 
-    public void SetMouseSensitivity(float sensitivity)
+    public void SetMouseSensitivity(float value)
     {
-        PlayerPrefs.SetFloat(MOUSE_SENSITIVITY_KEY, sensitivity);
+        ApplyMouseSensitivity(value);
+        PlayerPrefs.SetFloat(MOUSE_SENSITIVITY_KEY, value);
         PlayerPrefs.Save();
-        ApplyMouseSensitivityToAllCameras(sensitivity);
     }
 
-    public void SetBrightness(float brightness)
+    private void ApplyMouseSensitivity(float value)
     {
-        PlayerPrefs.SetFloat(BRIGHTNESS_KEY, brightness);
-        PlayerPrefs.Save();
-        ApplyBrightness(brightness);
-    }
+        var cameraController = FindObjectOfType<FS_ThirdPerson.CameraController>();
 
-    private void ApplyMouseSensitivityToAllCameras(float sensitivity)
-    {
-        var cameraControllers = FindObjectsOfType<CameraController>();
-        foreach (var camController in cameraControllers)
+        if (cameraController != null)
         {
-            if (camController.thirdPersonCamera != null && camController.thirdPersonCamera.defaultSettings != null)
+            // Map 0-100 slider to 0.1-2.0 sensitivity range
+            float sensitivity = Mathf.Lerp(0.1f, 2.0f, value / 100f);
+
+            if (cameraController.thirdPersonCamera != null && cameraController.thirdPersonCamera.defaultSettings != null)
             {
-                camController.thirdPersonCamera.defaultSettings.sensitivity = sensitivity;
-                if (camController.thirdPersonCamera.overrideCameraSettings != null)
-                {
-                    foreach (var o in camController.thirdPersonCamera.overrideCameraSettings)
-                        if (o.settings != null) o.settings.sensitivity = sensitivity;
-                }
+                cameraController.thirdPersonCamera.defaultSettings.sensitivity = sensitivity;
             }
-            if (camController.firstPersonCamera != null && camController.firstPersonCamera.defaultSettings != null)
+
+            if (cameraController.firstPersonCamera != null && cameraController.firstPersonCamera.defaultSettings != null)
             {
-                camController.firstPersonCamera.defaultSettings.sensitivity = sensitivity;
-                if (camController.firstPersonCamera.overrideCameraSettings != null)
+                cameraController.firstPersonCamera.defaultSettings.sensitivity = sensitivity;
+            }
+
+            Debug.Log($"🖱️ Camera Sensitivity set to: {sensitivity:F2} (Slider: {value})");
+        }
+        else
+        {
+            Debug.LogWarning("⚠️ CameraController (FS_ThirdPerson) not found!");
+        }
+    }
+
+    public void SetBrightness(float value)
+    {
+        ApplyBrightness(value);
+        PlayerPrefs.SetFloat(BRIGHTNESS_KEY, value);
+        PlayerPrefs.Save();
+    }
+
+    private void ApplyBrightness(float value)
+    {
+        // Method 1: Try Post-Processing (if available)
+        bool postProcessingWorked = TryApplyPostProcessingBrightness(value);
+
+        // Method 2: Fallback to overlay (always works)
+        if (!postProcessingWorked && brightnessOverlay != null)
+        {
+            if (value < 50f)
+            {
+                // Darken with black overlay
+                float alpha = Mathf.Lerp(0.7f, 0f, value / 50f);
+                brightnessOverlay.color = new Color(0, 0, 0, alpha);
+            }
+            else if (value > 50f)
+            {
+                // Brighten with white overlay
+                float alpha = Mathf.Lerp(0f, 0.3f, (value - 50f) / 50f);
+                brightnessOverlay.color = new Color(1, 1, 1, alpha);
+            }
+            else
+            {
+                // Normal brightness (50)
+                brightnessOverlay.color = new Color(0, 0, 0, 0);
+            }
+
+            Debug.Log($"💡 Brightness (Overlay): {value}");
+        }
+    }
+
+    private bool TryApplyPostProcessingBrightness(float value)
+    {
+        try
+        {
+            UnityEngine.Rendering.Volume volume = FindObjectOfType<UnityEngine.Rendering.Volume>();
+
+            if (volume != null && volume.profile != null)
+            {
+                if (volume.profile.TryGet(out UnityEngine.Rendering.Universal.ColorAdjustments colorAdjustments))
                 {
-                    foreach (var o in camController.firstPersonCamera.overrideCameraSettings)
-                        if (o.settings != null) o.settings.sensitivity = sensitivity;
+                    float exposure = ((value - 50f) / 50f) * 2f;
+                    colorAdjustments.postExposure.overrideState = true;
+                    colorAdjustments.postExposure.value = exposure;
+                    Debug.Log($"💡 Brightness (Post-Processing): {value} | Exposure: {exposure:F2}");
+                    return true;
                 }
             }
         }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning($"Post-Processing not available: {e.Message}");
+        }
+
+        return false;
     }
 
     private void CreateBrightnessOverlay()
     {
-        GameObject canvasObj = new GameObject("BrightnessOverlay");
+        GameObject canvasObj = new GameObject("BrightnessOverlay_Settings");
         brightnessCanvas = canvasObj.AddComponent<Canvas>();
         brightnessCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
         brightnessCanvas.sortingOrder = 9999;
@@ -315,7 +387,7 @@ public class SettingsManager : MonoBehaviour
         overlayObj.transform.SetParent(canvasObj.transform, false);
 
         brightnessOverlay = overlayObj.AddComponent<Image>();
-        brightnessOverlay.color = new Color(0, 0, 0, 0.5f);
+        brightnessOverlay.color = new Color(0, 0, 0, 0);
         brightnessOverlay.raycastTarget = false;
 
         RectTransform rt = overlayObj.GetComponent<RectTransform>();
@@ -325,43 +397,51 @@ public class SettingsManager : MonoBehaviour
         rt.anchoredPosition = Vector2.zero;
     }
 
-    private void ApplyBrightness(float brightness)
-    {
-        if (brightnessOverlay != null)
-        {
-            float alpha = Mathf.Lerp(0.8f, 0f, brightness);
-            Color col = brightnessOverlay.color;
-            col.a = alpha;
-            brightnessOverlay.color = col;
-        }
-    }
-
     #endregion
 
     #region Save/Load System
 
-    private void LoadSettings()
+    private void LoadControlSettings()
     {
-        float masterVol = PlayerPrefs.GetFloat(MASTER_VOLUME_KEY, DEFAULT_MASTER_VOLUME);
-        float sfxVol = PlayerPrefs.GetFloat(SFX_VOLUME_KEY, DEFAULT_SFX_VOLUME);
-        float bgmVol = PlayerPrefs.GetFloat(BGM_VOLUME_KEY, DEFAULT_BGM_VOLUME);
-
-        if (masterVolumeSlider != null) { masterVolumeSlider.value = masterVol; SetMasterVolume(masterVol); }
-        if (sfxVolumeSlider != null) { sfxVolumeSlider.value = sfxVol; SetSFXVolume(sfxVol); }
-        if (bgmVolumeSlider != null) { bgmVolumeSlider.value = bgmVol; SetBGMVolume(bgmVol); }
-
+        // Control settings (0-100 scale)
         float sensitivity = PlayerPrefs.GetFloat(MOUSE_SENSITIVITY_KEY, DEFAULT_MOUSE_SENSITIVITY);
         float brightness = PlayerPrefs.GetFloat(BRIGHTNESS_KEY, DEFAULT_BRIGHTNESS);
 
-        if (mouseSensitivitySlider != null) { mouseSensitivitySlider.value = sensitivity; SetMouseSensitivity(sensitivity); }
-        if (brightnessSlider != null) { brightnessSlider.value = brightness; SetBrightness(brightness); }
+        if (mouseSensitivitySlider != null)
+        {
+            mouseSensitivitySlider.minValue = 0f;
+            mouseSensitivitySlider.maxValue = 100f;
+            mouseSensitivitySlider.value = sensitivity;
+        }
+
+        if (brightnessSlider != null)
+        {
+            brightnessSlider.minValue = 0f;
+            brightnessSlider.maxValue = 100f;
+            brightnessSlider.value = brightness;
+        }
+
+        // Apply settings
+        ApplyMouseSensitivity(sensitivity);
+        ApplyBrightness(brightness);
     }
 
     public void ResetToDefaults()
     {
-        if (masterVolumeSlider != null) masterVolumeSlider.value = DEFAULT_MASTER_VOLUME;
-        if (sfxVolumeSlider != null) sfxVolumeSlider.value = DEFAULT_SFX_VOLUME;
-        if (bgmVolumeSlider != null) bgmVolumeSlider.value = DEFAULT_BGM_VOLUME;
+        // Use AudioManager's reset if available
+        if (audioManager != null)
+        {
+            audioManager.ResetToDefaults();
+        }
+        else
+        {
+            // Manual reset
+            if (masterVolumeSlider != null) masterVolumeSlider.value = 1f;
+            if (sfxVolumeSlider != null) sfxVolumeSlider.value = 1f;
+            if (bgmVolumeSlider != null) bgmVolumeSlider.value = 0.8f;
+        }
+
+        // Reset controls
         if (mouseSensitivitySlider != null) mouseSensitivitySlider.value = DEFAULT_MOUSE_SENSITIVITY;
         if (brightnessSlider != null) brightnessSlider.value = DEFAULT_BRIGHTNESS;
     }
@@ -377,7 +457,7 @@ public class SettingsManager : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        ApplyMouseSensitivityToAllCameras(GetMouseSensitivity());
+        ApplyMouseSensitivity(GetMouseSensitivity());
         ApplyBrightness(PlayerPrefs.GetFloat(BRIGHTNESS_KEY, DEFAULT_BRIGHTNESS));
     }
 

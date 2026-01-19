@@ -13,6 +13,12 @@ public class DialogueManager : MonoBehaviour
     public TextMeshProUGUI dialogueText;
     public GameObject spacePromptText;
 
+    [Header("UI Visibility Control")]
+    [Tooltip("UI elements to hide during dialogue (e.g., player HUD)")]
+    public GameObject[] hideOnDialogue;
+    [Tooltip("UI elements to show during dialogue")]
+    public GameObject[] showOnDialogue;
+
     [Header("Settings")]
     public float typeSpeed = 0.05f;
     public float subtitleAutoDelay = 1.0f;
@@ -86,6 +92,10 @@ public class DialogueManager : MonoBehaviour
 
         if (npcNameText != null) npcNameText.text = dialogue.npcName;
         if (spacePromptText != null) spacePromptText.SetActive(currentMode == DialogueMode.Dialogue);
+
+        // Hide/Show UI elements
+        SetUIVisibility(hideOnDialogue, false);
+        SetUIVisibility(showOnDialogue, true);
 
         DisablePlayerControls();
 
@@ -186,6 +196,11 @@ public class DialogueManager : MonoBehaviour
         yield return StartCoroutine(SlideOut());
         Debug.Log($"[DIALOGUE] SlideOut complete.");
         if (spacePromptText != null) spacePromptText.SetActive(false);
+
+        // Restore UI visibility
+        SetUIVisibility(hideOnDialogue, true);
+        SetUIVisibility(showOnDialogue, false);
+
         EnablePlayerControls();
     }
 
@@ -240,6 +255,23 @@ public class DialogueManager : MonoBehaviour
     {
         if (playerController != null) playerController.enabled = true;
         if (locomotionController != null) locomotionController.enabled = true;
+    }
+
+    /// <summary>
+    /// Helper method to show/hide multiple UI elements
+    /// </summary>
+    void SetUIVisibility(GameObject[] uiElements, bool state)
+    {
+        if (uiElements == null) return;
+
+        foreach (GameObject ui in uiElements)
+        {
+            if (ui != null)
+            {
+                ui.SetActive(state);
+                Debug.Log($"[DIALOGUE] Set {ui.name} active: {state}");
+            }
+        }
     }
 
     public bool IsDialogueActive() => isDialogueActive;
