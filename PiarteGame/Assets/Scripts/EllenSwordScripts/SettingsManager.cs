@@ -45,7 +45,9 @@ public class SettingsManager : MonoBehaviour
     [SerializeField] private Color unselectedTabColor = Color.gray;
 
     private int currentKeyboardPageIndex = 0;
-    private bool isInsideKeyboardSubmenu = false;
+
+    // Made public so SimpleMenuManager can check this
+    public bool isInsideKeyboardSubmenu { get; private set; } = false;
 
     // Brightness overlay variables
     private Image brightnessOverlay;
@@ -66,9 +68,8 @@ public class SettingsManager : MonoBehaviour
 
     private void Start()
     {
-        // 1. Setup Navigation
-        if (universalBackButton != null)
-            universalBackButton.onClick.AddListener(HandleBackNavigation);
+        // 1. Setup Navigation - DON'T use universalBackButton here
+        // Let SimpleMenuManager handle the back button instead
 
         if (audioTabButton != null)
             audioTabButton.onClick.AddListener(() => ShowPanel(audioPanel, audioTabButton));
@@ -147,6 +148,8 @@ public class SettingsManager : MonoBehaviour
 
         currentKeyboardPageIndex = 0;
         UpdateKeyboardPageVisibility();
+
+        Debug.Log("⌨️ Opened keyboard settings submenu");
     }
 
     public void CloseKeyboardSettings()
@@ -154,6 +157,8 @@ public class SettingsManager : MonoBehaviour
         isInsideKeyboardSubmenu = false;
         if (keyboardSettingsContainer != null) keyboardSettingsContainer.SetActive(false);
         if (controlsPanel != null) controlsPanel.SetActive(true);
+
+        Debug.Log("⌨️ Closed keyboard settings submenu");
     }
 
     public void ReturnToMainMenu()
