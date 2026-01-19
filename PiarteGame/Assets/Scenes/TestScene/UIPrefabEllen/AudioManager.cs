@@ -201,6 +201,16 @@ public class AudioManager : MonoBehaviour
 
         Debug.Log("🔄 Audio settings reset to defaults");
     }
+    // ===== SCENE TRANSITION HELPERS =====
+
+    public void MuteMusicImmediate()
+    {
+        if (audioMixer != null)
+        {
+            audioMixer.SetFloat("MusicVolume", minVolume);
+            Debug.Log("🎵 Music muted for scene transition");
+        }
+    }
 
     void OnDestroy()
     {
