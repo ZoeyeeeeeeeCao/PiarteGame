@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using UnityEngine.Video;
@@ -16,34 +16,49 @@ public class SceneLoaderHoward : MonoBehaviour
 
     [Header("Scene Video References")]
     public VideoPlayer sceneVideoPlayer; // Drag your scene's VideoPlayer here
-    public GameObject sceneVideoCanvas;   // Drag the Canvas holding your RawImage here
+    public GameObject sceneVideoCanvas;  // Drag the Canvas holding your RawImage here
     public bool playVideoBeforeLoading = true;
+
+    [Header("Audio (Mute BGM During Video)")]
+    [Tooltip("Optional. If null, will auto-find AudioManager in scene / DontDestroy.")]
+    public AudioManager audioManager;
+
+    [Tooltip("Mute music while the scene video plays.")]
+    public bool muteMusicDuringSceneVideo = true;
+
+    [Tooltip("Keep music muted during the loading screen too.")]
+    public bool keepMusicMutedDuringLoading = false;
+
+    private bool _musicMutedByThisLoader = false;
 
     private void Awake()
     {
         if (Instance == null)
         {
-            // If I am the first one, I am the Boss.
             Instance = this;
             DontDestroyOnLoad(gameObject);
 
-            // Hide canvas initially
             if (sceneVideoCanvas) sceneVideoCanvas.SetActive(false);
+
+            if (audioManager == null)
+                audioManager = FindObjectOfType<AudioManager>();
         }
         else
         {
-            // A Boss already exists! 
-            // But I (the new script) have the correct video for THIS level.
-            // So, I will give my video references to the Boss before I die.
-
+            // Copy level-specific references into the Boss instance
             Instance.sceneVideoPlayer = this.sceneVideoPlayer;
             Instance.sceneVideoCanvas = this.sceneVideoCanvas;
             Instance.playVideoBeforeLoading = this.playVideoBeforeLoading;
 
-            // Make sure the Boss hides the canvas I just gave him
+            Instance.muteMusicDuringSceneVideo = this.muteMusicDuringSceneVideo;
+            Instance.keepMusicMutedDuringLoading = this.keepMusicMutedDuringLoading;
+
+            // Only overwrite audioManager if the boss doesn't have one
+            if (Instance.audioManager == null)
+                Instance.audioManager = this.audioManager != null ? this.audioManager : FindObjectOfType<AudioManager>();
+
             if (Instance.sceneVideoCanvas) Instance.sceneVideoCanvas.SetActive(false);
 
-            // Now I can die peacefully
             Destroy(gameObject);
         }
     }
@@ -55,11 +70,20 @@ public class SceneLoaderHoward : MonoBehaviour
 
     IEnumerator LoadProcess(string sceneName)
     {
+        // Always refresh AudioManager reference (some scenes spawn it late)
+        if (audioManager == null)
+            audioManager = FindObjectOfType<AudioManager>();
+
         if (sceneVideoCanvas) sceneVideoCanvas.SetActive(false);
-        // --- STEP 1: PLAY THE SCENE VIDEO FIRST ---
+
+        // -------------------------
+        // STEP 1: PLAY SCENE VIDEO
+        // -------------------------
         if (playVideoBeforeLoading && sceneVideoPlayer != null)
         {
-            // Ensure the UI is ready but black initially
+            if (muteMusicDuringSceneVideo)
+                MuteMusic();
+
             if (sceneVideoCanvas != null) sceneVideoCanvas.SetActive(true);
 
             sceneVideoPlayer.Prepare();
@@ -67,26 +91,42 @@ public class SceneLoaderHoward : MonoBehaviour
 
             sceneVideoPlayer.Play();
 
-            // Wait for the video to finish completely
+            // Wait until video ends
             while (sceneVideoPlayer.isPlaying)
-            {
                 yield return null;
-            }
 
-            // Hide the video canvas once done
             if (sceneVideoCanvas != null) sceneVideoCanvas.SetActive(false);
+
+            // If you DON'T want music muted during loading, restore now
+            if (muteMusicDuringSceneVideo && !keepMusicMutedDuringLoading)
+                RestoreMusic();
         }
 
-        // --- STEP 2: RUN THE NORMAL LOADING PREFAB ---
-        GameObject loadingScreen = Instantiate(loadingScreenPrefab);
-        DontDestroyOnLoad(loadingScreen);
+        // -------------------------
+        // STEP 2: LOADING SCREEN
+        // -------------------------
+        GameObject loadingScreen = null;
 
-        LoadingScreenUI ui = loadingScreen.GetComponent<LoadingScreenUI>();
-        if (ui == null) { yield break; }
+        if (loadingScreenPrefab != null)
+        {
+            loadingScreen = Instantiate(loadingScreenPrefab);
+            DontDestroyOnLoad(loadingScreen);
+        }
 
-        // Start standard loading animations
-        Coroutine dotAnim = StartCoroutine(AnimateLoadingText(ui.loadingText));
-        Coroutine wheelAnim = StartCoroutine(AnimateSteeringWheel(ui.steeringWheel));
+        LoadingScreenUI ui = loadingScreen != null ? loadingScreen.GetComponent<LoadingScreenUI>() : null;
+
+        Coroutine dotAnim = null;
+        Coroutine wheelAnim = null;
+
+        if (ui != null)
+        {
+            dotAnim = StartCoroutine(AnimateLoadingText(ui.loadingText));
+            wheelAnim = StartCoroutine(AnimateSteeringWheel(ui.steeringWheel));
+        }
+
+        // If we want to keep muted during loading, make sure it's muted here
+        if (keepMusicMutedDuringLoading)
+            MuteMusic();
 
         AsyncOperation operation = SceneManager.LoadSceneAsync(sceneName);
         operation.allowSceneActivation = false;
@@ -98,27 +138,81 @@ public class SceneLoaderHoward : MonoBehaviour
             float targetProgress = Mathf.Clamp01(operation.progress / 0.9f);
             visualProgress = Mathf.MoveTowards(visualProgress, targetProgress, fillSpeed * Time.deltaTime);
 
-            if (ui.progressBar != null) ui.progressBar.fillAmount = visualProgress;
+            if (ui != null && ui.progressBar != null)
+                ui.progressBar.fillAmount = visualProgress;
 
             if (operation.progress >= 0.9f && visualProgress >= 0.99f)
             {
                 if (dotAnim != null) StopCoroutine(dotAnim);
                 if (wheelAnim != null) StopCoroutine(wheelAnim);
 
-                if (ui.loadingText != null) ui.loadingText.text = "Complete!";
+                if (ui != null && ui.loadingText != null)
+                    ui.loadingText.text = "Complete!";
+
                 yield return new WaitForSeconds(0.5f);
+
+                // ✅ restore right before scene becomes active
+                RestoreMusic();
+
                 operation.allowSceneActivation = true;
             }
 
             yield return null;
         }
 
-        Destroy(loadingScreen);
+        if (loadingScreen != null)
+            Destroy(loadingScreen);
     }
 
+    // -------------------------
+    // MUSIC MUTE/RESTORE
+    // -------------------------
+    private void MuteMusic()
+    {
+        if (_musicMutedByThisLoader) return;
+
+        if (audioManager == null)
+        {
+            audioManager = FindObjectOfType<AudioManager>();
+            if (audioManager == null)
+            {
+                Debug.LogWarning("⚠️ SceneLoaderHoward: AudioManager not found (can't mute music).");
+                return;
+            }
+        }
+
+        audioManager.MuteMusicForVideo();
+        _musicMutedByThisLoader = true;
+        Debug.Log("🎵 SceneLoaderHoward muted music");
+    }
+
+    private void RestoreMusic()
+    {
+        if (!_musicMutedByThisLoader) return;
+
+        if (audioManager == null)
+        {
+            audioManager = FindObjectOfType<AudioManager>();
+            if (audioManager == null)
+            {
+                Debug.LogWarning("⚠️ SceneLoaderHoward: AudioManager not found (can't restore music).");
+                _musicMutedByThisLoader = false;
+                return;
+            }
+        }
+
+        audioManager.RestoreMusicAfterVideo();
+        _musicMutedByThisLoader = false;
+        Debug.Log("🎵 SceneLoaderHoward restored music");
+    }
+
+    // -------------------------
+    // Loading UI animations
+    // -------------------------
     IEnumerator AnimateLoadingText(TextMeshProUGUI loadingText)
     {
         if (loadingText == null) yield break;
+
         int dotCount = 0;
         while (true)
         {
@@ -131,6 +225,7 @@ public class SceneLoaderHoward : MonoBehaviour
     IEnumerator AnimateSteeringWheel(Image steeringWheel)
     {
         if (steeringWheel == null) yield break;
+
         float currentRotation = 0f;
         bool turningRight = true;
 
@@ -151,6 +246,7 @@ public class SceneLoaderHoward : MonoBehaviour
                 steeringWheel.transform.rotation = Quaternion.Euler(0f, 0f, -currentRotation);
                 yield return null;
             }
+
             turningRight = !turningRight;
             yield return new WaitForSeconds(0.3f);
         }

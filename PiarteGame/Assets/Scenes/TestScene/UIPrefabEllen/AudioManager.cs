@@ -31,6 +31,9 @@ public class AudioManager : MonoBehaviour
     private const string MUSIC_VOLUME_KEY = "MusicVolume";
     private const string SFX_VOLUME_KEY = "SFXVolume";
 
+    // While video/cutscene mute is active, we ignore music slider writes
+    private bool _videoMuteActive = false;
+
     void Start()
     {
         InitializeAudio();
@@ -39,7 +42,6 @@ public class AudioManager : MonoBehaviour
     // Public method that can be called by other scripts (like PauseManager)
     public void InitializeAudio()
     {
-        // Load saved volumes or set defaults
         LoadVolumeSettings();
 
         // Add listeners to sliders (remove any existing first)
@@ -65,38 +67,30 @@ public class AudioManager : MonoBehaviour
     }
 
     // ===== VOLUME CONTROL METHODS =====
-    // These methods can be called from UI sliders or buttons
 
     public void SetMasterVolume(float sliderValue)
     {
-        // Convert 0-1 slider value to -80 to 0 dB
         float volume = Mathf.Lerp(minVolume, maxVolume, sliderValue);
 
         if (audioMixer != null)
-        {
             audioMixer.SetFloat("MasterVolume", volume);
-        }
 
-        // Save to PlayerPrefs
         PlayerPrefs.SetFloat(MASTER_VOLUME_KEY, sliderValue);
         PlayerPrefs.Save();
-
-        Debug.Log($"🔊 Master Volume: {volume:F1} dB (Slider: {sliderValue:F2})");
     }
 
     public void SetMusicVolume(float sliderValue)
     {
+        // If video mute is active, don't let slider fight the mute
+        if (_videoMuteActive) return;
+
         float volume = Mathf.Lerp(minVolume, maxVolume, sliderValue);
 
         if (audioMixer != null)
-        {
             audioMixer.SetFloat("MusicVolume", volume);
-        }
 
         PlayerPrefs.SetFloat(MUSIC_VOLUME_KEY, sliderValue);
         PlayerPrefs.Save();
-
-        Debug.Log($"🎵 Music Volume: {volume:F1} dB (Slider: {sliderValue:F2})");
     }
 
     public void SetSFXVolume(float sliderValue)
@@ -104,14 +98,10 @@ public class AudioManager : MonoBehaviour
         float volume = Mathf.Lerp(minVolume, maxVolume, sliderValue);
 
         if (audioMixer != null)
-        {
             audioMixer.SetFloat("SFXVolume", volume);
-        }
 
         PlayerPrefs.SetFloat(SFX_VOLUME_KEY, sliderValue);
         PlayerPrefs.Save();
-
-        Debug.Log($"🔔 SFX Volume: {volume:F1} dB (Slider: {sliderValue:F2})");
     }
 
     // ===== MUTE TOGGLE METHODS =====
@@ -119,27 +109,24 @@ public class AudioManager : MonoBehaviour
     public void ToggleMasterMute(bool isMuted)
     {
         if (audioMixer != null)
-        {
             audioMixer.SetFloat("MasterVolume", isMuted ? minVolume : 0f);
-        }
+
         Debug.Log($"🔇 Master Muted: {isMuted}");
     }
 
     public void ToggleMusicMute(bool isMuted)
     {
         if (audioMixer != null)
-        {
             audioMixer.SetFloat("MusicVolume", isMuted ? minVolume : 0f);
-        }
+
         Debug.Log($"🔇 Music Muted: {isMuted}");
     }
 
     public void ToggleSFXMute(bool isMuted)
     {
         if (audioMixer != null)
-        {
             audioMixer.SetFloat("SFXVolume", isMuted ? minVolume : 0f);
-        }
+
         Debug.Log($"🔇 SFX Muted: {isMuted}");
     }
 
@@ -148,36 +135,27 @@ public class AudioManager : MonoBehaviour
     private void LoadVolumeSettings()
     {
         // Load Master Volume
-        float masterVol = PlayerPrefs.GetFloat(MASTER_VOLUME_KEY, 1f); // Default to 100%
-        if (masterSlider != null)
-        {
-            masterSlider.value = masterVol;
-            Debug.Log($"📂 Loaded Master: {masterVol} (Slider now at: {masterSlider.value})");
-        }
+        float masterVol = PlayerPrefs.GetFloat(MASTER_VOLUME_KEY, 1f);
+        if (masterSlider != null) masterSlider.value = masterVol;
         SetMasterVolume(masterVol);
 
         // Load Music Volume
-        float musicVol = PlayerPrefs.GetFloat(MUSIC_VOLUME_KEY, 0.8f); // Default to 80%
-        if (musicSlider != null)
-        {
-            musicSlider.value = musicVol;
-            Debug.Log($"📂 Loaded Music: {musicVol} (Slider now at: {musicSlider.value})");
-        }
-        SetMusicVolume(musicVol);
+        float musicVol = PlayerPrefs.GetFloat(MUSIC_VOLUME_KEY, 0.8f);
+        if (musicSlider != null) musicSlider.value = musicVol;
+
+        // Apply music directly to mixer (ignore _videoMuteActive during init)
+        if (audioMixer != null)
+            audioMixer.SetFloat("MusicVolume", Mathf.Lerp(minVolume, maxVolume, musicVol));
 
         // Load SFX Volume
-        float sfxVol = PlayerPrefs.GetFloat(SFX_VOLUME_KEY, 1f); // Default to 100%
-        if (sfxSlider != null)
-        {
-            sfxSlider.value = sfxVol;
-            Debug.Log($"📂 Loaded SFX: {sfxVol} (Slider now at: {sfxSlider.value})");
-        }
+        float sfxVol = PlayerPrefs.GetFloat(SFX_VOLUME_KEY, 1f);
+        if (sfxSlider != null) sfxSlider.value = sfxVol;
         SetSFXVolume(sfxVol);
 
-        Debug.Log("📂 Volume settings loaded - Check if sliders match expected values!");
+        Debug.Log("📂 Volume settings loaded");
     }
 
-    // ===== RESET TO DEFAULTS =====
+    // ===== RESET TO DEFAULTS (RE-ADDED for your SettingsManager) =====
 
     public void ResetToDefaults()
     {
@@ -186,11 +164,27 @@ public class AudioManager : MonoBehaviour
             masterSlider.value = 1f;
             SetMasterVolume(1f);
         }
+        else
+        {
+            // Still save/apply even if no slider
+            SetMasterVolume(1f);
+        }
 
         if (musicSlider != null)
         {
             musicSlider.value = 0.8f;
+            // If video mute active, temporarily allow writing
+            bool prev = _videoMuteActive;
+            _videoMuteActive = false;
             SetMusicVolume(0.8f);
+            _videoMuteActive = prev;
+        }
+        else
+        {
+            bool prev = _videoMuteActive;
+            _videoMuteActive = false;
+            SetMusicVolume(0.8f);
+            _videoMuteActive = prev;
         }
 
         if (sfxSlider != null)
@@ -198,18 +192,60 @@ public class AudioManager : MonoBehaviour
             sfxSlider.value = 1f;
             SetSFXVolume(1f);
         }
+        else
+        {
+            SetSFXVolume(1f);
+        }
 
         Debug.Log("🔄 Audio settings reset to defaults");
     }
-    // ===== SCENE TRANSITION HELPERS =====
+
+    // ===== SCENE TRANSITION HELPERS (RE-ADDED for FourBowlPuzzleManager) =====
 
     public void MuteMusicImmediate()
     {
         if (audioMixer != null)
         {
             audioMixer.SetFloat("MusicVolume", minVolume);
-            Debug.Log("🎵 Music muted for scene transition");
+            Debug.Log("🎵 Music muted immediate");
         }
+    }
+
+    // ===== VIDEO / CUTSCENE HELPERS (NEW) =====
+
+    public void MuteMusicForVideo()
+    {
+        if (audioMixer == null)
+        {
+            Debug.LogWarning("⚠️ AudioManager: audioMixer not assigned, can't mute music via mixer.");
+            return;
+        }
+
+        _videoMuteActive = true;
+
+        audioMixer.SetFloat("MusicVolume", minVolume);
+
+        if (audioMixer.GetFloat("MusicVolume", out float db))
+            Debug.Log($"🎬 Music muted for video. MusicVolume now = {db:F1} dB");
+    }
+
+    public void RestoreMusicAfterVideo()
+    {
+        if (audioMixer == null)
+        {
+            Debug.LogWarning("⚠️ AudioManager: audioMixer not assigned, can't restore music via mixer.");
+            return;
+        }
+
+        _videoMuteActive = false;
+
+        float musicSliderValue = PlayerPrefs.GetFloat(MUSIC_VOLUME_KEY, 0.8f);
+        float db = Mathf.Lerp(minVolume, maxVolume, musicSliderValue);
+
+        audioMixer.SetFloat("MusicVolume", db);
+
+        if (audioMixer.GetFloat("MusicVolume", out float nowDb))
+            Debug.Log($"🎬 Music restored after video. MusicVolume now = {nowDb:F1} dB (slider={musicSliderValue:F2})");
     }
 
     void OnDestroy()
