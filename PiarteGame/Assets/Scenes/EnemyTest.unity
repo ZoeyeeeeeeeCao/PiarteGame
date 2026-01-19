@@ -703,6 +703,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 293532270386194747, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 624819855198024546, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
       propertyPath: m_AnchorMax.x
       value: 0
@@ -717,15 +721,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1254839621562173614, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
       propertyPath: m_LocalScale.x
-      value: 1.5
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1254839621562173614, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
       propertyPath: m_LocalScale.y
-      value: 1.5
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1254839621562173614, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
       propertyPath: m_LocalScale.z
-      value: 1.5
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1254839621562173614, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
       propertyPath: m_LocalPosition.x
@@ -767,6 +771,18 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2061349616578060967, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2067439856388951294, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2067439856388951294, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
+      propertyPath: m_IsTrigger
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 2145283905706711515, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
       propertyPath: m_AnchorMax.x
       value: 0
@@ -807,9 +823,17 @@ PrefabInstance:
       propertyPath: m_Size
       value: 0.22294946
       objectReference: {fileID: 0}
+    - target: {fileID: 5313788773435525655, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 5608344724752474811, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
       propertyPath: m_Name
       value: PlayerNewest
+      objectReference: {fileID: 0}
+    - target: {fileID: 5608344724752474811, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5617595204931980687, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
       propertyPath: m_AnchorMax.x
@@ -834,6 +858,14 @@ PrefabInstance:
     - target: {fileID: 5875239307475891790, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
       propertyPath: m_AnchorMin.y
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6004572115242727447, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6932685456053709543, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7070387707963223629, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
       propertyPath: m_AnchorMax.x
@@ -877,11 +909,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8843158972043563975, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -0.00051819364
+      value: -0.000028286991
       objectReference: {fileID: 0}
     - target: {fileID: 9156422547322117320, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -0.0009344506
+      value: 0.0000020374061
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -894,11 +926,6 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 272737712}
   m_SourcePrefab: {fileID: 100100000, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
---- !u!82 &711098779 stripped
-AudioSource:
-  m_CorrespondingSourceObject: {fileID: 4375969984226375991, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
-  m_PrefabInstance: {fileID: 711098778}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &711458291
 GameObject:
   m_ObjectHideFlags: 0
@@ -980,7 +1007,7 @@ MonoBehaviour:
   m_OverrideTileSize: 0
   m_TileSize: 256
   m_OverrideVoxelSize: 0
-  m_VoxelSize: 0.10666666
+  m_VoxelSize: 0.10333333
   m_MinRegionArea: 2
   m_NavMeshData: {fileID: 23800000, guid: 0c6e6eca538711c43952856cf0d6a8cf, type: 2}
   m_BuildHeightMesh: 0
@@ -2483,6 +2510,14 @@ MonoBehaviour:
   currentHealth: 0
   damageTag: EnemyDamage
   damagePerHit: 10
+  audioSource: {fileID: 0}
+  hurtSounds: []
+  hurtVolume: 1
+  deathSoundA: {fileID: 0}
+  deathSoundB: {fileID: 0}
+  deathVolumeA: 1
+  deathVolumeB: 1
+  deathSoundBDelay: 0.1
   enableDebugKeys: 1
   OnTakeDamage:
     m_PersistentCalls:
@@ -2514,6 +2549,9 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+  OnHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &584487130084075824
 GameObject:
   m_ObjectHideFlags: 0
@@ -4296,6 +4334,8 @@ MonoBehaviour:
   enemyAnimationOverride: {fileID: 0}
   agent: {fileID: 4188209705139289169}
   healthController: {fileID: 0}
+  attackTrail: {fileID: 0}
+  swordHitboxObject: {fileID: 0}
   isSpawning: 0
 --- !u!4 &1533773552486359463
 Transform:
@@ -17778,6 +17818,14 @@ MonoBehaviour:
   currentHealth: 0
   damageTag: EnemyDamage
   damagePerHit: 10
+  audioSource: {fileID: 0}
+  hurtSounds: []
+  hurtVolume: 1
+  deathSoundA: {fileID: 0}
+  deathSoundB: {fileID: 0}
+  deathVolumeA: 1
+  deathVolumeB: 1
+  deathSoundBDelay: 0.1
   enableDebugKeys: 1
   OnTakeDamage:
     m_PersistentCalls:
@@ -17809,6 +17857,9 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+  OnHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &3571538173141684897
 GameObject:
   m_ObjectHideFlags: 0
@@ -20228,6 +20279,8 @@ MonoBehaviour:
   enemyAnimationOverride: {fileID: 0}
   agent: {fileID: 857959209697176585}
   healthController: {fileID: 4796243222937171560}
+  attackTrail: {fileID: 0}
+  swordHitboxObject: {fileID: 0}
   isSpawning: 0
 --- !u!4 &4787604950264677616
 Transform:
@@ -20261,6 +20314,14 @@ MonoBehaviour:
   currentHealth: 0
   damageTag: EnemyDamage
   damagePerHit: 10
+  audioSource: {fileID: 0}
+  hurtSounds: []
+  hurtVolume: 1
+  deathSoundA: {fileID: 0}
+  deathSoundB: {fileID: 0}
+  deathVolumeA: 1
+  deathVolumeB: 1
+  deathSoundBDelay: 0.1
   enableDebugKeys: 1
   OnTakeDamage:
     m_PersistentCalls:
@@ -20292,6 +20353,9 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+  OnHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!4 &4811265642802106325
 Transform:
   m_ObjectHideFlags: 0
@@ -21130,6 +21194,14 @@ MonoBehaviour:
   currentHealth: 0
   damageTag: EnemyDamage
   damagePerHit: 10
+  audioSource: {fileID: 0}
+  hurtSounds: []
+  hurtVolume: 1
+  deathSoundA: {fileID: 0}
+  deathSoundB: {fileID: 0}
+  deathVolumeA: 1
+  deathVolumeB: 1
+  deathSoundBDelay: 0.1
   enableDebugKeys: 1
   OnTakeDamage:
     m_PersistentCalls:
@@ -21161,6 +21233,9 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+  OnHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &5224888148230277581
 GameObject:
   m_ObjectHideFlags: 0
@@ -21366,6 +21441,14 @@ MonoBehaviour:
   currentHealth: 0
   damageTag: EnemyDamage
   damagePerHit: 10
+  audioSource: {fileID: 0}
+  hurtSounds: []
+  hurtVolume: 1
+  deathSoundA: {fileID: 0}
+  deathSoundB: {fileID: 0}
+  deathVolumeA: 1
+  deathVolumeB: 1
+  deathSoundBDelay: 0.1
   enableDebugKeys: 1
   OnTakeDamage:
     m_PersistentCalls:
@@ -21397,6 +21480,9 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+  OnHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &5299946457943079133
 GameObject:
   m_ObjectHideFlags: 0
@@ -22395,6 +22481,8 @@ MonoBehaviour:
   enemyAnimationOverride: {fileID: 0}
   agent: {fileID: 2036025499138513474}
   healthController: {fileID: 0}
+  attackTrail: {fileID: 0}
+  swordHitboxObject: {fileID: 0}
   isSpawning: 0
 --- !u!1 &5846852435240396893
 GameObject:
@@ -22856,6 +22944,8 @@ MonoBehaviour:
   enemyAnimationOverride: {fileID: 22100000, guid: 6332346bb898c094b97f93d138a232fc, type: 2}
   agent: {fileID: 8551058530207485634}
   healthController: {fileID: 5221383374201643378}
+  attackTrail: {fileID: 0}
+  swordHitboxObject: {fileID: 0}
   isSpawning: 0
 --- !u!1 &6135334788360947503
 GameObject:
@@ -35944,10 +36034,6 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 9202037139749473393, guid: 29a0a41806d98e343b3d80fc5fbf829d, type: 3}
-      propertyPath: audioSource
-      value: 
-      objectReference: {fileID: 711098779}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -42146,6 +42232,8 @@ MonoBehaviour:
   enemyAnimationOverride: {fileID: 0}
   agent: {fileID: 8989957120415202306}
   healthController: {fileID: 0}
+  attackTrail: {fileID: 0}
+  swordHitboxObject: {fileID: 0}
   isSpawning: 0
 --- !u!4 &8076635361924740354
 Transform:
@@ -44320,6 +44408,6 @@ SceneRoots:
   - {fileID: 1012282433823523111}
   - {fileID: 5874807290602648150}
   - {fileID: 4717676283911277549}
-  - {fileID: 7221893168194678295}
   - {fileID: 711098778}
+  - {fileID: 7221893168194678295}
   - {fileID: 8023435368018768672}
