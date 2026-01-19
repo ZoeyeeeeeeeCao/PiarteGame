@@ -317,9 +317,9 @@ MonoBehaviour:
   m_HandleRect: {fileID: 5403034244442120037}
   m_Direction: 0
   m_MinValue: 0
-  m_MaxValue: 100
+  m_MaxValue: 1
   m_WholeNumbers: 0
-  m_Value: 100
+  m_Value: 1
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
@@ -4390,9 +4390,9 @@ MonoBehaviour:
   m_HandleRect: {fileID: 4080638587903786913}
   m_Direction: 0
   m_MinValue: 0
-  m_MaxValue: 100
+  m_MaxValue: 1
   m_WholeNumbers: 0
-  m_Value: 100
+  m_Value: 1
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
@@ -11316,7 +11316,7 @@ AudioSource:
   m_GameObject: {fileID: 5456117337912323840}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: 749164535128574521, guid: ef92c20924e21cd47b5b2e4896410471, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 0}
   m_PlayOnAwake: 1
@@ -22184,9 +22184,9 @@ MonoBehaviour:
   m_HandleRect: {fileID: 6810452156540161870}
   m_Direction: 0
   m_MinValue: 0
-  m_MaxValue: 100
+  m_MaxValue: 1
   m_WholeNumbers: 0
-  m_Value: 100
+  m_Value: 1
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
@@ -24143,9 +24143,45 @@ PrefabInstance:
       propertyPath: m_Name
       value: Player's HUD
       objectReference: {fileID: 0}
-    - target: {fileID: 1020103400239337491, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
-      propertyPath: m_IsActive
-      value: 1
+    - target: {fileID: 5288879641449270210, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
+      propertyPath: cameraTransform
+      value: 
+      objectReference: {fileID: 2965781503678262320}
+    - target: {fileID: 5288879641449270210, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
+      propertyPath: playerTransform
+      value: 
+      objectReference: {fileID: 7668396761015259288}
+    - target: {fileID: 5288879641449270210, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
+      propertyPath: questPoints.Array.size
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 5288879641449270210, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
+      propertyPath: questPoints.Array.data[0].questID
+      value: TomasInteraction
+      objectReference: {fileID: 0}
+    - target: {fileID: 5288879641449270210, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
+      propertyPath: questPoints.Array.data[1].questID
+      value: MariaInteraction
+      objectReference: {fileID: 0}
+    - target: {fileID: 5288879641449270210, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
+      propertyPath: questPoints.Array.data[2].questID
+      value: SilasInteraction
+      objectReference: {fileID: 0}
+    - target: {fileID: 5288879641449270210, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
+      propertyPath: questPoints.Array.data[3].questID
+      value: BrannInteraction
+      objectReference: {fileID: 0}
+    - target: {fileID: 5288879641449270210, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
+      propertyPath: questPoints.Array.data[4].questID
+      value: Explore_Area
+      objectReference: {fileID: 0}
+    - target: {fileID: 5288879641449270210, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
+      propertyPath: questPoints.Array.data[5].questID
+      value: FollowCart
+      objectReference: {fileID: 0}
+    - target: {fileID: 5288879641449270210, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
+      propertyPath: questPoints.Array.data[6].questID
+      value: ChiefLocation
       objectReference: {fileID: 0}
     - target: {fileID: 7622673159634153883, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
       propertyPath: m_Pivot.x

@@ -213,7 +213,7 @@ MonoBehaviour:
   creditsPanel: {fileID: 1898799728650445071}
   settingsManager: {fileID: 102210837}
   audioManager: {fileID: 1200981417}
-  menuBGMManager: {fileID: 0}
+  menuBGMManager: {fileID: 1200981419}
   mainMenuVideo: {fileID: 1584691482}
   settingsVideo: {fileID: 96641534}
   creditsVideo: {fileID: 1603958538}
@@ -221,8 +221,8 @@ MonoBehaviour:
   autoFindManagers: 1
   gameSceneName: CelyneScene
   backButtons:
-  - {fileID: 403135697}
   - {fileID: 4527746004014253037}
+  - {fileID: 403135697}
   autoFindBackButtons: 0
 --- !u!114 &102210837 stripped
 MonoBehaviour:
@@ -621,7 +621,7 @@ AudioSource:
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: a6192dd0644e1974b88de400be037192, type: 3}
   m_PlayOnAwake: 1
-  m_Volume: 0.005
+  m_Volume: 1
   m_Pitch: 1
   Loop: 1
   Mute: 0
@@ -801,7 +801,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 403135698}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 102210836}
+        m_TargetAssemblyTypeName: SimpleMenuManager, Assembly-CSharp
+        m_MethodName: ShowMainMenu
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &403135698
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1030,8 +1042,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 100
-  m_fontSizeBase: 100
+  m_fontSize: 50
+  m_fontSizeBase: 50
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -1277,6 +1289,81 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 783584760}
   m_CullTransparentMesh: 1
+--- !u!1 &856685641
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 856685642}
+  - component: {fileID: 856685644}
+  - component: {fileID: 856685643}
+  m_Layer: 5
+  m_Name: Image (1)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 2147483647
+  m_IsActive: 1
+--- !u!224 &856685642
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 856685641}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 13.3072195, y: 8.248756, z: 5.8918}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3063886607718305571}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0.14162, y: 239}
+  m_SizeDelta: {x: 99.7168, y: 9.3025}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &856685643
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 856685641}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Material: {fileID: 0}
+  m_Color: {r: 0, g: 0, b: 0, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 21300000, guid: 0e57a42e1c1eb004297e50638d03a52c, type: 3}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &856685644
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 856685641}
+  m_CullTransparentMesh: 1
 --- !u!114 &1167476960 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 1909495637041415544, guid: 641e5782ceb342449995f6829be09384, type: 3}
@@ -1354,6 +1441,7 @@ MonoBehaviour:
   mainMenuMusic: {fileID: 8300000, guid: a6192dd0644e1974b88de400be037192, type: 3}
   settingsMusic: {fileID: 8300000, guid: a6192dd0644e1974b88de400be037192, type: 3}
   creditsMusic: {fileID: 8300000, guid: a6192dd0644e1974b88de400be037192, type: 3}
+  useContinuousMusic: 1
   audioSource: {fileID: 326910671}
   fadeDuration: 1
   defaultVolume: 0.7
@@ -2170,6 +2258,7 @@ RectTransform:
   m_Children:
   - {fileID: 783584761}
   - {fileID: 207115991}
+  - {fileID: 856685642}
   - {fileID: 562677558}
   - {fileID: 403135696}
   m_Father: {fileID: 0}
