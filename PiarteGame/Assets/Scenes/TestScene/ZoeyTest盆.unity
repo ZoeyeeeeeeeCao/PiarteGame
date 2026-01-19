@@ -119,6 +119,11 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &352308 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1277312786367008400, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
+  m_PrefabInstance: {fileID: 695585368}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &200378087
 GameObject:
   m_ObjectHideFlags: 0
@@ -284,6 +289,11 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: -0}
   m_SizeDelta: {x: 1920, y: 1080}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!1 &468491372 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2653191097355403895, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
+  m_PrefabInstance: {fileID: 695585368}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &695585368
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -320,6 +330,26 @@ PrefabInstance:
       propertyPath: uiToDisableWhenInventoryOpen
       value: 
       objectReference: {fileID: 0}
+    - target: {fileID: 1195192248270073217, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
+      propertyPath: uiToDisableWhenInventoryOpen.Array.size
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 1195192248270073217, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
+      propertyPath: 'uiToDisableWhenInventoryOpen.Array.data[0]'
+      value: 
+      objectReference: {fileID: 352308}
+    - target: {fileID: 1195192248270073217, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
+      propertyPath: 'uiToDisableWhenInventoryOpen.Array.data[1]'
+      value: 
+      objectReference: {fileID: 2122811116}
+    - target: {fileID: 1195192248270073217, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
+      propertyPath: 'uiToDisableWhenInventoryOpen.Array.data[2]'
+      value: 
+      objectReference: {fileID: 1916321140}
+    - target: {fileID: 1195192248270073217, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
+      propertyPath: 'uiToDisableWhenInventoryOpen.Array.data[3]'
+      value: 
+      objectReference: {fileID: 468491372}
     - target: {fileID: 1254839621562173614, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
       propertyPath: m_LocalPosition.x
       value: -12.659874
@@ -474,7 +504,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 9156422547322117320, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -0.00045397037
+      value: -0.0010781285
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -873,6 +903,11 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1227016743}
   m_CullTransparentMesh: 1
+--- !u!1 &1916321140 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 9104719026067464613, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
+  m_PrefabInstance: {fileID: 695585368}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &2026891189
 GameObject:
   m_ObjectHideFlags: 0
@@ -1011,6 +1046,11 @@ MonoBehaviour:
   wrongSfxPlayOnce: 0
   debugCompareLog: 0
   IsSolved: 0
+--- !u!1 &2122811116 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4439125163183241361, guid: ad8c89ddbc54d6d4d90cb0db8a4aacd3, type: 3}
+  m_PrefabInstance: {fileID: 695585368}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
