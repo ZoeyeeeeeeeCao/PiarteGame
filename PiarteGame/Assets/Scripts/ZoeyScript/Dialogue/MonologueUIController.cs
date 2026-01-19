@@ -26,6 +26,14 @@ public class MonologueUIController : MonoBehaviour
     [Range(0f, 1f)] public float voiceVolume = 1f;
     public bool stopPreviousOnNext = true;
 
+    [Header("Auto Next (when voice ends)")]
+    public bool autoNextWhenVoiceEnds = true;
+    public float autoNextDelay = 0.1f;
+
+    [Header("Auto End When No Voice")]
+    public bool autoEndWhenNoVoice = true;   // ✅ NEW: 没语音也能自动结束
+    public float autoNoVoiceDelay = 0.8f;    // ✅ NEW
+
     [Header("Lock Player While Showing")]
     public MonoBehaviour[] disablePlayerScripts;
 
@@ -57,6 +65,13 @@ public class MonologueUIController : MonoBehaviour
     private Vector2 targetPos;
     private Coroutine slideRoutine;
     private Coroutine typeRoutine;
+
+    // ✅ auto-next / auto-end coroutine
+    private Coroutine autoRoutine;
+
+    // ✅ track current voice timing (PlayOneShot safe)
+    private float currentVoiceLen = 0f;
+    private float currentVoiceStartUnscaled = 0f;
 
     public bool IsShowing => showing;
 
@@ -100,6 +115,9 @@ public class MonologueUIController : MonoBehaviour
 
         CacheInitialUIStates();
 
+        if (autoRoutine != null) StopCoroutine(autoRoutine);
+        autoRoutine = null;
+
         showing = true;
         ApplyLocks(true);
 
@@ -115,9 +133,14 @@ public class MonologueUIController : MonoBehaviour
     {
         if (!contentText || data == null) return;
 
-        PlayVoiceForLine(i);
-
         if (typeRoutine != null) StopCoroutine(typeRoutine);
+        if (autoRoutine != null) StopCoroutine(autoRoutine);
+        autoRoutine = null;
+
+        // play voice first and remember timing
+        currentVoiceLen = PlayVoiceForLine(i);
+        currentVoiceStartUnscaled = Time.unscaledTime;
+
         typeRoutine = StartCoroutine(TypeText(data.lines[i]));
     }
 
@@ -133,19 +156,70 @@ public class MonologueUIController : MonoBehaviour
         }
 
         typing = false;
+
+        // ✅ after typing ends, schedule auto next/end
+        TryScheduleAutoAdvanceOrEnd();
     }
 
     void FinishTypingInstant()
     {
         if (typeRoutine != null) StopCoroutine(typeRoutine);
+        typeRoutine = null;
+
         typing = false;
 
         if (contentText && data != null && index < data.lines.Length)
             contentText.text = data.lines[index];
+
+        // ✅ pressing Enter to finish typing should ALSO keep auto behavior
+        TryScheduleAutoAdvanceOrEnd();
+    }
+
+    void TryScheduleAutoAdvanceOrEnd()
+    {
+        if (!showing) return;
+
+        if (autoRoutine != null) StopCoroutine(autoRoutine);
+        autoRoutine = null;
+
+        // only do auto if enabled
+        if (!autoNextWhenVoiceEnds && !autoEndWhenNoVoice) return;
+
+        // if there is voice: wait remaining voice + delay
+        if (autoNextWhenVoiceEnds && currentVoiceLen > 0.01f)
+        {
+            float elapsed = Time.unscaledTime - currentVoiceStartUnscaled;
+            float remaining = Mathf.Max(0f, currentVoiceLen - elapsed);
+            autoRoutine = StartCoroutine(AutoAdvanceOrEndAfterDelay(index, remaining + Mathf.Max(0f, autoNextDelay)));
+            return;
+        }
+
+        // no voice: optionally auto end (or auto advance) — for monologue we usually end when reaches last line
+        if (autoEndWhenNoVoice)
+        {
+            autoRoutine = StartCoroutine(AutoAdvanceOrEndAfterDelay(index, Mathf.Max(0f, autoNoVoiceDelay)));
+        }
+    }
+
+    IEnumerator AutoAdvanceOrEndAfterDelay(int lineIndexAtStart, float delay)
+    {
+        yield return new WaitForSecondsRealtime(delay);
+
+        if (!showing) yield break;
+        if (typing) yield break;
+        if (data == null) yield break;
+        if (index != lineIndexAtStart) yield break;
+
+        // ✅ same behavior as pressing Enter:
+        Next();
     }
 
     void Next()
     {
+        // manual next cancels pending auto
+        if (autoRoutine != null) StopCoroutine(autoRoutine);
+        autoRoutine = null;
+
         index++;
 
         if (data == null || index >= data.lines.Length)
@@ -162,6 +236,11 @@ public class MonologueUIController : MonoBehaviour
         showing = false;
 
         if (typeRoutine != null) StopCoroutine(typeRoutine);
+        typeRoutine = null;
+
+        if (autoRoutine != null) StopCoroutine(autoRoutine);
+        autoRoutine = null;
+
         typing = false;
 
         if (stopPreviousOnNext && voiceSource)
@@ -171,17 +250,18 @@ public class MonologueUIController : MonoBehaviour
         ApplyLocks(false);
     }
 
-    void PlayVoiceForLine(int i)
+    float PlayVoiceForLine(int i)
     {
-        if (!voiceSource) return;
-        if (data == null || data.voiceClips == null) return;
-        if (i < 0 || i >= data.voiceClips.Length) return;
+        if (!voiceSource) return 0f;
+        if (data == null || data.voiceClips == null) return 0f;
+        if (i < 0 || i >= data.voiceClips.Length) return 0f;
 
         var clip = data.voiceClips[i];
-        if (!clip) return;
+        if (!clip) return 0f;
 
         if (stopPreviousOnNext) voiceSource.Stop();
         voiceSource.PlayOneShot(clip, voiceVolume);
+        return clip.length;
     }
 
     void ShowPanelAnimated(bool show)
@@ -251,7 +331,6 @@ public class MonologueUIController : MonoBehaviour
 
     void ApplyLocks(bool on)
     {
-        // Disable player control scripts
         if (disablePlayerScripts != null)
         {
             for (int i = 0; i < disablePlayerScripts.Length; i++)
@@ -259,21 +338,19 @@ public class MonologueUIController : MonoBehaviour
                     disablePlayerScripts[i].enabled = !on;
         }
 
-        // ✅ Hard stop Animator (recommended for your BlendTree controller)
         if (playerAnimator && disableAnimatorComponentWhileShowing)
         {
             if (on)
             {
                 animatorWasEnabled = playerAnimator.enabled;
 
-                // Try to snap to idle pose first (optional, but helps avoid freezing mid-run)
                 if (animatorWasEnabled && !string.IsNullOrEmpty(idleFullPath))
                 {
                     playerAnimator.Play(idleFullPath, 0, 0f);
                     playerAnimator.Update(0f);
                 }
 
-                playerAnimator.enabled = false; // HARD FREEZE (all layers stop)
+                playerAnimator.enabled = false;
             }
             else
             {
@@ -281,14 +358,11 @@ public class MonologueUIController : MonoBehaviour
             }
         }
 
-        // Disable other UI (HUD etc.)
         SetOtherUIActive(!on);
 
-        // Optional pause
         if (pauseTimeScale)
             Time.timeScale = on ? 0f : 1f;
 
-        // Optional cursor
         if (showCursor)
         {
             Cursor.lockState = on ? CursorLockMode.None : CursorLockMode.Locked;

@@ -8,7 +8,12 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
     [Header("Interaction")]
     public string playerTag = "Player";
     public KeyCode interactKey = KeyCode.E;
+
+    [Tooltip("Primary next key (e.g., Space)")]
     public KeyCode nextKey = KeyCode.Space;
+
+    [Tooltip("Secondary next key (e.g., Enter). Set to None if you don't want it.")]
+    public KeyCode altNextKey = KeyCode.Return; // ✅ NEW (Enter)
 
     [Tooltip("Optional: World-space UI / sprite that shows 'Press E'")]
     public GameObject pressEIndicator;
@@ -41,6 +46,14 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
     [Range(0f, 1f)] public float voiceVolume = 1f;
     public bool stopPreviousOnNext = true;
 
+    [Header("Auto Next (when voice ends)")]
+    public bool autoNextWhenVoiceEnds = true;
+    public float autoNextDelay = 0.1f;
+
+    [Header("Auto Advance When No Voice")]
+    public bool autoAdvanceWhenNoVoice = true;     // ✅ NEW: 没有语音也能自动
+    public float autoNoVoiceDelay = 0.8f;          // ✅ NEW: 无语音时的自动间隔
+
     [Header("Optional: Pause game while talking (PC)")]
     public bool pauseTimeWhileTalking = false;
     public bool showCursorWhileTalking = false;
@@ -52,12 +65,10 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
     [Header("Typewriter")]
     public float charInterval = 0.03f;
 
-    // ✅ NEW: Disable other UI while dialogue is playing
     [Header("Optional UI Lock (Hide While Talking)")]
     [Tooltip("Drag any number of UI roots/Canvases you want to disable while dialogue is showing.")]
     public List<GameObject> uiToDisableWhileTalking = new List<GameObject>();
 
-    // ✅ Cache initial states so we restore correctly
     private readonly Dictionary<GameObject, bool> initialUIStates = new Dictionary<GameObject, bool>();
 
     int dialogueIndex;
@@ -72,6 +83,13 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
     Coroutine slideRoutine;
     Coroutine typeRoutine;
 
+    // auto-next coroutine
+    Coroutine autoNextRoutine;
+
+    // ✅ Track current voice timing (so FinishTypingInstant can still auto-advance correctly)
+    float currentVoiceLen = 0f;
+    float currentVoiceStartUnscaled = 0f;
+
     enum TalkState { First, Second, Done }
     TalkState talkState = TalkState.First;
 
@@ -81,7 +99,6 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
 
         if (npcNameText) npcNameText.text = npcName;
 
-        // AudioSource: use existing, do not force spatialBlend here
         if (!voiceSource)
         {
             voiceSource = GetComponent<AudioSource>();
@@ -89,13 +106,12 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
         }
         voiceSource.playOnAwake = false;
 
-        // UI initial state
         if (dialogueCanvas) dialogueCanvas.SetActive(false);
 
         if (dialoguePanel)
         {
             panelTargetPos = dialoguePanel.anchoredPosition;
-            dialoguePanel.gameObject.SetActive(false); // ✅ panel hidden at start
+            dialoguePanel.gameObject.SetActive(false);
         }
         else
         {
@@ -128,7 +144,6 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
 
             if (active)
             {
-                // Restore only if it was originally active
                 if (initialUIStates.TryGetValue(go, out bool wasActive) && wasActive)
                     go.SetActive(true);
             }
@@ -150,7 +165,11 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
             return;
         }
 
-        if (Input.GetKeyDown(nextKey))
+        bool nextPressed =
+            Input.GetKeyDown(nextKey) ||
+            (altNextKey != KeyCode.None && Input.GetKeyDown(altNextKey));
+
+        if (nextPressed)
         {
             if (typing) FinishTypingInstant();
             else NextLine();
@@ -184,7 +203,6 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
 
         if (pressEIndicator) pressEIndicator.SetActive(false);
 
-        // ✅ Disable other UI while talking
         SetOtherUIActive(false);
 
         if (dialogueCanvas) dialogueCanvas.SetActive(true);
@@ -199,6 +217,9 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
             EndDialogue();
             return;
         }
+
+        if (autoNextRoutine != null) StopCoroutine(autoNextRoutine);
+        autoNextRoutine = null;
 
         ApplyTalkingPause(true);
         ShowCurrentLine();
@@ -239,9 +260,14 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
         if (!dialogueText) return;
 
         if (typeRoutine != null) StopCoroutine(typeRoutine);
-        typeRoutine = StartCoroutine(TypeText(activeDialogue[dialogueIndex]));
+        if (autoNextRoutine != null) StopCoroutine(autoNextRoutine);
+        autoNextRoutine = null;
 
-        PlayVoiceForLine(dialogueIndex);
+        // play voice & remember timing
+        currentVoiceLen = PlayVoiceForLine(dialogueIndex);
+        currentVoiceStartUnscaled = Time.unscaledTime;
+
+        typeRoutine = StartCoroutine(TypeText(activeDialogue[dialogueIndex]));
     }
 
     IEnumerator TypeText(string line)
@@ -256,33 +282,85 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
         }
 
         typing = false;
+
+        TryScheduleAutoAdvance();
     }
 
     void FinishTypingInstant()
     {
         if (typeRoutine != null) StopCoroutine(typeRoutine);
+        typeRoutine = null;
 
         if (dialogueText && activeDialogue != null && dialogueIndex < activeDialogue.Length)
             dialogueText.text = activeDialogue[dialogueIndex];
 
         typing = false;
+
+        // ✅ 按键把字瞬间显示完后，也一样触发“等语音播完自动下一句/自动收起”
+        TryScheduleAutoAdvance();
     }
 
-    void PlayVoiceForLine(int index)
+    void TryScheduleAutoAdvance()
     {
-        if (!voiceSource) return;
-        if (activeVoice == null) return;
-        if (index < 0 || index >= activeVoice.Length) return;
+        if (!dialoguePlaying) return;
+
+        if (autoNextRoutine != null) StopCoroutine(autoNextRoutine);
+        autoNextRoutine = null;
+
+        if (!autoNextWhenVoiceEnds) return;
+
+        int lineIndexAtStart = dialogueIndex;
+
+        // 有语音：等剩余语音播完
+        if (currentVoiceLen > 0.01f)
+        {
+            float elapsed = Time.unscaledTime - currentVoiceStartUnscaled;
+            float remaining = Mathf.Max(0f, currentVoiceLen - elapsed);
+
+            autoNextRoutine = StartCoroutine(AutoNextAfterDelay(lineIndexAtStart, remaining + Mathf.Max(0f, autoNextDelay)));
+            return;
+        }
+
+        // 无语音：也自动（这样最后一句也能自动 slide down 结束）
+        if (autoAdvanceWhenNoVoice)
+        {
+            autoNextRoutine = StartCoroutine(AutoNextAfterDelay(lineIndexAtStart, Mathf.Max(0f, autoNoVoiceDelay)));
+        }
+    }
+
+    IEnumerator AutoNextAfterDelay(int lineIndexAtStart, float delay)
+    {
+        yield return new WaitForSecondsRealtime(delay);
+
+        if (!dialoguePlaying) yield break;
+        if (typing) yield break;
+        if (activeDialogue == null) yield break;
+        if (dialogueIndex != lineIndexAtStart) yield break;
+
+        // ✅ 这里会在最后一句时自动触发 EndDialogue() → slide down
+        NextLine();
+    }
+
+    float PlayVoiceForLine(int index)
+    {
+        if (!voiceSource) return 0f;
+        if (activeVoice == null) return 0f;
+        if (index < 0 || index >= activeVoice.Length) return 0f;
 
         var clip = activeVoice[index];
-        if (!clip) return;
+        if (!clip) return 0f;
 
         if (stopPreviousOnNext) voiceSource.Stop();
         voiceSource.PlayOneShot(clip, voiceVolume);
+
+        return clip.length;
     }
 
     void NextLine()
     {
+        if (autoNextRoutine != null) StopCoroutine(autoNextRoutine);
+        autoNextRoutine = null;
+
         dialogueIndex++;
 
         if (activeDialogue == null || dialogueIndex >= activeDialogue.Length)
@@ -296,6 +374,14 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
 
     void EndDialogue()
     {
+        if (typeRoutine != null) StopCoroutine(typeRoutine);
+        typeRoutine = null;
+
+        if (autoNextRoutine != null) StopCoroutine(autoNextRoutine);
+        autoNextRoutine = null;
+
+        typing = false;
+
         if (voiceSource && stopPreviousOnNext)
             voiceSource.Stop();
 
@@ -304,10 +390,8 @@ public class NpcDialogueController_Space_TMP : MonoBehaviour
 
         ShowPanelAnimated(false);
 
-        // ✅ Restore other UI after dialogue ends
         SetOtherUIActive(true);
 
-        // task logic
         if (talkState == TalkState.First)
         {
             QuestFinalSceneManager.Instance?.OnNpcTalk_StartQuest();

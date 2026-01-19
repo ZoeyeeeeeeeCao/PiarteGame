@@ -25,7 +25,7 @@ MonoBehaviour:
     Aidyn Sartayeva (DMT2309286)'
   stackable: 0
   maxStack: 99
-  initialAmount: 0
+  initialAmount: 1
   isConsumable: 0
   healAmount: 0
   inspectPrefab: {fileID: 919132149155446097, guid: 11c7314e294b65d4eb96769702b13571, type: 3}

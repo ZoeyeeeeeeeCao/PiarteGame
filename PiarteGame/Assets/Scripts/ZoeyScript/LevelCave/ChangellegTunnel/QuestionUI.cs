@@ -34,12 +34,10 @@ public class QuestionUI : MonoBehaviour
     [Header("Ignore These Colliders")]
     public Collider[] ignoredColliders;
 
-    // ✅ NEW: Multiple UI roots to disable while QuestionUI is showing
     [Header("Optional UI Lock (Hide While Showing)")]
     [Tooltip("Drag any number of UI roots / Canvases you want to disable while this Question UI is showing.")]
     public List<GameObject> uiToDisableWhileShowing = new List<GameObject>();
 
-    // ✅ Cache original active states
     private readonly Dictionary<GameObject, bool> initialUIStates = new Dictionary<GameObject, bool>();
 
     bool playerInside;
@@ -92,7 +90,6 @@ public class QuestionUI : MonoBehaviour
 
             if (active)
             {
-                // Restore only if it was originally active
                 if (initialUIStates.TryGetValue(go, out bool wasActive) && wasActive)
                     go.SetActive(true);
             }
@@ -141,6 +138,7 @@ public class QuestionUI : MonoBehaviour
         playerInside = true;
         hasProceeded = false;
 
+        // ✅ 进入就显示
         ShowUI();
     }
 
@@ -150,9 +148,10 @@ public class QuestionUI : MonoBehaviour
         if (IsIgnored(other)) return;
 
         playerInside = false;
-        hasProceeded = false;
 
-        HideUI();
+        // ✅ 改动点：离开不再 HideUI
+        // （UI 会一直显示，直到玩家按 Enter Proceed）
+        // HideUI();
     }
 
     void ShowUI()
@@ -161,7 +160,6 @@ public class QuestionUI : MonoBehaviour
 
         if (uiCanvas) uiCanvas.SetActive(true);
 
-        // ✅ Disable other UI
         SetOtherUIActive(false);
 
         ApplyPause(true);
@@ -186,7 +184,6 @@ public class QuestionUI : MonoBehaviour
 
         ApplyPause(false);
 
-        // ✅ Restore other UI
         SetOtherUIActive(true);
     }
 
@@ -197,7 +194,8 @@ public class QuestionUI : MonoBehaviour
 
         HideUI();
 
-        // Your follow-up logic here
+        // ✅ Your follow-up logic here
+        // e.g. open door / load scene / call event, etc.
     }
 
     IEnumerator TypeText(string line)
