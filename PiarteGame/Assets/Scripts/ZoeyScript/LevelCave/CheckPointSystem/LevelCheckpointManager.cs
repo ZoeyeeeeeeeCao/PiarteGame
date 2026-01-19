@@ -12,9 +12,31 @@ public class LevelCheckpointManager : MonoBehaviour
 
     public bool HasCheckpoint => currentCheckpoint != null;
 
+    [Header("Compass Marker (Sequential Checkpoints)")]
+    [Tooltip("Assign checkpoints in the exact order the player should reach them.")]
+    [SerializeField] private List<Transform> checkpointOrder = new();
+
+    [Tooltip("Quest IDs in the Compass.questPoints list (same order as checkpointOrder).")]
+    [SerializeField] private List<string> checkpointMarkerIDs = new();
+
+    [Tooltip("Reference to Compass in the scene (optional). If null, we'll find it.")]
+    [SerializeField] private Compass compass;
+
+    private int currentCheckpointIndex = -1;
+
     private void Awake()
     {
         Instance = this;
+
+        if (compass == null)
+            compass = FindFirstObjectByType<Compass>(); // Unity 6 friendly
+    }
+
+    private void Start()
+    {
+        // Start by showing first marker (if configured)
+        ShowOnlyMarkerForIndex(0);
+
     }
 
     public void Register(RevertibleObject obj)
@@ -44,6 +66,80 @@ public class LevelCheckpointManager : MonoBehaviour
             r.SaveState();
 
         Debug.Log($"✅ Checkpoint saved: {point.name} (player={player?.name})");
+
+        // ===== NEW: Sequential compass marker handling =====
+        AdvanceCompassMarkerIfThisIsNext(point);
+    }
+
+    private void AdvanceCompassMarkerIfThisIsNext(Transform point)
+    {
+        if (checkpointOrder == null || checkpointOrder.Count == 0) return;
+
+        // Determine which checkpoint index this point is in the ordered list
+        int idx = checkpointOrder.IndexOf(point);
+        if (idx < 0)
+        {
+            // Not part of the ordered list (still a valid checkpoint, just no compass step)
+            return;
+        }
+
+        // Only advance if player reached the current "next" checkpoint
+        // (prevents weird jumps if they touch checkpoint #3 before #2)
+        if (idx == currentCheckpointIndex + 1)
+        {
+            int oldIndex = currentCheckpointIndex;
+            currentCheckpointIndex = idx;
+
+            ShowOnlyMarkerForIndex(currentCheckpointIndex + 1);
+        }
+        else
+        {
+            // If you want it to *force* sync instead, uncomment:
+            // HideMarkerForIndex(currentCheckpointIndex);
+            // currentCheckpointIndex = idx;
+            // ShowMarkerForIndex(currentCheckpointIndex + 1);
+        }
+    }
+
+    private void ShowOnlyMarkerForIndex(int idx)
+    {
+        if (compass == null) return;
+        if (checkpointMarkerIDs == null) return;
+        if (idx < 0 || idx >= checkpointMarkerIDs.Count)
+        {
+            // End of checkpoint chain -> hide everything
+            compass.HideAllMarkers();
+            return;
+        }
+
+        // ✅ this is the key line that prevents 2 markers:
+        compass.HideAllMarkers();
+
+        string id = checkpointMarkerIDs[idx];
+        if (!string.IsNullOrWhiteSpace(id))
+            compass.ShowMarker(id);
+    }
+
+    private void ShowMarkerForIndex(int idx)
+    {
+        if (compass == null) return;
+        if (checkpointMarkerIDs == null) return;
+        if (idx < 0 || idx >= checkpointMarkerIDs.Count) return;
+
+        string id = checkpointMarkerIDs[idx];
+        if (!string.IsNullOrWhiteSpace(id))
+            compass.ShowMarker(id);
+    }
+
+    private void HideMarkerForIndex(int idx)
+    {
+        if (compass == null) return;
+        if (checkpointMarkerIDs == null) return;
+        if (idx < 0 || idx >= checkpointMarkerIDs.Count) return;
+
+        string id = checkpointMarkerIDs[idx];
+        if (!string.IsNullOrWhiteSpace(id))
+            compass.HideMarker(id);
     }
 
     public void RespawnToCheckpoint()

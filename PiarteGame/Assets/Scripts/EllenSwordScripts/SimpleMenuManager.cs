@@ -44,6 +44,8 @@ public class SimpleMenuManager : MonoBehaviour
     [Tooltip("Automatically find all buttons named 'BackButton' if array is empty")]
     [SerializeField] private bool autoFindBackButtons = true;
 
+    private bool hasStartedMusic = false; // Track if music has been started
+
     private void Start()
     {
         // Auto-find managers if enabled
@@ -78,7 +80,7 @@ public class SimpleMenuManager : MonoBehaviour
 
     private void InitializeManagers()
     {
-        // Initialize AudioManager if available
+        // Initialize AudioManager if available - ONLY ONCE
         if (audioManager != null)
         {
             audioManager.InitializeAudio();
@@ -89,7 +91,7 @@ public class SimpleMenuManager : MonoBehaviour
             Debug.LogWarning("⚠️ AudioManager not found! Audio controls may not work.");
         }
 
-        // SettingsManager initializes itself, no need to call anything
+        // SettingsManager initializes itself in its own Start()
         if (settingsManager != null)
         {
             Debug.Log("✅ SettingsManager connected");
@@ -97,6 +99,14 @@ public class SimpleMenuManager : MonoBehaviour
         else
         {
             Debug.LogWarning("⚠️ SettingsManager not found! Settings panel may not work properly.");
+        }
+
+        // Start the music immediately on initialization
+        if (menuBGMManager != null && !hasStartedMusic)
+        {
+            menuBGMManager.PlayMainMenuMusic();
+            hasStartedMusic = true;
+            Debug.Log("🎵 Started music during initialization");
         }
     }
 
@@ -154,19 +164,8 @@ public class SimpleMenuManager : MonoBehaviour
         settingsPanel.SetActive(true);
         creditsPanel.SetActive(false);
 
-        // Play settings music
-        if (menuBGMManager != null)
-        {
-            menuBGMManager.PlaySettingsMusic();
-        }
-
-        // Notify SettingsManager if needed
-        if (settingsManager != null)
-        {
-            Debug.Log("⚙️ Settings opened - SettingsManager is handling controls");
-        }
-
-        Debug.Log("⚙️ Settings panel opened");
+        // DON'T do anything with music - let it continue playing naturally
+        Debug.Log("⚙️ Settings panel opened (music continues)");
     }
 
     public void OpenCredits()
@@ -176,13 +175,8 @@ public class SimpleMenuManager : MonoBehaviour
         settingsPanel.SetActive(false);
         creditsPanel.SetActive(true);
 
-        // Play credits music
-        if (menuBGMManager != null)
-        {
-            menuBGMManager.PlayCreditsMusic();
-        }
-
-        Debug.Log("📜 Credits opened");
+        // DON'T do anything with music - let it continue playing naturally
+        Debug.Log("📜 Credits opened (music continues)");
     }
 
     public void QuitGame()
@@ -204,28 +198,21 @@ public class SimpleMenuManager : MonoBehaviour
         settingsPanel.SetActive(false);
         creditsPanel.SetActive(false);
 
-        // Play main menu music
-        if (menuBGMManager != null)
-        {
-            menuBGMManager.PlayMainMenuMusic();
-        }
-
-        Debug.Log("🏠 Returned to main menu");
+        // Music is already started in InitializeManagers, don't touch it here
+        Debug.Log("🏠 Returned to main menu (music continues)");
     }
 
     // You can also call SettingsManager's back navigation if needed
     public void HandleBackFromSettings()
     {
-        if (settingsManager != null)
+        if (settingsManager != null && settingsManager.isInsideKeyboardSubmenu)
         {
-            // If SettingsManager has sub-menus open (like keyboard settings)
-            // it will handle going back to the main settings panel
-            // Otherwise, we go to main menu
-            settingsManager.HandleBackNavigation();
+            // If inside keyboard submenu, close it and return to main settings
+            settingsManager.CloseKeyboardSettings();
         }
         else
         {
-            // Fallback to main menu
+            // Otherwise, go back to main menu
             ShowMainMenu();
         }
     }
@@ -324,17 +311,23 @@ public class SimpleMenuManager : MonoBehaviour
                 bool isSettingsBackButton = settingsPanel != null &&
                                            backButton.transform.IsChildOf(settingsPanel.transform);
 
+                // Check if this back button is in the credits panel
+                bool isCreditsBackButton = creditsPanel != null &&
+                                           backButton.transform.IsChildOf(creditsPanel.transform);
+
                 if (isSettingsBackButton && settingsManager != null)
                 {
                     // Use SettingsManager's smart back navigation
                     backButton.onClick.RemoveListener(HandleBackFromSettings);
                     backButton.onClick.AddListener(HandleBackFromSettings);
+                    Debug.Log($"✅ Setup back button for Settings: {backButton.name}");
                 }
                 else
                 {
-                    // Regular back button - go to main menu
+                    // Regular back button - go to main menu PANEL (don't reload scene!)
                     backButton.onClick.RemoveListener(ShowMainMenu);
                     backButton.onClick.AddListener(ShowMainMenu);
+                    Debug.Log($"✅ Setup back button for panel switching: {backButton.name}");
                 }
             }
         }
