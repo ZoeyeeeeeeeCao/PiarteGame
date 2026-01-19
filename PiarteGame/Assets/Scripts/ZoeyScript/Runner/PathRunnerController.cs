@@ -13,9 +13,9 @@ public class PathRunnerSingleLaneController : MonoBehaviour
     public bool runFromEnd = true;
 
     [Header("Run")]
-    public float forwardSpeed = 8f;          // speed along path (m/s)
-    public float followSharpness = 14f;      // how strongly we stick to path center (XZ)
-    public float rotateSharpness = 18f;      // how fast we face forward along path
+    public float forwardSpeed = 8f;
+    public float followSharpness = 14f;
+    public float rotateSharpness = 18f;
 
     [Header("Jump & Gravity (Y is driven by gravity, NOT by path Y)")]
     public float gravity = -28f;
@@ -34,6 +34,22 @@ public class PathRunnerSingleLaneController : MonoBehaviour
     public KeyCode keyJump = KeyCode.Space;
     public KeyCode keySlide = KeyCode.LeftControl;
 
+    [Header("Animation")]
+    public Animator animator;                 // drag your Animator here
+    public string stairsZoneTag = "StairsZone";
+    public string obstacleTag = "Obstacle";
+
+    [Tooltip("Freeze movement briefly when Hit plays.")]
+    public float hitLockTime = 0.55f;
+
+    // Animator hashes (faster + safer)
+    static readonly int H_IsGrounded = Animator.StringToHash("IsGrounded");
+    static readonly int H_IsSliding = Animator.StringToHash("IsSliding");
+    static readonly int H_OnStairs = Animator.StringToHash("OnStairs");
+    static readonly int H_YVel = Animator.StringToHash("YVel");
+    static readonly int H_Jump = Animator.StringToHash("Jump");
+    static readonly int H_Hit = Animator.StringToHash("Hit");
+
     CharacterController cc;
 
     float distanceTravelled;
@@ -46,9 +62,16 @@ public class PathRunnerSingleLaneController : MonoBehaviour
     float swipeStartTime;
     bool swiping;
 
+    bool onStairs;
+    bool hitLocked;
+    float hitLockTimer;
+
     void Awake()
     {
         cc = GetComponent<CharacterController>();
+
+        if (animator == null)
+            animator = GetComponentInChildren<Animator>();
     }
 
     void Start()
@@ -66,10 +89,8 @@ public class PathRunnerSingleLaneController : MonoBehaviour
             return;
         }
 
-        // ✅ Key: choose start distance explicitly
         distanceTravelled = runFromEnd ? pathCreator.path.length : 0f;
 
-        // Place player to the chosen start point (XZ), Y stays as current + small lift to avoid clipping
         Vector3 startPos = pathCreator.path.GetPointAtDistance(distanceTravelled, endOfPathInstruction);
         Vector3 startDir = pathCreator.path.GetDirectionAtDistance(distanceTravelled, endOfPathInstruction);
         if (runFromEnd) startDir = -startDir;
@@ -83,7 +104,8 @@ public class PathRunnerSingleLaneController : MonoBehaviour
         transform.rotation = Quaternion.LookRotation(startDir, Vector3.up);
         cc.enabled = true;
 
-        verticalVel = -2f; // stable grounded behaviour
+        verticalVel = -2f;
+        PushAnimParams();
     }
 
     void Update()
@@ -95,31 +117,28 @@ public class PathRunnerSingleLaneController : MonoBehaviour
         if (allowKeyboardFallback) HandleKeyboardFallback();
 
         UpdateSlide();
+        UpdateHitLock();
 
-        float maxLen = pathCreator.path.length;
-        float dir = runFromEnd ? -1f : 1f;
+        // If hit is playing/locked, don’t advance along path (optional but feels better)
+        if (!hitLocked)
+        {
+            float maxLen = pathCreator.path.length;
+            float dir = runFromEnd ? -1f : 1f;
 
-        // 1) advance along path (forwardSpeed always positive in Inspector)
-        distanceTravelled += dir * forwardSpeed * Time.deltaTime;
+            distanceTravelled += dir * forwardSpeed * Time.deltaTime;
+            distanceTravelled = Mathf.Clamp(distanceTravelled, 0f, maxLen);
+        }
 
-        // clamp to path range
-        distanceTravelled = Mathf.Clamp(distanceTravelled, 0f, maxLen);
-
-        // 2) sample path at current distance
         Vector3 pathPos = pathCreator.path.GetPointAtDistance(distanceTravelled, endOfPathInstruction);
         Vector3 forward = pathCreator.path.GetDirectionAtDistance(distanceTravelled, endOfPathInstruction);
-
-        // if running from end, invert forward so we face our moving direction
         if (runFromEnd) forward = -forward;
 
-        // IMPORTANT: only use path for XZ (do NOT follow path Y)
         forward.y = 0f;
         if (forward.sqrMagnitude < 0.0001f) forward = transform.forward;
         forward.Normalize();
 
-        // 3) horizontal "magnet" to the path centerline (XZ only)
+        // Horizontal magnet (XZ only)
         Vector3 pos = transform.position;
-
         Vector3 desiredHorizontal = new Vector3(pathPos.x, pos.y, pathPos.z);
         Vector3 horizontalDelta = desiredHorizontal - pos;
 
@@ -129,17 +148,18 @@ public class PathRunnerSingleLaneController : MonoBehaviour
             1f - Mathf.Exp(-followSharpness * Time.deltaTime)
         );
 
-        // 4) gravity + jump (Y ONLY comes from physics/gravity)
+        // Gravity + jump
         if (cc.isGrounded && verticalVel < 0f)
             verticalVel = -2f;
 
         verticalVel += gravity * Time.deltaTime;
         Vector3 verticalMove = Vector3.up * verticalVel * Time.deltaTime;
 
-        // 5) move
-        cc.Move(horizontalMove + verticalMove);
+        // Move (reduce horizontal during hit to avoid jitter)
+        Vector3 finalMove = (hitLocked ? horizontalMove * 0.15f : horizontalMove) + verticalMove;
+        cc.Move(finalMove);
 
-        // 6) face forward (XZ)
+        // Face forward
         Quaternion targetRot = Quaternion.LookRotation(forward, Vector3.up);
         transform.rotation = Quaternion.Slerp(
             transform.rotation,
@@ -147,12 +167,25 @@ public class PathRunnerSingleLaneController : MonoBehaviour
             1f - Mathf.Exp(-rotateSharpness * Time.deltaTime)
         );
 
-        // 7) height blend (slide/stand)
+        // Height blend
         float desiredHeight = sliding ? slideHeight : standHeight;
         cc.height = Mathf.Lerp(cc.height, desiredHeight, 1f - Mathf.Exp(-heightLerpSpeed * Time.deltaTime));
         Vector3 center = cc.center;
         center.y = cc.height * 0.5f;
         cc.center = center;
+
+        // Animator parameters every frame
+        PushAnimParams();
+    }
+
+    void PushAnimParams()
+    {
+        if (!animator) return;
+
+        animator.SetBool(H_IsGrounded, cc.isGrounded);
+        animator.SetBool(H_IsSliding, sliding);
+        animator.SetBool(H_OnStairs, onStairs);
+        animator.SetFloat(H_YVel, verticalVel);
     }
 
     // -------------------- INPUT --------------------
@@ -178,7 +211,6 @@ public class PathRunnerSingleLaneController : MonoBehaviour
             if (dt > swipeMaxTime) return;
             if (delta.magnitude < swipeMinPixels) return;
 
-            // only Up/Down now
             if (Mathf.Abs(delta.y) >= Mathf.Abs(delta.x))
             {
                 if (delta.y > 0) DoJump();
@@ -197,19 +229,24 @@ public class PathRunnerSingleLaneController : MonoBehaviour
 
     void DoJump()
     {
+        if (hitLocked) return;
         if (!cc.isGrounded) return;
         if (sliding) return;
 
         verticalVel = Mathf.Sqrt(2f * Mathf.Abs(gravity) * jumpHeight);
+
+        if (animator) animator.SetTrigger(H_Jump);
     }
 
     void DoSlide()
     {
+        if (hitLocked) return;
         if (sliding) return;
         if (!cc.isGrounded) return;
 
         sliding = true;
         slideTimer = slideDuration;
+        // Slide uses bool IsSliding, so no trigger needed
     }
 
     void UpdateSlide()
@@ -219,5 +256,62 @@ public class PathRunnerSingleLaneController : MonoBehaviour
         slideTimer -= Time.deltaTime;
         if (slideTimer <= 0f)
             sliding = false;
+    }
+
+    // -------------------- HIT (OBSTACLE FAIL) --------------------
+
+    void TriggerHit()
+    {
+        if (hitLocked) return;
+
+        hitLocked = true;
+        hitLockTimer = hitLockTime;
+
+        // cancel slide if we got hit
+        sliding = false;
+
+        if (animator)
+        {
+            animator.ResetTrigger(H_Jump);
+            animator.SetTrigger(H_Hit);
+        }
+    }
+
+    void UpdateHitLock()
+    {
+        if (!hitLocked) return;
+
+        hitLockTimer -= Time.deltaTime;
+        if (hitLockTimer <= 0f)
+            hitLocked = false;
+    }
+
+    // Called when CharacterController hits a non-trigger collider
+    void OnControllerColliderHit(ControllerColliderHit hit)
+    {
+        if (!hit.collider) return;
+        if (!hit.collider.CompareTag(obstacleTag)) return;
+
+        // If you were sliding OR clearly airborne (jumping), don’t count it as a fail.
+        bool airborne = !cc.isGrounded && verticalVel > -0.5f;
+
+        if (sliding) return;
+        if (airborne) return;
+
+        TriggerHit();
+    }
+
+    // -------------------- STAIRS ZONE --------------------
+
+    void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag(stairsZoneTag))
+            onStairs = true;
+    }
+
+    void OnTriggerExit(Collider other)
+    {
+        if (other.CompareTag(stairsZoneTag))
+            onStairs = false;
     }
 }
