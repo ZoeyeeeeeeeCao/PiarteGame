@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using TMPro;
-using Unity.VisualScripting;
-using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -40,16 +37,19 @@ public class CelyneMissionManager : MonoBehaviour
     public GameObject wineCartTrigger;
     public string phase3CompassQuestID = "FollowCart";
 
-    [Header("Phase 3.5: Head to Location")]
-    public string phase3_5_Text = "Head to the ambush location";
-    public GameObject headToLocationTrigger;
-    public string phase3_5_CompassQuestID = "AmbushLocation";
+    // Note: Phase 3.5 (Ambush Location) logic removed to streamline flow
 
     [Header("Phase 4: Kill Enemies")]
     public int enemiesToKill = 10;
     private int enemiesKilled = 0;
     private bool phase4Active = false;
     private bool phase4Complete = false;
+
+    [Header("Phase 5: Enter Interior")]
+    public string phase5Text = "Enter the Main Hall";
+    public GameObject interiorEntranceTrigger; // Drag your door trigger here
+    public string phase5CompassQuestID = "EnterInterior";
+    private bool phase5Complete = false;
 
     [Header("Audio & Compass")]
     public AudioSource audioSource;
@@ -60,7 +60,6 @@ public class CelyneMissionManager : MonoBehaviour
     private bool phase1Complete = false;
     private bool phase2Complete = false;
     private bool phase3Complete = false;
-    private bool phase3_5_Complete = false;
 
     private void OnEnable() { EnemyHealthController.OnEnemyCountUpdated += UpdateKillMissionUI; }
     private void OnDisable() { EnemyHealthController.OnEnemyCountUpdated -= UpdateKillMissionUI; }
@@ -86,7 +85,7 @@ public class CelyneMissionManager : MonoBehaviour
 
         SetupEndTriggerListener();
         SetupWineCartTriggerListener();
-        SetupHeadToLocationTriggerListener();
+        SetupInteriorTriggerListener(); // Initialize Phase 5 listener
     }
 
     void Update()
@@ -103,10 +102,8 @@ public class CelyneMissionManager : MonoBehaviour
     void SetupEndTriggerListener()
     {
         if (!explorationEndTrigger) return;
-
         TriggerListener listener = explorationEndTrigger.GetComponent<TriggerListener>();
         if (!listener) listener = explorationEndTrigger.AddComponent<TriggerListener>();
-
         listener.triggerTag = triggerTag;
         listener.onTriggerEnter = OnExplorationEnd;
     }
@@ -114,13 +111,10 @@ public class CelyneMissionManager : MonoBehaviour
     void OnExplorationEnd(Collider other)
     {
         if (explorationComplete) return;
-
         explorationComplete = true;
 
         if (compass != null && !string.IsNullOrEmpty(exploreAreaQuestID))
-        {
             compass.HideMarker(exploreAreaQuestID);
-        }
 
         UpdateMissionUI($"Talk to the villagers (0/{npcMissions.Count})");
         PlayMissionSound();
@@ -211,10 +205,8 @@ public class CelyneMissionManager : MonoBehaviour
     void SetupWineCartTriggerListener()
     {
         if (!wineCartTrigger) return;
-
         TriggerListener listener = wineCartTrigger.GetComponent<TriggerListener>();
         if (!listener) listener = wineCartTrigger.AddComponent<TriggerListener>();
-
         listener.triggerTag = triggerTag;
         listener.onTriggerEnter = OnWineCartReached;
     }
@@ -222,7 +214,6 @@ public class CelyneMissionManager : MonoBehaviour
     void OnWineCartReached(Collider other)
     {
         if (phase3Complete) return;
-
         CompletePhase3();
     }
 
@@ -233,57 +224,10 @@ public class CelyneMissionManager : MonoBehaviour
 
         Debug.Log("✅ Phase 3 Complete - Wine cart reached");
 
-        // Hide wine cart marker
         if (compass && !string.IsNullOrEmpty(phase3CompassQuestID))
             compass.HideMarker(phase3CompassQuestID);
 
-        // Start Phase 3.5 - Head to location
-        StartPhase3_5_HeadToLocation();
-    }
-
-    // --- PHASE 3.5: HEAD TO LOCATION ---
-    void StartPhase3_5_HeadToLocation()
-    {
-        UpdateMissionUI(phase3_5_Text);
-        PlayMissionSound();
-
-        Debug.Log("🎯 Phase 3.5 Started - Show ambush location marker");
-
-        // Show the new location marker
-        if (compass && !string.IsNullOrEmpty(phase3_5_CompassQuestID))
-            compass.ShowMarker(phase3_5_CompassQuestID);
-    }
-
-    void SetupHeadToLocationTriggerListener()
-    {
-        if (!headToLocationTrigger) return;
-
-        TriggerListener listener = headToLocationTrigger.GetComponent<TriggerListener>();
-        if (!listener) listener = headToLocationTrigger.AddComponent<TriggerListener>();
-
-        listener.triggerTag = triggerTag;
-        listener.onTriggerEnter = OnLocationReached;
-    }
-
-    void OnLocationReached(Collider other)
-    {
-        if (phase3_5_Complete) return;
-
-        CompletePhase3_5();
-    }
-
-    void CompletePhase3_5()
-    {
-        if (phase3_5_Complete) return;
-        phase3_5_Complete = true;
-
-        Debug.Log("✅ Phase 3.5 Complete - Ambush location reached");
-
-        // Hide the location marker
-        if (compass && !string.IsNullOrEmpty(phase3_5_CompassQuestID))
-            compass.HideMarker(phase3_5_CompassQuestID);
-
-        // Start the kill enemies phase
+        // DIRECTLY START PHASE 4 (Kill Enemies)
         StartPhase4_KillEnemies();
     }
 
@@ -293,6 +237,7 @@ public class CelyneMissionManager : MonoBehaviour
         EnemyHealthController.ResetDeathCount();
         enemiesKilled = 0;
         phase4Active = true;
+
         UpdateMissionUI($"Kill enemies (0/{enemiesToKill})");
         PlayMissionSound();
 
@@ -301,19 +246,71 @@ public class CelyneMissionManager : MonoBehaviour
 
     private void UpdateKillMissionUI(int currentGlobalDeaths)
     {
+        // Only update if Phase 4 is active and not yet complete
         if (!phase4Active || phase4Complete) return;
+
         enemiesKilled = currentGlobalDeaths;
         UpdateMissionUI($"Kill enemies ({enemiesKilled}/{enemiesToKill})");
+
         if (enemiesKilled >= enemiesToKill)
         {
-            phase4Complete = true;
-            UpdateMissionUI("All enemies defeated! Return to Celyne.");
-            PlayMissionSound();
+            CompletePhase4();
         }
     }
 
-    void UpdateMissionUI(string text) { if (missionText != null) missionText.text = text; }
-    void PlayMissionSound() { if (audioSource != null && missionUpdateSound != null) audioSource.PlayOneShot(missionUpdateSound); }
+    void CompletePhase4()
+    {
+        phase4Complete = true;
+        Debug.Log("✅ Phase 4 Complete - All enemies defeated");
+
+        // DIRECTLY START PHASE 5 (Enter Interior)
+        StartPhase5_EnterInterior();
+    }
+
+    // --- PHASE 5: ENTER INTERIOR ---
+    void StartPhase5_EnterInterior()
+    {
+        UpdateMissionUI(phase5Text);
+        PlayMissionSound();
+
+        Debug.Log("🏠 Phase 5 Started - Enter the interior.");
+
+        if (compass && !string.IsNullOrEmpty(phase5CompassQuestID))
+            compass.ShowMarker(phase5CompassQuestID);
+    }
+
+    void SetupInteriorTriggerListener()
+    {
+        if (!interiorEntranceTrigger) return;
+
+        TriggerListener listener = interiorEntranceTrigger.GetComponent<TriggerListener>();
+        if (!listener) listener = interiorEntranceTrigger.AddComponent<TriggerListener>();
+        listener.triggerTag = triggerTag;
+        listener.onTriggerEnter = OnInteriorEntered;
+    }
+
+    void OnInteriorEntered(Collider other)
+    {
+        // Only trigger if Phase 4 is finished
+        if (phase5Complete || !phase4Complete) return;
+
+        CompletePhase5();
+    }
+
+    void CompletePhase5()
+    {
+        phase5Complete = true;
+        Debug.Log("✅ Phase 5 Complete - Entered Interior");
+
+        if (compass && !string.IsNullOrEmpty(phase5CompassQuestID))
+            compass.HideMarker(phase5CompassQuestID);
+
+        UpdateMissionUI("Mission Complete!");
+        PlayMissionSound();
+
+        // Optional: Load Scene Logic
+        // UnityEngine.SceneManagement.SceneManager.LoadScene("InteriorLevel");
+    }
 
     // --- HELPER CLASS ---
     public class TriggerListener : MonoBehaviour
@@ -325,5 +322,8 @@ public class CelyneMissionManager : MonoBehaviour
             if (other.CompareTag(triggerTag)) onTriggerEnter?.Invoke(other);
         }
     }
-}
 
+    // Helpers
+    void UpdateMissionUI(string text) { if (missionText != null) missionText.text = text; }
+    void PlayMissionSound() { if (audioSource != null && missionUpdateSound != null) audioSource.PlayOneShot(missionUpdateSound); }
+}

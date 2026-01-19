@@ -23,14 +23,29 @@ public class SceneLoaderHoward : MonoBehaviour
     {
         if (Instance == null)
         {
+            // If I am the first one, I am the Boss.
             Instance = this;
             DontDestroyOnLoad(gameObject);
+
+            // Hide canvas initially
+            if (sceneVideoCanvas) sceneVideoCanvas.SetActive(false);
         }
         else
         {
+            // A Boss already exists! 
+            // But I (the new script) have the correct video for THIS level.
+            // So, I will give my video references to the Boss before I die.
+
+            Instance.sceneVideoPlayer = this.sceneVideoPlayer;
+            Instance.sceneVideoCanvas = this.sceneVideoCanvas;
+            Instance.playVideoBeforeLoading = this.playVideoBeforeLoading;
+
+            // Make sure the Boss hides the canvas I just gave him
+            if (Instance.sceneVideoCanvas) Instance.sceneVideoCanvas.SetActive(false);
+
+            // Now I can die peacefully
             Destroy(gameObject);
         }
-        if (sceneVideoCanvas) sceneVideoCanvas.SetActive(false);
     }
 
     public void LoadLevel(string sceneName)
