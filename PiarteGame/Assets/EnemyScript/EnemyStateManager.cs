@@ -10,8 +10,7 @@ public enum EnemyType
 
 /// <summary>
 /// Main controller for Enemy AI. 
-/// Supports Animator Override Controllers to allow different visuals/animations 
-/// for different enemy types while sharing the same logic.
+/// Handles State transitions, NavMesh navigation, and Combat toggles.
 /// </summary>
 [RequireComponent(typeof(NavMeshAgent))]
 public class EnemyController : MonoBehaviour
@@ -24,7 +23,6 @@ public class EnemyController : MonoBehaviour
     [Range(0, 360)]
     public float viewAngle = 60f;
     public float attackSensorRange = 2f;
-
     public LayerMask obstacleMask;
     public Transform playerTarget;
 
@@ -41,12 +39,13 @@ public class EnemyController : MonoBehaviour
 
     [Header("References")]
     public Animator animator;
-    /// <summary>
-    /// Assign a unique Animator Override Controller for each enemy variant (e.g., Skeleton, Orc).
-    /// </summary>
     public AnimatorOverrideController enemyAnimationOverride;
     public NavMeshAgent agent;
     public EnemyHealthController healthController;
+
+    [Header("Combat References")]
+    public TrailRenderer attackTrail;
+    public GameObject swordHitboxObject; // The child object with the collider
 
     private EnemyBaseState _currentState;
     [HideInInspector] public bool isSpawning = false;
@@ -61,6 +60,9 @@ public class EnemyController : MonoBehaviour
     {
         if (agent == null) agent = GetComponent<NavMeshAgent>();
         if (healthController == null) healthController = GetComponent<EnemyHealthController>();
+
+        // Initial hard-disable of combat visuals
+        DisableCombat();
     }
 
     private void Start()
@@ -98,6 +100,27 @@ public class EnemyController : MonoBehaviour
         _currentState?.ExitState(this);
         _currentState = newState;
         _currentState.EnterState(this);
+    }
+
+    /// <summary>
+    /// Function to be called by Animation Events.
+    /// active = 1 (Enable), active = 0 (Disable)
+    /// </summary>
+    public void SetCombatActive(int active)
+    {
+        bool isActive = (active != 0);
+
+        if (swordHitboxObject != null)
+            swordHitboxObject.SetActive(isActive);
+
+        if (attackTrail != null)
+            attackTrail.emitting = isActive;
+    }
+
+    public void DisableCombat()
+    {
+        if (swordHitboxObject != null) swordHitboxObject.SetActive(false);
+        if (attackTrail != null) attackTrail.emitting = false;
     }
 
     public void TakeDamage() => TransitionToState(DamageState);
@@ -163,17 +186,5 @@ public class EnemyController : MonoBehaviour
 
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, viewRadius);
-
-        Gizmos.color = Color.blue;
-        Vector3 viewAngleA = DirFromAngle(-viewAngle / 2, false);
-        Vector3 viewAngleB = DirFromAngle(viewAngle / 2, false);
-        Gizmos.DrawLine(transform.position, transform.position + viewAngleA * viewRadius);
-        Gizmos.DrawLine(transform.position, transform.position + viewAngleB * viewRadius);
-    }
-
-    private Vector3 DirFromAngle(float angleInDegrees, bool angleIsGlobal)
-    {
-        if (!angleIsGlobal) angleInDegrees += transform.eulerAngles.y;
-        return new Vector3(Mathf.Sin(angleInDegrees * Mathf.Deg2Rad), 0, Mathf.Cos(angleInDegrees * Mathf.Deg2Rad));
     }
 }

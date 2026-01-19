@@ -2992,7 +2992,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &7031831860930893451
 Transform:
   m_ObjectHideFlags: 0
@@ -3102,6 +3102,8 @@ MonoBehaviour:
   enemyAnimationOverride: {fileID: 0}
   agent: {fileID: 3715828464774444177}
   healthController: {fileID: 8188706257147808941}
+  attackTrail: {fileID: 0}
+  swordHitboxObject: {fileID: 9054514346592308605}
   isSpawning: 0
 --- !u!114 &8188706257147808941
 MonoBehaviour:
@@ -3162,6 +3164,9 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+  OnHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!136 &757023869157917254
 CapsuleCollider:
   m_ObjectHideFlags: 0
