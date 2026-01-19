@@ -20,6 +20,7 @@ MonoBehaviour:
     and restores strength, making it a staple among sailors and pirates alike.
   stackable: 1
   maxStack: 99
+  initialAmount: 0
   isConsumable: 1
   healAmount: 20
   inspectPrefab: {fileID: -927199367670048503, guid: 4ffeacb5d02b7cf458eb6cb9804e0155, type: 3}

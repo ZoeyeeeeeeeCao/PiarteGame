@@ -13,17 +13,19 @@ MonoBehaviour:
   m_Name: Celyne
   m_EditorClassIdentifier: 
   itemId: celyne
-  displayName: ???
+  displayName: Celyne
   category: 1
   description: 'One of the creators of this game.
 
-    Breaking the fourth wall,
-    just for you.
 
-    Celyne'
+    "Breaking the fourth wall,
+    just for you."
+
+
+    Tando Jocelyne Audrey (DMT2309287)'
   stackable: 0
   maxStack: 99
-  initialAmount: 1
+  initialAmount: 0
   isConsumable: 0
   healAmount: 0
   inspectPrefab: {fileID: 919132149155446097, guid: ff44ebc1fd0c5ea45a3c56143f654e1a, type: 3}

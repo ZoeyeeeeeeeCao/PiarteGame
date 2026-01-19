@@ -13,17 +13,19 @@ MonoBehaviour:
   m_Name: Nelsen
   m_EditorClassIdentifier: 
   itemId: nelsen
-  displayName: ???
+  displayName: Nelsen
   category: 1
   description: 'One of the creators of this game.
 
-    Nelsen:"Apparently, developers
-    are collectibles now."
 
-    Nelsen'
+    "Apparently, developers are
+    collectibles now."
+
+
+    Gunawan Nelsen Keane (DMT2309281)'
   stackable: 0
   maxStack: 99
-  initialAmount: 1
+  initialAmount: 0
   isConsumable: 0
   healAmount: 0
   inspectPrefab: {fileID: 919132149155446097, guid: 03fdbd7ee5d30e94ab98edf6e702d9f1, type: 3}
