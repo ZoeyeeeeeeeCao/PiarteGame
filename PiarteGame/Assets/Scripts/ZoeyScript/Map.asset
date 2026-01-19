@@ -15,16 +15,9 @@ MonoBehaviour:
   itemId: Map_Regular
   displayName: Map
   category: 2
-  description: 'If there''s a place you got to go
-
-    I''m the one you need to know
-
-    I''m
-    the Map
-
-    I''m the Map
-
-    I''m the Map'
+  description: An old map showing four islands across the archipelago. One island
+    is deliberately faded and difficult to make out, as if its location was never
+    meant to be known.
   stackable: 0
   maxStack: 99
   initialAmount: 1

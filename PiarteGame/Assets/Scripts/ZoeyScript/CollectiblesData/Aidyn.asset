@@ -13,12 +13,14 @@ MonoBehaviour:
   m_Name: Aidyn
   m_EditorClassIdentifier: 
   itemId: aidyn
-  displayName: Aidyn Sartayeva
+  displayName: Aidyn
   category: 1
   description: 'One of the creators of this game.
 
-    Aidyn:"We decided to hide
-    ourselves in the game."
+
+    "We decided to hide ourselves
+    in the game."
+
 
     Aidyn Sartayeva (DMT2309286)'
   stackable: 0

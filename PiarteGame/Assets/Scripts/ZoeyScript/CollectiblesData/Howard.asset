@@ -13,17 +13,19 @@ MonoBehaviour:
   m_Name: Howard
   m_EditorClassIdentifier: 
   itemId: howard
-  displayName: ???
+  displayName: Howard
   category: 1
   description: 'One of the creators of this game.
 
-    Howard:"Now I know how the
-    items feel."
 
-    Howard'
+    "Now I know how the items
+    feel."
+
+
+    Wilyman Howard (DMT2309289)'
   stackable: 0
   maxStack: 99
-  initialAmount: 1
+  initialAmount: 0
   isConsumable: 0
   healAmount: 0
   inspectPrefab: {fileID: 919132149155446097, guid: ac2495c9316f7274e9176afef9267afb, type: 3}
