@@ -15,6 +15,7 @@ public class HerbPickupAnimation : MonoBehaviour
 
     private InteractPickup pickup;
     private bool isPickingUp;
+    private bool playerInRange; // Track if player is in range
 
     private void Awake()
     {
@@ -33,13 +34,10 @@ public class HerbPickupAnimation : MonoBehaviour
         if (isPickingUp) return;
         if (!pickup) return;
 
-        // Let InteractPickup handle range detection
-        if (Input.GetKeyDown(pickup.interactKey) && pickup.enabled)
+        // Only allow pickup if player is in range
+        if (playerInRange && Input.GetKeyDown(pickup.interactKey))
         {
-            if (pickup.enabled)
-            {
-                StartCoroutine(PickupRoutine());
-            }
+            StartCoroutine(PickupRoutine());
         }
     }
 
@@ -61,12 +59,29 @@ public class HerbPickupAnimation : MonoBehaviour
         yield return new WaitForSeconds(animationDuration);
 
         // Perform actual pickup
-        pickup.enabled = true;   // make sure it's enabled
         pickup.TryPickup();
-        // force pickup logic once
 
         // Re-enable movement
         foreach (var m in movementScriptsToDisable)
             if (m) m.enabled = true;
+
+        isPickingUp = false;
+    }
+
+    // Listen to the InteractPickup's trigger events
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag(pickup.playerTag))
+        {
+            playerInRange = true;
+        }
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.CompareTag(pickup.playerTag))
+        {
+            playerInRange = false;
+        }
     }
 }
