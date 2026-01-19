@@ -30,13 +30,13 @@ public class InventoryMenuUI : MonoBehaviour
     [Header("Inspect (optional but recommended)")]
     public InspectManager inspectManager;
 
-    // ⭐ NEW: Optional canvas/object to hide while inventory is open
+    // ⭐ NEW: List of UI roots to hide while inventory is open
     [Header("Optional UI Lock (Hide While Inventory Open)")]
-    [Tooltip("Optional: another Canvas or UI root to disable when inventory opens (can be null).")]
-    public GameObject uiToDisableWhenInventoryOpen;
+    [Tooltip("Any UI roots/canvases you want disabled when inventory opens (HUD, minimap, prompts, etc).")]
+    public List<GameObject> uiToDisableWhenInventoryOpen = new();
 
-    // ⭐ NEW: Remember its initial state so we restore correctly
-    private bool uiWasInitiallyActive;
+    // ⭐ NEW: Cache each UI's previous active state so we restore correctly
+    private bool[] _uiPrevActiveStates;
 
     PickUpItemCategory currentCategory = PickUpItemCategory.Herbs;
     readonly List<GameObject> spawnedRows = new();
@@ -58,10 +58,6 @@ public class InventoryMenuUI : MonoBehaviour
 
         // ✅ 初始化初始量（你之前要求的）
         StaticInventory.InitializeFromDatabase(database);
-
-        // ⭐ NEW: cache initial active state of the other UI
-        if (uiToDisableWhenInventoryOpen != null)
-            uiWasInitiallyActive = uiToDisableWhenInventoryOpen.activeSelf;
 
         // Make sure detail panel has the inspect manager reference
         if (detailPanel && detailPanel.inspectManager == null)
@@ -94,9 +90,7 @@ public class InventoryMenuUI : MonoBehaviour
     {
         if (windowRoot) windowRoot.SetActive(true);
 
-        // ⭐ NEW: hide the other UI if it exists and was initially active
-        if (uiToDisableWhenInventoryOpen != null && uiWasInitiallyActive)
-            uiToDisableWhenInventoryOpen.SetActive(false);
+        HideBlockedUI();
 
         Time.timeScale = 0f;
         Cursor.lockState = CursorLockMode.None;
@@ -119,9 +113,60 @@ public class InventoryMenuUI : MonoBehaviour
 
         if (detailPanel) detailPanel.Hide();
 
-        // ⭐ NEW: restore the other UI only if it was initially active
-        if (uiToDisableWhenInventoryOpen != null && uiWasInitiallyActive)
-            uiToDisableWhenInventoryOpen.SetActive(true);
+        RestoreBlockedUI();
+    }
+
+    // =========================
+    // Hide / Restore list of UI
+    // =========================
+    private void HideBlockedUI()
+    {
+        if (uiToDisableWhenInventoryOpen == null || uiToDisableWhenInventoryOpen.Count == 0)
+            return;
+
+        _uiPrevActiveStates = new bool[uiToDisableWhenInventoryOpen.Count];
+
+        for (int i = 0; i < uiToDisableWhenInventoryOpen.Count; i++)
+        {
+            var go = uiToDisableWhenInventoryOpen[i];
+            if (go == null)
+            {
+                _uiPrevActiveStates[i] = false;
+                continue;
+            }
+
+            _uiPrevActiveStates[i] = go.activeSelf;
+
+            // Only disable if it was enabled
+            if (go.activeSelf)
+                go.SetActive(false);
+        }
+    }
+
+    private void RestoreBlockedUI()
+    {
+        if (uiToDisableWhenInventoryOpen == null || uiToDisableWhenInventoryOpen.Count == 0)
+            return;
+
+        // If not cached (or list size changed), safest fallback: enable them
+        if (_uiPrevActiveStates == null || _uiPrevActiveStates.Length != uiToDisableWhenInventoryOpen.Count)
+        {
+            for (int i = 0; i < uiToDisableWhenInventoryOpen.Count; i++)
+            {
+                var go = uiToDisableWhenInventoryOpen[i];
+                if (go != null) go.SetActive(true);
+            }
+            return;
+        }
+
+        for (int i = 0; i < uiToDisableWhenInventoryOpen.Count; i++)
+        {
+            var go = uiToDisableWhenInventoryOpen[i];
+            if (go == null) continue;
+
+            // Restore exactly what it was before inventory opened
+            go.SetActive(_uiPrevActiveStates[i]);
+        }
     }
 
     void SetCategory(PickUpItemCategory cat)

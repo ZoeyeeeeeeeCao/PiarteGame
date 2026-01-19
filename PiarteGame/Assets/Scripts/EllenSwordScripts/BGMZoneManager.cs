@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Enhanced BGM Manager - Supports both collider triggers and manual events
@@ -64,6 +65,13 @@ public class BGMZoneManager : MonoBehaviour
     private Coroutine transitionCoroutine;
     private AudioSource secondaryAudioSource; // For crossfade
 
+    // ⭐ NEW: last played track memory (so restart can resume it)
+    private AudioClip _lastPlayedClip;
+    private float _lastPlayedVolume = 0.7f;
+
+    // ⭐ NEW: if player is dead, block zone triggers from starting music again
+    private bool _musicLockedBecauseDead = false;
+
     // Singleton instance for easy access from other scripts
     public static BGMZoneManager Instance { get; private set; }
 
@@ -84,6 +92,15 @@ public class BGMZoneManager : MonoBehaviour
         }
         Instance = this;
         DontDestroyOnLoad(gameObject);
+
+        // ⭐ NEW: listen for scene loads so we can restart the last song after death reload
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    void OnDestroy()
+    {
+        if (Instance == this)
+            SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 
     void Start()
@@ -106,13 +123,37 @@ public class BGMZoneManager : MonoBehaviour
         // Register all zone triggers
         RegisterZoneTriggers();
 
-        // Play default BGM if assigned
-        if (defaultBGM != null)
+        // Play default BGM if assigned (only if nothing remembered yet)
+        if (_lastPlayedClip == null && defaultBGM != null)
         {
             PlayBGM(defaultBGM, defaultVolume, true);
         }
 
         Debug.Log($"🎵 BGM Zone Manager initialized with {musicZones.Count} zones");
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        // Re-register triggers because colliders are scene objects
+        RegisterZoneTriggers();
+
+        // If we died and reloaded, resume the last song from the beginning
+        if (_musicLockedBecauseDead)
+        {
+            _musicLockedBecauseDead = false;
+
+            if (_lastPlayedClip != null)
+            {
+                // Start it immediately (no fade needed here)
+                PlayBGM(_lastPlayedClip, _lastPlayedVolume, immediate: true);
+                Debug.Log($"🎵 Restarted last BGM after death reload: {_lastPlayedClip.name}");
+            }
+            else if (defaultBGM != null)
+            {
+                PlayBGM(defaultBGM, defaultVolume, immediate: true);
+                Debug.Log($"🎵 Restarted default BGM after death reload: {defaultBGM.name}");
+            }
+        }
     }
 
     void RegisterZoneTriggers()
@@ -121,7 +162,6 @@ public class BGMZoneManager : MonoBehaviour
         {
             if (zone.zoneTrigger != null)
             {
-                // Add MusicZoneTrigger component to handle collision
                 var triggerHandler = zone.zoneTrigger.gameObject.GetComponent<MusicZoneTrigger>();
                 if (triggerHandler == null)
                 {
@@ -130,26 +170,14 @@ public class BGMZoneManager : MonoBehaviour
 
                 triggerHandler.Initialize(this, zone);
 
-                // Ensure it's a trigger
                 zone.zoneTrigger.isTrigger = true;
-
-                // Set initial active state
                 zone.zoneTrigger.enabled = zone.colliderActiveAtStart;
-
-                Debug.Log($"🎵 Registered zone: {zone.zoneName} (Collider {(zone.colliderActiveAtStart ? "Active" : "Inactive")})");
-            }
-            else
-            {
-                Debug.Log($"🎵 Zone '{zone.zoneName}' has no collider (manual trigger only)");
             }
         }
     }
 
     // ===== PUBLIC API FOR MANUAL TRIGGERS =====
 
-    /// <summary>
-    /// Play music from a specific zone by name (for dialogue events, cutscenes, etc.)
-    /// </summary>
     public void PlayZoneByName(string zoneName)
     {
         MusicZone zone = musicZones.Find(z => z.zoneName == zoneName);
@@ -164,9 +192,6 @@ public class BGMZoneManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Play music from a specific zone by index
-    /// </summary>
     public void PlayZoneByIndex(int index)
     {
         if (index >= 0 && index < musicZones.Count)
@@ -180,43 +205,24 @@ public class BGMZoneManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Enable a zone's collider trigger
-    /// </summary>
     public void EnableZoneCollider(string zoneName)
     {
         MusicZone zone = musicZones.Find(z => z.zoneName == zoneName);
         if (zone != null && zone.zoneTrigger != null)
         {
             zone.zoneTrigger.enabled = true;
-            Debug.Log($"✅ Enabled collider for zone: {zoneName}");
-        }
-        else
-        {
-            Debug.LogWarning($"⚠️ Cannot enable collider for zone '{zoneName}'");
         }
     }
 
-    /// <summary>
-    /// Disable a zone's collider trigger
-    /// </summary>
     public void DisableZoneCollider(string zoneName)
     {
         MusicZone zone = musicZones.Find(z => z.zoneName == zoneName);
         if (zone != null && zone.zoneTrigger != null)
         {
             zone.zoneTrigger.enabled = false;
-            Debug.Log($"❌ Disabled collider for zone: {zoneName}");
-        }
-        else
-        {
-            Debug.LogWarning($"⚠️ Cannot disable collider for zone '{zoneName}'");
         }
     }
 
-    /// <summary>
-    /// Enable zone collider by index
-    /// </summary>
     public void EnableZoneColliderByIndex(int index)
     {
         if (index >= 0 && index < musicZones.Count)
@@ -225,14 +231,10 @@ public class BGMZoneManager : MonoBehaviour
             if (zone.zoneTrigger != null)
             {
                 zone.zoneTrigger.enabled = true;
-                Debug.Log($"✅ Enabled collider for zone {index}: {zone.zoneName}");
             }
         }
     }
 
-    /// <summary>
-    /// Disable zone collider by index
-    /// </summary>
     public void DisableZoneColliderByIndex(int index)
     {
         if (index >= 0 && index < musicZones.Count)
@@ -241,29 +243,32 @@ public class BGMZoneManager : MonoBehaviour
             if (zone.zoneTrigger != null)
             {
                 zone.zoneTrigger.enabled = false;
-                Debug.Log($"❌ Disabled collider for zone {index}: {zone.zoneName}");
             }
         }
     }
 
     // ===== INTERNAL ZONE HANDLING =====
 
-    /// <summary>
-    /// Called when player enters a music zone (from collider OR manual trigger)
-    /// </summary>
     public void OnPlayerEnterZone(MusicZone zone)
     {
+        // ⭐ NEW: do not allow zone triggers to start music while dead
+        if (_musicLockedBecauseDead)
+            return;
+
+        if (zone == null || zone.bgmClip == null) return;
+
         // Prevent restarting same music
         if (preventRestart && currentZone == zone && bgmAudioSource.isPlaying)
         {
-            Debug.Log($"🎵 Already playing {zone.zoneName}, skipping transition");
             return;
         }
 
-        Debug.Log($"🎵 Entering zone: {zone.zoneName}");
         currentZone = zone;
 
-        // Switch music based on transition type
+        // Remember last played track
+        _lastPlayedClip = zone.bgmClip;
+        _lastPlayedVolume = zone.volume;
+
         switch (transitionType)
         {
             case TransitionType.Fade:
@@ -288,8 +293,11 @@ public class BGMZoneManager : MonoBehaviour
             StopCoroutine(transitionCoroutine);
 
         bgmAudioSource.Stop();
+        secondaryAudioSource.Stop();
+
         bgmAudioSource.clip = newClip;
         bgmAudioSource.volume = volume;
+        bgmAudioSource.time = 0f;
         bgmAudioSource.Play();
     }
 
@@ -306,7 +314,6 @@ public class BGMZoneManager : MonoBehaviour
         float startVolume = bgmAudioSource.volume;
         float elapsed = 0f;
 
-        // Fade out
         while (elapsed < fadeDuration / 2f)
         {
             elapsed += Time.deltaTime;
@@ -314,12 +321,11 @@ public class BGMZoneManager : MonoBehaviour
             yield return null;
         }
 
-        // Switch track
         bgmAudioSource.Stop();
         bgmAudioSource.clip = newClip;
+        bgmAudioSource.time = 0f;
         bgmAudioSource.Play();
 
-        // Fade in
         elapsed = 0f;
         while (elapsed < fadeDuration / 2f)
         {
@@ -344,6 +350,7 @@ public class BGMZoneManager : MonoBehaviour
     {
         secondaryAudioSource.clip = newClip;
         secondaryAudioSource.volume = 0f;
+        secondaryAudioSource.time = 0f;
         secondaryAudioSource.Play();
 
         float elapsed = 0f;
@@ -363,7 +370,7 @@ public class BGMZoneManager : MonoBehaviour
         bgmAudioSource.Stop();
         bgmAudioSource.clip = newClip;
         bgmAudioSource.volume = targetVolume;
-        bgmAudioSource.time = secondaryAudioSource.time;
+        bgmAudioSource.time = 0f;
         bgmAudioSource.Play();
 
         secondaryAudioSource.Stop();
@@ -376,6 +383,15 @@ public class BGMZoneManager : MonoBehaviour
 
     public void PlayBGM(AudioClip clip, float volume = 0.7f, bool immediate = false)
     {
+        if (clip == null) return;
+
+        // Remember last played track
+        _lastPlayedClip = clip;
+        _lastPlayedVolume = volume;
+
+        if (_musicLockedBecauseDead)
+            return;
+
         if (immediate)
         {
             SwitchMusicImmediate(clip, volume);
@@ -396,6 +412,45 @@ public class BGMZoneManager : MonoBehaviour
         currentZone = null;
     }
 
+    // ⭐ NEW: call this when player dies
+    // Call this when player dies
+    public void OnPlayerDied_StopMusic()
+    {
+        _musicLockedBecauseDead = true;
+
+        if (transitionCoroutine != null)
+        {
+            StopCoroutine(transitionCoroutine);
+            transitionCoroutine = null;
+        }
+
+        if (bgmAudioSource != null) bgmAudioSource.Stop();
+        if (secondaryAudioSource != null) secondaryAudioSource.Stop();
+    }
+
+    // Call this when player restarts/respawns (restart button)
+    public void OnPlayerRestarted_PlayLastMusic()
+    {
+        _musicLockedBecauseDead = false;
+
+        // If something was playing before, resume it (from start)
+        if (_lastPlayedClip != null)
+        {
+            SwitchMusicImmediate(_lastPlayedClip, _lastPlayedVolume);
+            return;
+        }
+
+        // Otherwise fallback to default
+        if (defaultBGM != null)
+        {
+            SwitchMusicImmediate(defaultBGM, defaultVolume);
+            return;
+        }
+
+        Debug.LogWarning("⚠️ No BGM to play on restart (no last track + no default).");
+    }
+
+
     public void PauseMusic()
     {
         bgmAudioSource.Pause();
@@ -404,13 +459,11 @@ public class BGMZoneManager : MonoBehaviour
 
     public void ResumeMusic()
     {
+        if (_musicLockedBecauseDead) return;
         bgmAudioSource.UnPause();
         secondaryAudioSource.UnPause();
     }
 
-    /// <summary>
-    /// Get the name of the currently playing zone
-    /// </summary>
     public string GetCurrentZoneName()
     {
         return currentZone != null ? currentZone.zoneName : "None";
@@ -433,9 +486,13 @@ public class MusicZoneTrigger : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
+        if (manager == null) return;
+
         if (other.CompareTag(manager.playerTag))
         {
             manager.OnPlayerEnterZone(zone);
         }
     }
+
+
 }

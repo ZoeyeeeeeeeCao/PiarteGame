@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
@@ -27,7 +28,13 @@ public class DeathUIController : MonoBehaviour
     [Header("Pause Game When Shown")]
     [SerializeField] private bool pauseGame = true;
 
-    [Header("Gameplay UI (Optional)")]
+    // ✅ NEW: List-based UI hide system
+    [Header("Gameplay UI To Hide On Death (List)")]
+    [Tooltip("Any gameplay UI roots you want hidden when death UI appears (HUD, compass, quests, subtitles, etc).")]
+    [SerializeField] private List<GameObject> uiToHideOnDeath = new();
+
+    // Backward compatibility (optional)
+    [Header("Legacy (Optional)")]
     [SerializeField] private GameObject questCanvas;
     [SerializeField] private GameObject conversationCanvas;
 
@@ -37,9 +44,6 @@ public class DeathUIController : MonoBehaviour
     [SerializeField] private float deathSoundVolume = 1f;
     [SerializeField] private float deathSoundDelay = 0.5f;
 
-    private bool questCanvasWasActiveBeforeDeath;
-    private bool conversationCanvasWasActiveBeforeDeath;
-
     private Coroutine animationRoutine;
     private bool subscribed;
 
@@ -48,6 +52,9 @@ public class DeathUIController : MonoBehaviour
 
     private Material vignetteMaterial;
     private static readonly int VignetteRadius = Shader.PropertyToID("_Radius");
+
+    // ✅ NEW: cached active states
+    private bool[] uiWasActiveBeforeDeath;
 
     private void Awake()
     {
@@ -100,6 +107,14 @@ public class DeathUIController : MonoBehaviour
             deathAudioSource = audioObj.AddComponent<AudioSource>();
             deathAudioSource.playOnAwake = false;
         }
+
+        // ✅ Optional: auto-add legacy fields into the list (only if list is empty)
+        if ((uiToHideOnDeath == null || uiToHideOnDeath.Count == 0))
+        {
+            uiToHideOnDeath = new List<GameObject>();
+            if (questCanvas != null) uiToHideOnDeath.Add(questCanvas);
+            if (conversationCanvas != null) uiToHideOnDeath.Add(conversationCanvas);
+        }
     }
 
     private void OnEnable()
@@ -146,19 +161,8 @@ public class DeathUIController : MonoBehaviour
         if (deathPanel != null)
             deathPanel.SetActive(true);
 
-        if (questCanvas != null)
-        {
-            questCanvasWasActiveBeforeDeath = questCanvas.activeSelf;
-            if (questCanvasWasActiveBeforeDeath)
-                questCanvas.SetActive(false);
-        }
-
-        if (conversationCanvas != null)
-        {
-            conversationCanvasWasActiveBeforeDeath = conversationCanvas.activeSelf;
-            if (conversationCanvasWasActiveBeforeDeath)
-                conversationCanvas.SetActive(false);
-        }
+        // ✅ NEW: Hide list UIs (cache state)
+        HideUIsForDeath();
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
@@ -193,6 +197,55 @@ public class DeathUIController : MonoBehaviour
 
         yield return new WaitForSecondsRealtime(buttonFadeDelay);
         yield return StartCoroutine(FadeInButtons());
+    }
+
+    // ✅ NEW: Hide/restore UI list
+    private void HideUIsForDeath()
+    {
+        if (uiToHideOnDeath == null || uiToHideOnDeath.Count == 0)
+            return;
+
+        uiWasActiveBeforeDeath = new bool[uiToHideOnDeath.Count];
+
+        for (int i = 0; i < uiToHideOnDeath.Count; i++)
+        {
+            var go = uiToHideOnDeath[i];
+            if (go == null)
+            {
+                uiWasActiveBeforeDeath[i] = false;
+                continue;
+            }
+
+            uiWasActiveBeforeDeath[i] = go.activeSelf;
+
+            if (go.activeSelf)
+                go.SetActive(false);
+        }
+    }
+
+    private void RestoreUIsAfterRestart()
+    {
+        if (uiToHideOnDeath == null || uiToHideOnDeath.Count == 0)
+            return;
+
+        // If something changed, safest fallback: enable them
+        if (uiWasActiveBeforeDeath == null || uiWasActiveBeforeDeath.Length != uiToHideOnDeath.Count)
+        {
+            for (int i = 0; i < uiToHideOnDeath.Count; i++)
+            {
+                var go = uiToHideOnDeath[i];
+                if (go != null) go.SetActive(true);
+            }
+            return;
+        }
+
+        for (int i = 0; i < uiToHideOnDeath.Count; i++)
+        {
+            var go = uiToHideOnDeath[i];
+            if (go == null) continue;
+
+            go.SetActive(uiWasActiveBeforeDeath[i]);
+        }
     }
 
     private IEnumerator VignetteBlackout()
@@ -301,11 +354,8 @@ public class DeathUIController : MonoBehaviour
 
             ResetUIElements();
 
-            if (questCanvas != null && questCanvasWasActiveBeforeDeath)
-                questCanvas.SetActive(true);
-
-            if (conversationCanvas != null && conversationCanvasWasActiveBeforeDeath)
-                conversationCanvas.SetActive(true);
+            // ✅ NEW: restore list UIs
+            RestoreUIsAfterRestart();
 
             cp.RespawnToCheckpoint();
 
