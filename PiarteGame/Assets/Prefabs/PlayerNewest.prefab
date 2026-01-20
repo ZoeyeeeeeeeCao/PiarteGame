@@ -1814,7 +1814,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: -0.00015247642}
+  m_AnchoredPosition: {x: 0, y: -0.00008639563}
   m_SizeDelta: {x: 0, y: 802.7127}
   m_Pivot: {x: 0, y: 1}
 --- !u!1 &1616745164952911787
@@ -10780,7 +10780,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: -0.0010502884}
+  m_AnchoredPosition: {x: 0, y: -0.000038304566}
   m_SizeDelta: {x: 0, y: 3397.4065}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &381945424430782320
@@ -12472,7 +12472,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 624819855198024546}
   m_Direction: 2
   m_Value: 1.0000005
-  m_Size: 0.8423046
+  m_Size: 0.84230626
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -14721,11 +14721,7 @@ MonoBehaviour:
   buttonFadeDuration: 1
   pauseGame: 1
   uiToHideOnDeath:
-  - {fileID: 1277312786367008400}
-  - {fileID: 4439125163183241361}
-  - {fileID: 9104719026067464613}
-  - {fileID: 1277312786367008400}
-  - {fileID: 2653191097355403895}
+  - {fileID: 293532270386194747}
   - {fileID: 0}
   questCanvas: {fileID: 0}
   conversationCanvas: {fileID: 0}
@@ -23371,8 +23367,8 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1079870899152227851}
   m_HandleRect: {fileID: 5875239307475891790}
   m_Direction: 2
-  m_Value: 1.0000004
-  m_Size: 0.22294912
+  m_Value: 1
+  m_Size: 0.22294946
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -24363,6 +24359,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!1 &293532270386194747 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1020103400239337491, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}
+  m_PrefabInstance: {fileID: 737170492344285480}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1460361007676755546 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 2197415981439203186, guid: 939131f54bae90a4aa480039c4bf9d1f, type: 3}

@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 [DisallowMultipleComponent]
 public class CheckpointTrigger : MonoBehaviour
@@ -17,12 +17,9 @@ public class CheckpointTrigger : MonoBehaviour
     {
         if (hideRenderersOnPlay)
         {
-            // Hide this object and all child renderers
             var renderers = GetComponentsInChildren<Renderer>();
             foreach (var r in renderers)
-            {
                 r.enabled = false;
-            }
         }
     }
 
@@ -33,16 +30,13 @@ public class CheckpointTrigger : MonoBehaviour
 
         hasTriggered = true;
 
+        // ✅ Save checkpoint (and compass step)
         if (LevelCheckpointManager.Instance != null)
-        {
-            // Save checkpoint + advance compass marker if this is the next one
             LevelCheckpointManager.Instance.SetCheckpoint(transform, other.transform);
-        }
 
-        // Disable collider so it cannot retrigger
         if (disableAfterTriggered)
         {
-            Collider col = GetComponent<Collider>();
+            var col = GetComponent<Collider>();
             if (col != null) col.enabled = false;
         }
     }
