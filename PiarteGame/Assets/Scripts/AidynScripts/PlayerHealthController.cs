@@ -67,7 +67,7 @@ public class PlayerHealthController : MonoBehaviour
         }
 
         Instance = this;
-        DontDestroyOnLoad(gameObject);
+        //DontDestroyOnLoad(gameObject);
 
         CurrentHealth = maxHealth;
         Notify();
@@ -180,9 +180,9 @@ public class PlayerHealthController : MonoBehaviour
         Notify();
         CheckLowHealthState();
 
-        // ✅ NEW: when restart happens, bring music back
-        if (BGMZoneManager.Instance != null)
-            BGMZoneManager.Instance.OnPlayerRestarted_PlayLastMusic();
+        FindObjectOfType<AudioManager>()?.RestoreMusicOnRestart();
+        FindObjectOfType<BGMZoneManager>()?.OnPlayerRestarted_PlayLastMusic();
+
     }
 
 
@@ -197,11 +197,9 @@ public class PlayerHealthController : MonoBehaviour
             lowHealthPulseCoroutine = null;
         }
 
-        // ⭐ NEW: stop BGM immediately on death (and lock it so triggers can’t restart it)
-        if (BGMZoneManager.Instance != null)
-        {
-            BGMZoneManager.Instance.OnPlayerDied_StopMusic();
-        }
+        FindObjectOfType<AudioManager>()?.MuteMusicOnDeath();
+        FindObjectOfType<BGMZoneManager>()?.OnPlayerDied_StopMusic();
+
 
         PlayDeathSound();
 

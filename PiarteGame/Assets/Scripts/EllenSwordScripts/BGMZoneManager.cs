@@ -4,8 +4,6 @@ using System.Collections.Generic;
 
 public class BGMZoneManager : MonoBehaviour
 {
-    public static BGMZoneManager Instance;
-
     [System.Serializable]
     public class BGMZone
     {
@@ -24,21 +22,21 @@ public class BGMZoneManager : MonoBehaviour
     private Coroutine _fadeRoutine;
     private string _currentZone = "";
 
+    // =======================
+    // PLAYER LIFECYCLE STATE
+    // =======================
+    private string _lastPlayedZone = "";
+
     private void Awake()
     {
-        if (Instance != null)
-        {
-            Destroy(gameObject);
-            return;
-        }
-
-        Instance = this;
-        DontDestroyOnLoad(gameObject);
-
         _audioSource = gameObject.AddComponent<AudioSource>();
         _audioSource.loop = true;
         _audioSource.playOnAwake = false;
     }
+
+    // =======================
+    // ZONE CONTROL
+    // =======================
 
     public void PlayZoneByName(string zoneName)
     {
@@ -117,18 +115,14 @@ public class BGMZoneManager : MonoBehaviour
         _audioSource.Stop();
         _currentZone = "";
     }
+
     // =======================
     // PLAYER LIFECYCLE HOOKS
     // =======================
 
-    private string _lastPlayedZone = "";
-
     public void OnPlayerDied_StopMusic()
     {
-        // Remember what was playing
         _lastPlayedZone = _currentZone;
-
-        // Fade out music
         StopMusic(0.6f);
 
         Debug.Log("[BGMZoneManager] Player died → music stopped");
@@ -146,5 +140,4 @@ public class BGMZoneManager : MonoBehaviour
 
         Debug.Log($"[BGMZoneManager] Player restarted → music restored: {_lastPlayedZone}");
     }
-
 }

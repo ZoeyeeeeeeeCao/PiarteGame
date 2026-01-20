@@ -2,7 +2,7 @@ using UnityEngine;
 
 /// <summary>
 /// Triggers BGM change when this collider is triggered by the player
-/// Add this to any trigger that should also change music
+/// Scene-local version (no singleton dependency)
 /// </summary>
 public class BGMTriggerHelper : MonoBehaviour
 {
@@ -16,37 +16,52 @@ public class BGMTriggerHelper : MonoBehaviour
     [Tooltip("Player tag to detect")]
     public string playerTag = "Player";
 
+    [Header("References (Optional)")]
+    [Tooltip("If not assigned, will auto-find in scene")]
+    public BGMZoneManager bgmZoneManager;
+
     private bool hasTriggered = false;
 
-    private void OnTriggerEnter(Collider other)
+    private void Awake()
     {
-        if (other.CompareTag(playerTag) && !hasTriggered)
+        // Auto-find if not manually assigned
+        if (bgmZoneManager == null)
         {
-            TriggerBGM();
-
-            if (triggerOnlyOnce)
-            {
-                hasTriggered = true;
-            }
+            bgmZoneManager = FindObjectOfType<BGMZoneManager>();
         }
     }
 
-    void TriggerBGM()
+    private void OnTriggerEnter(Collider other)
+    {
+        if (!other.CompareTag(playerTag)) return;
+        if (hasTriggered && triggerOnlyOnce) return;
+
+        TriggerBGM();
+
+        if (triggerOnlyOnce)
+        {
+            hasTriggered = true;
+        }
+    }
+
+    private void TriggerBGM()
     {
         if (string.IsNullOrEmpty(bgmZoneName))
         {
-            Debug.LogWarning("[BGM Trigger] No BGM zone name specified!");
+            Debug.LogWarning("[BGMTriggerHelper] No BGM zone name specified!");
             return;
         }
 
-        if (BGMZoneManager.Instance != null)
+        if (bgmZoneManager == null)
         {
-            BGMZoneManager.Instance.PlayZoneByName(bgmZoneName);
-            Debug.Log($"[BGM Trigger] Changed music to: {bgmZoneName}");
+            Debug.LogWarning("[BGMTriggerHelper] BGMZoneManager not found in scene!");
+            return;
         }
-        else
-        {
-            Debug.LogWarning("[BGM Trigger] BGMZoneManager not found!");
-        }
+
+        bgmZoneManager.PlayZoneByName(bgmZoneName);
+        Debug.Log($"[BGMTriggerHelper] Changed music to: {bgmZoneName}");
+        if (FindObjectOfType<PlayerHealthController>()?.IsDead == true)
+            return;
+
     }
 }

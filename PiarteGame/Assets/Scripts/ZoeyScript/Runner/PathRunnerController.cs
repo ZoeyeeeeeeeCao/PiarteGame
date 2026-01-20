@@ -405,6 +405,17 @@ public class PathRunnerController : MonoBehaviour
         {
             if (path3 != null) StartCoroutine(Path2EndSequence());
         }
+        else if (currentPathIndex == 3)
+        {
+            // -------- NEW: stop at end of path 3 --------
+            forwardSpeed = 0f;
+            StopSounds();
+
+            // Optional: prevent any last-second input / movement states
+            hitLocked = true;
+            cinematicLock = true;
+            // -------------------------------------------
+        }
     }
 
     IEnumerator Path1EndSequence()

@@ -31,6 +31,6 @@ public class TransitionToRunningScene : MonoBehaviour
     {
         Debug.Log("BOSS DEAD");
 
-        SceneManager.LoadScene("Running");
+        SceneLoaderHoward.Instance.LoadLevel("Running");
     }
 }
