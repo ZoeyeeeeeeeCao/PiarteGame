@@ -107,6 +107,10 @@ public class PathRunnerController : MonoBehaviour
     bool wasGrounded;
     bool wasSliding;
 
+    // ---------- NEW: speed control across death/respawn ----------
+    float _defaultForwardSpeed;
+    bool _wasDead;
+
     void Awake()
     {
         cc = GetComponent<CharacterController>();
@@ -148,11 +152,19 @@ public class PathRunnerController : MonoBehaviour
 
     void HandlePlayerDeath()
     {
+        // NEW: stop forward movement on death
+        forwardSpeed = 0f;
         StopSounds();
     }
 
     void Start()
     {
+        // NEW: cache the "normal" speed (8 by default in inspector)
+        _defaultForwardSpeed = forwardSpeed;
+
+        // NEW: initialize dead-state tracking
+        _wasDead = (PlayerHealthController.Instance != null && PlayerHealthController.Instance.IsDead);
+
         cc.height = standHeight;
         var c = cc.center;
         c.y = cc.height * 0.5f;
@@ -202,6 +214,27 @@ public class PathRunnerController : MonoBehaviour
     {
         if (pathCreator == null || pathCreator.path == null)
             return;
+
+        // ---------------- NEW: Death/Respawn speed control ----------------
+        var ph = PlayerHealthController.Instance;
+        if (ph != null)
+        {
+            bool deadNow = ph.IsDead;
+
+            // While dead: force stop
+            if (deadNow)
+            {
+                forwardSpeed = 0f;
+            }
+            // Just respawned: restore speed
+            else if (_wasDead)
+            {
+                forwardSpeed = _defaultForwardSpeed; // back to 8 (or inspector value)
+            }
+
+            _wasDead = deadNow;
+        }
+        // ------------------------------------------------------------------
 
         if (!cinematicLock)
         {
