@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
+using FS_ThirdPerson;
 
 public class LevelCheckpointManager : MonoBehaviour
 {
@@ -24,6 +25,13 @@ public class LevelCheckpointManager : MonoBehaviour
 
     private int currentCheckpointIndex = -1;
 
+    [Header("Respawn Options")]
+    [Tooltip("Call Fantacode LocomotionController.HardResetForRespawn() to make sure speed is 0.")]
+    [SerializeField] private bool resetFantacodeLocomotion = true;
+
+    [Tooltip("After teleport, push slightly down to snap ground (recommended).")]
+    [SerializeField] private bool snapToGround = true;
+
     private void Awake()
     {
         Instance = this;
@@ -36,7 +44,6 @@ public class LevelCheckpointManager : MonoBehaviour
     {
         // Start by showing first marker (if configured)
         ShowOnlyMarkerForIndex(0);
-
     }
 
     public void Register(RevertibleObject obj)
@@ -67,7 +74,7 @@ public class LevelCheckpointManager : MonoBehaviour
 
         Debug.Log($"✅ Checkpoint saved: {point.name} (player={player?.name})");
 
-        // ===== NEW: Sequential compass marker handling =====
+        // Sequential compass marker
         AdvanceCompassMarkerIfThisIsNext(point);
     }
 
@@ -75,29 +82,13 @@ public class LevelCheckpointManager : MonoBehaviour
     {
         if (checkpointOrder == null || checkpointOrder.Count == 0) return;
 
-        // Determine which checkpoint index this point is in the ordered list
         int idx = checkpointOrder.IndexOf(point);
-        if (idx < 0)
-        {
-            // Not part of the ordered list (still a valid checkpoint, just no compass step)
-            return;
-        }
+        if (idx < 0) return;
 
-        // Only advance if player reached the current "next" checkpoint
-        // (prevents weird jumps if they touch checkpoint #3 before #2)
         if (idx == currentCheckpointIndex + 1)
         {
-            int oldIndex = currentCheckpointIndex;
             currentCheckpointIndex = idx;
-
             ShowOnlyMarkerForIndex(currentCheckpointIndex + 1);
-        }
-        else
-        {
-            // If you want it to *force* sync instead, uncomment:
-            // HideMarkerForIndex(currentCheckpointIndex);
-            // currentCheckpointIndex = idx;
-            // ShowMarkerForIndex(currentCheckpointIndex + 1);
         }
     }
 
@@ -105,14 +96,13 @@ public class LevelCheckpointManager : MonoBehaviour
     {
         if (compass == null) return;
         if (checkpointMarkerIDs == null) return;
+
         if (idx < 0 || idx >= checkpointMarkerIDs.Count)
         {
-            // End of checkpoint chain -> hide everything
             compass.HideAllMarkers();
             return;
         }
 
-        // ✅ this is the key line that prevents 2 markers:
         compass.HideAllMarkers();
 
         string id = checkpointMarkerIDs[idx];
@@ -162,24 +152,39 @@ public class LevelCheckpointManager : MonoBehaviour
             return;
         }
 
+        // ====== ✅ KEY: Grab components ======
         var cc = lastPlayerTransform.GetComponent<CharacterController>();
+        var loco = lastPlayerTransform.GetComponent<LocomotionController>(); // Fantacode
+        var rb = lastPlayerTransform.GetComponent<Rigidbody>();
+
+        // 1) Disable CharacterController first (important)
         if (cc != null) cc.enabled = false;
 
+        // 2) Teleport
         lastPlayerTransform.position = currentCheckpoint.position;
         lastPlayerTransform.rotation = currentCheckpoint.rotation;
 
+        // 3) Restore revertibles (world state)
         foreach (var r in revertibles)
             r.RestoreState();
 
-        var rb = lastPlayerTransform.GetComponent<Rigidbody>();
+        // 4) Clear physics velocity if any Rigidbody exists (some setups have both)
         if (rb != null)
         {
+            // Unity 2022+ uses velocity/angularVelocity (linearVelocity is DOTS Physics)
             rb.linearVelocity = Vector3.zero;
             rb.angularVelocity = Vector3.zero;
         }
 
+        // 5) ✅ Clear Fantacode locomotion internal velocity & states
+        if (resetFantacodeLocomotion && loco != null)
+        {
+            loco.HardResetForRespawn(snapToGround);
+        }
+
+        // 6) Re-enable CharacterController LAST
         if (cc != null) cc.enabled = true;
 
-        Debug.Log("✅ Respawned to checkpoint + restored revertibles");
+        Debug.Log("✅ Respawned to checkpoint + restored revertibles + Fantacode velocity reset (speed=0)");
     }
 }

@@ -1024,6 +1024,80 @@ namespace FS_ThirdPerson
         #endregion
 
         #region locomotion interface
+        public void HardResetForRespawn(bool snapToGround = true)
+        {
+            // 0) 停掉所有可能还在跑的协程（Landing / DoLocomotionAction / TweenVal 等）
+            StopAllCoroutines();
+
+            // 1) 清系统锁 / RootMotion 状态
+            preventLocomotion = false;
+            PreventAllSystems = false;
+
+            useRootMotion = false;
+            useRootmotionMovement = false;
+            UseRootMotion = false;
+
+            turnBack = false;
+            isTurning = false;
+
+            // 2) 清输入与移动向量
+            moveInput = Vector3.zero;
+            desiredMoveDir = Vector3.zero;
+            moveDir = Vector3.zero;
+            desiredVelocity = Vector3.zero;
+            currentVelocity = Vector3.zero;
+
+            // 3) 清垂直速度（最关键，不然会复活下坠/弹飞）
+            ySpeed = 0f;
+
+            // 4) 清各种缓存数值
+            moveAmount = 0f;
+            moveSpeed = 0f;
+            rotationValue = 0f;
+            sprintModeTimer = 0f;
+
+            // 5) 清蹲伏/平衡相关（避免复活后状态卡住）
+            crouchMode = false;
+            crouchVal = 0f;
+            DynamicCrouchVal = 0f;
+
+            // 6) 清 ledge 状态
+            IsOnLedge = false;
+
+            // 7) 重置朝向目标
+            targetRotation = transform.rotation;
+
+            // 8) 清 Animator 参数（避免动画继续推动 Root 或 blend 残留）
+            if (animator != null)
+            {
+                animator.SetFloat(AnimatorParameters.moveAmount, 0f);
+                animator.SetFloat(AnimatorParameters.strafeAmount, 0f);
+                animator.SetFloat(AnimatorParameters.fallAmount, 0f);
+                animator.SetFloat(AnimatorParameters.rotation, 0f);
+                animator.SetFloat(AnimatorParameters.idleType, 0f);
+                animator.SetFloat(AnimatorParameters.crouchType, 0f);
+                animator.SetFloat(AnimatorParameters.runToStopAmount, 0f);
+
+                animator.SetBool(AnimatorParameters.turnback_Mirror, false);
+            }
+
+            // 9) 让角色“贴地”更稳（可选）
+            if (characterController != null)
+            {
+                // 先更新 grounded
+                GroundCheck();
+
+                if (snapToGround)
+                {
+                    // 往下压一点点，避免复活悬空一帧导致 ySpeed/落地逻辑乱跳
+                    characterController.Move(Vector3.down * 0.02f);
+                }
+            }
+
+            // 10) 用官方接口再保险一次（它内部也会写 moveAmount 等）
+            SetCurrentVelocity(0f, Vector3.zero);
+        }
+
 
         float _walkSpeed;
         float _runSpeed;
