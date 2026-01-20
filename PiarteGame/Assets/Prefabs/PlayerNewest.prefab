@@ -13178,7 +13178,8 @@ MonoBehaviour:
   rowPrefab: {fileID: -8672556532286367781, guid: ffaae2d2f9eb53045beb087eb1149f0a, type: 3}
   detailPanel: {fileID: 1976288300001396175}
   inspectManager: {fileID: 8401413241973786853}
-  uiToDisableWhenInventoryOpen: {fileID: 0}
+  uiToDisableWhenInventoryOpen:
+  - {fileID: 0}
 --- !u!1 &6078936213379714534
 GameObject:
   m_ObjectHideFlags: 0
@@ -14324,6 +14325,7 @@ MonoBehaviour:
   brightnessSlider: {fileID: 5671777706421903062}
   mainMenuSceneName: MainMenu
   player: {fileID: 5384974478494153327}
+  uiToHideWhilePaused: []
 --- !u!1 &6770316795914626421
 GameObject:
   m_ObjectHideFlags: 0
@@ -14707,6 +14709,7 @@ MonoBehaviour:
   buttonFadeDelay: 0.5
   buttonFadeDuration: 1
   pauseGame: 0
+  uiToHideOnDeath: []
   questCanvas: {fileID: 0}
   conversationCanvas: {fileID: 0}
   deathAudioSource: {fileID: 1688989993728423858}

@@ -2701,6 +2701,7 @@ MonoBehaviour:
   buttonFadeDelay: 0.5
   buttonFadeDuration: 1
   pauseGame: 1
+  uiToHideOnDeath: []
   questCanvas: {fileID: 0}
   conversationCanvas: {fileID: 0}
   deathAudioSource: {fileID: 0}
@@ -3426,6 +3427,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 8.077
       objectReference: {fileID: 0}
+    - target: {fileID: 3488039642983888821, guid: fd85977a2bc400241be8265e488f072f, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: e823cd5b5d27c0f4b8256e7c12ee3e6d, type: 2}
     - target: {fileID: 3488039642983888823, guid: fd85977a2bc400241be8265e488f072f, type: 3}
       propertyPath: m_LocalScale.x
       value: 0.85858

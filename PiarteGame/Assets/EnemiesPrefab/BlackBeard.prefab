@@ -459,6 +459,7 @@ MonoBehaviour:
   buttonFadeDelay: 0.5
   buttonFadeDuration: 1
   pauseGame: 1
+  uiToHideOnDeath: []
   questCanvas: {fileID: 0}
   conversationCanvas: {fileID: 0}
   deathAudioSource: {fileID: 0}

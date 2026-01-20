@@ -21402,6 +21402,8 @@ MonoBehaviour:
   enemyAnimationOverride: {fileID: 22100000, guid: 9a3dc51969c4fd543a5bcf09772c38e5, type: 2}
   agent: {fileID: 199756296}
   healthController: {fileID: 199756297}
+  attackTrail: {fileID: 0}
+  swordHitboxObject: {fileID: 0}
   isSpawning: 0
 --- !u!195 &199756296
 NavMeshAgent:
@@ -21480,6 +21482,9 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+  OnHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!95 &199756298 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 2364181186230523343, guid: ff80d3a0647060647a34ae95ba26c892, type: 3}
@@ -44895,6 +44900,8 @@ MonoBehaviour:
   enemyAnimationOverride: {fileID: 22100000, guid: 9a3dc51969c4fd543a5bcf09772c38e5, type: 2}
   agent: {fileID: 433589727}
   healthController: {fileID: 433589728}
+  attackTrail: {fileID: 0}
+  swordHitboxObject: {fileID: 0}
   isSpawning: 0
 --- !u!195 &433589727
 NavMeshAgent:
@@ -44973,6 +44980,9 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+  OnHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1001 &434998296
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -51244,6 +51254,43 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 9b8fc966f95ea9c4194dc091fc40b478, type: 3}
+--- !u!84 &480018225
+RenderTexture:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: 
+  m_ImageContentsHash:
+    serializedVersion: 2
+    Hash: 00000000000000000000000000000000
+  m_IsAlphaChannelOptional: 0
+  serializedVersion: 6
+  m_Width: 1024
+  m_Height: 1024
+  m_AntiAliasing: 1
+  m_MipCount: -1
+  m_DepthStencilFormat: 90
+  m_ColorFormat: 0
+  m_MipMap: 0
+  m_GenerateMips: 1
+  m_SRGB: 0
+  m_UseDynamicScale: 0
+  m_UseDynamicScaleExplicit: 0
+  m_BindMS: 0
+  m_EnableCompatibleFormat: 1
+  m_EnableRandomWrite: 0
+  m_TextureSettings:
+    serializedVersion: 2
+    m_FilterMode: 1
+    m_Aniso: 1
+    m_MipBias: 0
+    m_WrapU: 1
+    m_WrapV: 1
+    m_WrapW: 1
+  m_Dimension: 2
+  m_VolumeDepth: 1
+  m_ShadowSamplingMode: 2
 --- !u!1001 &480523327
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -52050,6 +52097,8 @@ MonoBehaviour:
   enemyAnimationOverride: {fileID: 22100000, guid: 6332346bb898c094b97f93d138a232fc, type: 2}
   agent: {fileID: 488937729}
   healthController: {fileID: 488937730}
+  attackTrail: {fileID: 0}
+  swordHitboxObject: {fileID: 0}
   isSpawning: 0
 --- !u!195 &488937729
 NavMeshAgent:
@@ -52128,6 +52177,9 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+  OnHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!95 &488937731 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 1172300169969955962, guid: 39c1b5d479a1d2d4a84bfb8d55a630e4, type: 3}
@@ -72885,6 +72937,8 @@ MonoBehaviour:
   enemyAnimationOverride: {fileID: 22100000, guid: 9a3dc51969c4fd543a5bcf09772c38e5, type: 2}
   agent: {fileID: 862138775}
   healthController: {fileID: 862138776}
+  attackTrail: {fileID: 0}
+  swordHitboxObject: {fileID: 0}
   isSpawning: 0
 --- !u!195 &862138775
 NavMeshAgent:
@@ -72963,6 +73017,9 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+  OnHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!95 &862138777 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 2364181186230523343, guid: ff80d3a0647060647a34ae95ba26c892, type: 3}
@@ -96937,43 +96994,6 @@ MonoBehaviour:
   m_LightCookieSize: {x: 1, y: 1}
   m_LightCookieOffset: {x: 0, y: 0}
   m_SoftShadowQuality: 0
---- !u!84 &977633273
-RenderTexture:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: 
-  m_ImageContentsHash:
-    serializedVersion: 2
-    Hash: 00000000000000000000000000000000
-  m_IsAlphaChannelOptional: 0
-  serializedVersion: 6
-  m_Width: 1024
-  m_Height: 1024
-  m_AntiAliasing: 1
-  m_MipCount: -1
-  m_DepthStencilFormat: 90
-  m_ColorFormat: 0
-  m_MipMap: 0
-  m_GenerateMips: 1
-  m_SRGB: 0
-  m_UseDynamicScale: 0
-  m_UseDynamicScaleExplicit: 0
-  m_BindMS: 0
-  m_EnableCompatibleFormat: 1
-  m_EnableRandomWrite: 0
-  m_TextureSettings:
-    serializedVersion: 2
-    m_FilterMode: 1
-    m_Aniso: 1
-    m_MipBias: 0
-    m_WrapU: 1
-    m_WrapV: 1
-    m_WrapW: 1
-  m_Dimension: 2
-  m_VolumeDepth: 1
-  m_ShadowSamplingMode: 2
 --- !u!1001 &981781148
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -121558,6 +121578,8 @@ MonoBehaviour:
   enemyAnimationOverride: {fileID: 22100000, guid: 9a3dc51969c4fd543a5bcf09772c38e5, type: 2}
   agent: {fileID: 1183798229}
   healthController: {fileID: 1183798230}
+  attackTrail: {fileID: 0}
+  swordHitboxObject: {fileID: 0}
   isSpawning: 0
 --- !u!195 &1183798229
 NavMeshAgent:
@@ -121636,6 +121658,9 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+  OnHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!95 &1183798231 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 7583070698492495340, guid: 9360f2d5bd890ca42aa359bfbba76ae0, type: 3}
@@ -130808,7 +130833,7 @@ Camera:
     serializedVersion: 2
     m_Bits: 4294967293
   m_RenderingPath: -1
-  m_TargetTexture: {fileID: 977633273}
+  m_TargetTexture: {fileID: 480018225}
   m_TargetDisplay: 0
   m_TargetEye: 3
   m_HDR: 0
@@ -139767,6 +139792,8 @@ MonoBehaviour:
   enemyAnimationOverride: {fileID: 22100000, guid: 6332346bb898c094b97f93d138a232fc, type: 2}
   agent: {fileID: 1441201814}
   healthController: {fileID: 1441201815}
+  attackTrail: {fileID: 0}
+  swordHitboxObject: {fileID: 0}
   isSpawning: 0
 --- !u!195 &1441201814
 NavMeshAgent:
@@ -139845,6 +139872,9 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+  OnHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!95 &1441201816 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 1172300169969955962, guid: 39c1b5d479a1d2d4a84bfb8d55a630e4, type: 3}
@@ -164527,6 +164557,8 @@ MonoBehaviour:
   enemyAnimationOverride: {fileID: 22100000, guid: 9a3dc51969c4fd543a5bcf09772c38e5, type: 2}
   agent: {fileID: 1916534994}
   healthController: {fileID: 1916534995}
+  attackTrail: {fileID: 0}
+  swordHitboxObject: {fileID: 0}
   isSpawning: 0
 --- !u!195 &1916534994
 NavMeshAgent:
@@ -164605,6 +164637,9 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+  OnHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!95 &1916534996 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 7583070698492495340, guid: 9360f2d5bd890ca42aa359bfbba76ae0, type: 3}
@@ -174694,6 +174729,8 @@ MonoBehaviour:
   enemyAnimationOverride: {fileID: 22100000, guid: 9a3dc51969c4fd543a5bcf09772c38e5, type: 2}
   agent: {fileID: 2045089494}
   healthController: {fileID: 2045089495}
+  attackTrail: {fileID: 0}
+  swordHitboxObject: {fileID: 0}
   isSpawning: 0
 --- !u!195 &2045089494
 NavMeshAgent:
@@ -174772,6 +174809,9 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+  OnHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!136 &2045089496
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -188090,7 +188130,8 @@ MonoBehaviour:
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 687fde2477f2dfd489e3168b5f4ff9b2, type: 2}
   m_sharedMaterial: {fileID: -1695471468551984341, guid: 687fde2477f2dfd489e3168b5f4ff9b2, type: 2}
-  m_fontSharedMaterials: []
+  m_fontSharedMaterials:
+  - {fileID: -1695471468551984341, guid: 687fde2477f2dfd489e3168b5f4ff9b2, type: 2}
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
   m_fontColor32:
@@ -188181,7 +188222,8 @@ MonoBehaviour:
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 687fde2477f2dfd489e3168b5f4ff9b2, type: 2}
   m_sharedMaterial: {fileID: -1695471468551984341, guid: 687fde2477f2dfd489e3168b5f4ff9b2, type: 2}
-  m_fontSharedMaterials: []
+  m_fontSharedMaterials:
+  - {fileID: -1695471468551984341, guid: 687fde2477f2dfd489e3168b5f4ff9b2, type: 2}
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
   m_fontColor32:
@@ -188272,7 +188314,8 @@ MonoBehaviour:
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 687fde2477f2dfd489e3168b5f4ff9b2, type: 2}
   m_sharedMaterial: {fileID: -1695471468551984341, guid: 687fde2477f2dfd489e3168b5f4ff9b2, type: 2}
-  m_fontSharedMaterials: []
+  m_fontSharedMaterials:
+  - {fileID: -1695471468551984341, guid: 687fde2477f2dfd489e3168b5f4ff9b2, type: 2}
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
   m_fontColor32:
@@ -188363,7 +188406,8 @@ MonoBehaviour:
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 687fde2477f2dfd489e3168b5f4ff9b2, type: 2}
   m_sharedMaterial: {fileID: -1695471468551984341, guid: 687fde2477f2dfd489e3168b5f4ff9b2, type: 2}
-  m_fontSharedMaterials: []
+  m_fontSharedMaterials:
+  - {fileID: -1695471468551984341, guid: 687fde2477f2dfd489e3168b5f4ff9b2, type: 2}
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
   m_fontColor32:

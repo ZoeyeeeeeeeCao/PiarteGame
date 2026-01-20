@@ -13894,6 +13894,8 @@ MonoBehaviour:
   slideSpeed: 0.3
   slideDistance: 300
   slideFromBottom: 1
+  useCustomPosition: 0
+  customVisiblePos: {x: 0, y: 0}
   audioSource: {fileID: 172433206}
   dialoguePanel: {fileID: 1629633841}
   nameText: {fileID: 1100920824}
@@ -13908,6 +13910,9 @@ MonoBehaviour:
   shouldStandUp: 1
   npcAnimator: {fileID: 172433208}
   standParameter: isStanding
+  compass: {fileID: 0}
+  compassQuestID: 
+  hideMarkerOnComplete: 1
 --- !u!95 &172433208 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 95066430432270582, guid: 7d110d041610e064482565d6f73c82ca, type: 3}
@@ -35368,6 +35373,8 @@ MonoBehaviour:
   slideSpeed: 0.3
   slideDistance: 300
   slideFromBottom: 1
+  useCustomPosition: 0
+  customVisiblePos: {x: 0, y: 0}
   audioSource: {fileID: 348008249}
   dialoguePanel: {fileID: 1629633841}
   nameText: {fileID: 1100920824}
@@ -35382,6 +35389,9 @@ MonoBehaviour:
   shouldStandUp: 1
   npcAnimator: {fileID: 348008247}
   standParameter: isStanding
+  compass: {fileID: 0}
+  compassQuestID: 
+  hideMarkerOnComplete: 1
 --- !u!95 &348008247 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 4100336566119743106, guid: c622c8200a19d784182e1b4e119cd26a, type: 3}
@@ -50546,7 +50556,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   horseAnimator: {fileID: 536470937}
   walkParameterName: isWalking
-  moveSpeed: 3
+  runParameterName: isRunning
+  walkSpeed: 3
+  runSpeed: 6
   turnSpeed: 3
   stopDistance: 0.5
   waypoints:
@@ -70281,6 +70293,8 @@ MonoBehaviour:
   slideSpeed: 0.3
   slideDistance: 300
   slideFromBottom: 1
+  useCustomPosition: 0
+  customVisiblePos: {x: 0, y: 0}
   audioSource: {fileID: 913438440}
   dialoguePanel: {fileID: 1629633841}
   nameText: {fileID: 1100920824}
@@ -70295,6 +70309,9 @@ MonoBehaviour:
   shouldStandUp: 1
   npcAnimator: {fileID: 913438442}
   standParameter: isTalking
+  compass: {fileID: 0}
+  compassQuestID: 
+  hideMarkerOnComplete: 1
 --- !u!95 &913438442 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 2015965338822481673, guid: 78aeafe058f46d14484b800081ebdb64, type: 3}
@@ -108024,6 +108041,8 @@ MonoBehaviour:
   npcNameText: {fileID: 906320779}
   dialogueText: {fileID: 245705411}
   spacePromptText: {fileID: 743955145}
+  hideOnDialogue: []
+  showOnDialogue: []
   typeSpeed: 0.02
   subtitleAutoDelay: 1
   slideSpeed: 0.2
@@ -120902,43 +120921,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: abc00000000009116345104430325707, type: 3}
---- !u!84 &1284407349
-RenderTexture:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: 
-  m_ImageContentsHash:
-    serializedVersion: 2
-    Hash: 00000000000000000000000000000000
-  m_IsAlphaChannelOptional: 0
-  serializedVersion: 6
-  m_Width: 1024
-  m_Height: 1024
-  m_AntiAliasing: 1
-  m_MipCount: -1
-  m_DepthStencilFormat: 90
-  m_ColorFormat: 0
-  m_MipMap: 0
-  m_GenerateMips: 1
-  m_SRGB: 0
-  m_UseDynamicScale: 0
-  m_UseDynamicScaleExplicit: 0
-  m_BindMS: 0
-  m_EnableCompatibleFormat: 1
-  m_EnableRandomWrite: 0
-  m_TextureSettings:
-    serializedVersion: 2
-    m_FilterMode: 1
-    m_Aniso: 1
-    m_MipBias: 0
-    m_WrapU: 1
-    m_WrapV: 1
-    m_WrapW: 1
-  m_Dimension: 2
-  m_VolumeDepth: 1
-  m_ShadowSamplingMode: 2
 --- !u!1001 &1287490987
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -121926,7 +121908,7 @@ Camera:
     serializedVersion: 2
     m_Bits: 4294967293
   m_RenderingPath: -1
-  m_TargetTexture: {fileID: 1284407349}
+  m_TargetTexture: {fileID: 1381588571}
   m_TargetDisplay: 0
   m_TargetEye: 3
   m_HDR: 0
@@ -128418,6 +128400,43 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: abc00000000002995431709613086229, type: 3}
+--- !u!84 &1381588571
+RenderTexture:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: 
+  m_ImageContentsHash:
+    serializedVersion: 2
+    Hash: 00000000000000000000000000000000
+  m_IsAlphaChannelOptional: 0
+  serializedVersion: 6
+  m_Width: 1024
+  m_Height: 1024
+  m_AntiAliasing: 1
+  m_MipCount: -1
+  m_DepthStencilFormat: 90
+  m_ColorFormat: 0
+  m_MipMap: 0
+  m_GenerateMips: 1
+  m_SRGB: 0
+  m_UseDynamicScale: 0
+  m_UseDynamicScaleExplicit: 0
+  m_BindMS: 0
+  m_EnableCompatibleFormat: 1
+  m_EnableRandomWrite: 0
+  m_TextureSettings:
+    serializedVersion: 2
+    m_FilterMode: 1
+    m_Aniso: 1
+    m_MipBias: 0
+    m_WrapU: 1
+    m_WrapV: 1
+    m_WrapW: 1
+  m_Dimension: 2
+  m_VolumeDepth: 1
+  m_ShadowSamplingMode: 2
 --- !u!1 &1382529014 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6638399196573948546, guid: ffb5e73657a2a5440ab07e952c431b31, type: 3}
@@ -130981,17 +131000,6 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 7011595875187807708, guid: 5966c3263ac75c5419011697b893d343, type: 3}
   m_PrefabInstance: {fileID: 1212933270}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1481205862 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 7004872029675391019, guid: 5966c3263ac75c5419011697b893d343, type: 3}
-  m_PrefabInstance: {fileID: 1212933270}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1481205860}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1001 &1482737489
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -134219,29 +134227,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f2e2bf9b801e4684cb70812cacc84b9c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  missionBox: {fileID: 1752654249}
-  missionImage: {fileID: 1481205862}
   missionText: {fileID: 1212933272}
   triggerTag: Player
-  startingTrigger: {fileID: 1398136404}
-  delayAfterCollision: 5
-  npcTriggers:
-  - {fileID: 1681888657}
-  - {fileID: 1056140886}
-  - {fileID: 1489432560}
-  phase1Text: Talk to the villagers (0/3)
+  explorationEndTrigger: {fileID: 0}
+  exploreAreaQuestID: Explore_Area
+  npcMissions: []
   phase2Text: Investigate the strange particles.
-  newObjectiveMarker: {fileID: 2188394984081752124}
   phase2ObjectToReveal: {fileID: 527686645}
-  phase2ObjectToHide1: {fileID: 2188394984081752124}
-  phase2ObjectToHide2: {fileID: 0}
-  scriptToUnlock: {fileID: 1781020438}
-  finalMissionText: Follow the wine cart
+  silasParticleSystem: {fileID: 0}
+  phase2CompassQuestID: SilasInteraction
+  phase3Text: Follow the wine cart
+  wineCartTrigger: {fileID: 0}
+  phase3CompassQuestID: FollowCart
+  enemiesToKill: 10
+  phase5Text: Enter the Main Hall
+  interiorEntranceTrigger: {fileID: 0}
+  phase5CompassQuestID: EnterInterior
   audioSource: {fileID: 1525262785}
   missionUpdateSound: {fileID: 8300000, guid: f9752277acc853e4d85ad6c0d148781e, type: 3}
-  slideSpeed: 500
-  slideDuration: 1
-  yellowColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  compass: {fileID: 0}
 --- !u!4 &1602694281
 Transform:
   m_ObjectHideFlags: 0
@@ -145798,6 +145802,8 @@ MonoBehaviour:
   slideSpeed: 0.3
   slideDistance: 300
   slideFromBottom: 1
+  useCustomPosition: 0
+  customVisiblePos: {x: 0, y: 0}
   audioSource: {fileID: 1781020439}
   dialoguePanel: {fileID: 1629633841}
   nameText: {fileID: 1100920824}
@@ -145812,6 +145818,9 @@ MonoBehaviour:
   shouldStandUp: 1
   npcAnimator: {fileID: 1781020440}
   standParameter: isStanding
+  compass: {fileID: 0}
+  compassQuestID: 
+  hideMarkerOnComplete: 1
 --- !u!82 &1781020439
 AudioSource:
   m_ObjectHideFlags: 0
@@ -160240,6 +160249,9 @@ MonoBehaviour:
   playSubtitlesFirst: 1
   audioSource: {fileID: 1525262785}
   missionAppearSound: {fileID: 8300000, guid: f9752277acc853e4d85ad6c0d148781e, type: 3}
+  compass: {fileID: 0}
+  compassQuestID: 
+  showCompassMarker: 1
 --- !u!4 &1955456006
 Transform:
   m_ObjectHideFlags: 0
@@ -175748,7 +175760,8 @@ MonoBehaviour:
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 687fde2477f2dfd489e3168b5f4ff9b2, type: 2}
   m_sharedMaterial: {fileID: -1695471468551984341, guid: 687fde2477f2dfd489e3168b5f4ff9b2, type: 2}
-  m_fontSharedMaterials: []
+  m_fontSharedMaterials:
+  - {fileID: -1695471468551984341, guid: 687fde2477f2dfd489e3168b5f4ff9b2, type: 2}
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
   m_fontColor32:
@@ -175839,7 +175852,8 @@ MonoBehaviour:
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 687fde2477f2dfd489e3168b5f4ff9b2, type: 2}
   m_sharedMaterial: {fileID: -1695471468551984341, guid: 687fde2477f2dfd489e3168b5f4ff9b2, type: 2}
-  m_fontSharedMaterials: []
+  m_fontSharedMaterials:
+  - {fileID: -1695471468551984341, guid: 687fde2477f2dfd489e3168b5f4ff9b2, type: 2}
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
   m_fontColor32:
@@ -175930,7 +175944,8 @@ MonoBehaviour:
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 687fde2477f2dfd489e3168b5f4ff9b2, type: 2}
   m_sharedMaterial: {fileID: -1695471468551984341, guid: 687fde2477f2dfd489e3168b5f4ff9b2, type: 2}
-  m_fontSharedMaterials: []
+  m_fontSharedMaterials:
+  - {fileID: -1695471468551984341, guid: 687fde2477f2dfd489e3168b5f4ff9b2, type: 2}
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
   m_fontColor32:
@@ -176021,7 +176036,8 @@ MonoBehaviour:
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 687fde2477f2dfd489e3168b5f4ff9b2, type: 2}
   m_sharedMaterial: {fileID: -1695471468551984341, guid: 687fde2477f2dfd489e3168b5f4ff9b2, type: 2}
-  m_fontSharedMaterials: []
+  m_fontSharedMaterials:
+  - {fileID: -1695471468551984341, guid: 687fde2477f2dfd489e3168b5f4ff9b2, type: 2}
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
   m_fontColor32:

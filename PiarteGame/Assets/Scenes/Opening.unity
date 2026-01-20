@@ -364,6 +364,7 @@ MonoBehaviour:
   videoPlayer: {fileID: 1571407709}
   nextSceneName: CelyneScene
   allowSkip: 1
+  skipKey: 13
 --- !u!4 &1197499692
 Transform:
   m_ObjectHideFlags: 0
