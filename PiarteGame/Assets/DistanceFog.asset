@@ -30,7 +30,7 @@ MonoBehaviour:
   detailScale: 0.35
   detailStrength: 0.5
   detailOffset: -0.5
-  density: 0.015
+  density: 0
   shape: 0
   border: 0.05
   customHeight: 0
@@ -48,7 +48,7 @@ MonoBehaviour:
   terrainFogHeight: 11.02
   terrainFogMinAltitude: 0
   terrainFogMaxAltitude: 150
-  albedo: {r: 1, g: 1, b: 1, a: 1}
+  albedo: {r: 0.6377357, g: 0.6377357, b: 0.6377357, a: 1}
   enableDepthGradient: 0
   depthGradient:
     serializedVersion: 2
@@ -134,10 +134,10 @@ MonoBehaviour:
   shadowMaxDistance: 250
   cookie: 0
   distantFog: 1
-  distantFogStartDistance: 100
-  distantFogDistanceDensity: 0.008
+  distantFogStartDistance: 41.99
+  distantFogDistanceDensity: 0.005
   distantFogMaxHeight: 500
-  distantFogHeightDensity: 0.5
-  distantFogColor: {r: 0.690566, g: 0.6814453, b: 0.6814453, a: 1}
+  distantFogHeightDensity: 15.6
+  distantFogColor: {r: 0.19999999, g: 0.19999999, b: 0.19999999, a: 1}
   distantFogDiffusionIntensity: 0.4
   distantFogRenderQueue: 2999
