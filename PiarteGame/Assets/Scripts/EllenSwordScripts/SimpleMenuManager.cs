@@ -146,15 +146,16 @@ public class SimpleMenuManager : MonoBehaviour
         // Stop all videos before loading
         StopAllVideos();
 
+        SceneLoaderHoward.Instance.LoadLevel("CelyneScene");
         // Check if Howard's loader exists
-        if (SceneLoaderHoward.Instance != null)
-        {
-            SceneLoaderHoward.Instance.LoadLevel(gameSceneName);
-        }
-        else
-        {
-            Debug.LogError("❌ SceneLoaderHoward not found! Make sure the 'SceneLoaderHoward' script is attached to a GameObject in this scene.");
-        }
+        //if (SceneLoaderHoward.Instance != null)
+        //{
+        //    SceneLoaderHoward.Instance.LoadLevel(gameSceneName);
+        //}
+        //else
+        //{
+        //    Debug.LogError("❌ SceneLoaderHoward not found! Make sure the 'SceneLoaderHoward' script is attached to a GameObject in this scene.");
+        //}
     }
 
     public void OpenSettings()

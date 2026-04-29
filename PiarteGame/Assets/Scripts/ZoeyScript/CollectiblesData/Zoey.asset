@@ -19,7 +19,7 @@ MonoBehaviour:
     Egg.\"\n\nCAO ZIYU (EEE2209276)"
   stackable: 0
   maxStack: 99
-  initialAmount: 1
+  initialAmount: 0
   isConsumable: 0
   healAmount: 0
   inspectPrefab: {fileID: 919132149155446097, guid: 290d6fa6b6c628d4d9e15a6f50143b86, type: 3}

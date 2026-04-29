@@ -1,8 +1,8 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using TMPro;
-using UnityEngine;
+﻿using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.Video;
+using TMPro;
+using System.Collections;
 
 public class OpeningTutorialManager : MonoBehaviour
 {
@@ -10,35 +10,35 @@ public class OpeningTutorialManager : MonoBehaviour
     public class MissionObjective
     {
         public GameObject npc;
+        [Tooltip("The actual TextMeshPro component for this mission")]
         public TextMeshProUGUI missionText;
         public string missionDescription = "Talk to NPC";
+
+        [Tooltip("The Quest ID that matches the compass questPoint")]
         public string compassQuestID = "";
-        [HideInInspector] public bool isCompleted = false;
+
+        [HideInInspector]
+        public bool isCompleted = false;
     }
 
     [Header("Opening Video")]
+    [Tooltip("Video Player to play at scene start")]
     public VideoPlayer openingVideoPlayer;
+    [Tooltip("Canvas/UI for displaying the video")]
     public GameObject videoUICanvas;
+    [Tooltip("Allow skipping video with Enter key")]
     public bool allowVideoSkip = true;
-
-    [Header("Hide UI During Video / Dialogue")]
-    public List<GameObject> uiToHide = new();
-    private bool[] _uiPrevStates;
-    private bool _uiHidden;
+    [Tooltip("Video volume (0-1)")]
+    [Range(0f, 1f)]
+    public float videoVolume = 0.5f;
 
     [Header("Audio Settings")]
     public AudioSource audioSource;
     public AudioClip tutorialSlideAudio;
+    [Tooltip("Sound played when missions first appear on HUD")]
     public AudioClip missionStartAudio;
+    [Tooltip("Sound played when a specific NPC mission is finished")]
     public AudioClip missionCompleteAudio;
-
-    [Header("Audio Manager (Mixer Mute)")]
-    [SerializeField] private AudioManager audioManager;
-
-    [Header("Force Mute Fallback (if mixer routing is wrong)")]
-    [Tooltip("If your BGM is NOT routed to the AudioMixer Music group, drag those BGM AudioSources here.")]
-    [SerializeField] private List<AudioSource> extraMusicSourcesToForceMute = new();
-    private bool[] _extraPrevMute;
 
     [Header("Opening Tutorial System")]
     public GameObject tutorialUIPanel;
@@ -49,9 +49,10 @@ public class OpeningTutorialManager : MonoBehaviour
     public GameObject[] missionTexts;
 
     [Header("NPC Mission System")]
+    [Tooltip("The main background panel/box for the NPC missions")]
     public GameObject missionBoxUI;
     public MissionObjective[] missions;
-    public Color completedColor = new Color(1f, 0.84f, 0f);
+    public Color completedColor = new Color(1f, 0.84f, 0f); // Yellow
 
     [Header("Welcome Dialogue")]
     public Dialogue welcomeDialogue;
@@ -78,87 +79,6 @@ public class OpeningTutorialManager : MonoBehaviour
     private float movementTimer = 0f;
     private Vector3 lastPlayerPosition;
 
-    // ------------------------
-    // UI Hide / Restore
-    // ------------------------
-    private void HideUIRoots()
-    {
-        if (_uiHidden) return;
-        if (uiToHide == null || uiToHide.Count == 0) return;
-
-        _uiPrevStates = new bool[uiToHide.Count];
-
-        for (int i = 0; i < uiToHide.Count; i++)
-        {
-            var go = uiToHide[i];
-            if (go == null) { _uiPrevStates[i] = false; continue; }
-            _uiPrevStates[i] = go.activeSelf;
-            if (go.activeSelf) go.SetActive(false);
-        }
-
-        _uiHidden = true;
-    }
-
-    private void RestoreUIRoots()
-    {
-        if (!_uiHidden) return;
-        if (uiToHide == null || uiToHide.Count == 0) return;
-
-        if (_uiPrevStates == null || _uiPrevStates.Length != uiToHide.Count)
-        {
-            for (int i = 0; i < uiToHide.Count; i++)
-                if (uiToHide[i] != null) uiToHide[i].SetActive(true);
-            _uiHidden = false;
-            return;
-        }
-
-        for (int i = 0; i < uiToHide.Count; i++)
-        {
-            var go = uiToHide[i];
-            if (go == null) continue;
-            go.SetActive(_uiPrevStates[i]);
-        }
-
-        _uiHidden = false;
-    }
-
-    // ------------------------
-    // Force mute fallback
-    // ------------------------
-    private void ForceMuteExtraMusicSources(bool muted)
-    {
-        if (extraMusicSourcesToForceMute == null || extraMusicSourcesToForceMute.Count == 0)
-            return;
-
-        if (muted)
-        {
-            _extraPrevMute = new bool[extraMusicSourcesToForceMute.Count];
-
-            for (int i = 0; i < extraMusicSourcesToForceMute.Count; i++)
-            {
-                var src = extraMusicSourcesToForceMute[i];
-                if (src == null) { _extraPrevMute[i] = false; continue; }
-
-                _extraPrevMute[i] = src.mute;
-                src.mute = true;
-            }
-        }
-        else
-        {
-            for (int i = 0; i < extraMusicSourcesToForceMute.Count; i++)
-            {
-                var src = extraMusicSourcesToForceMute[i];
-                if (src == null) continue;
-
-                bool restore = (_extraPrevMute != null && _extraPrevMute.Length == extraMusicSourcesToForceMute.Count)
-                    ? _extraPrevMute[i]
-                    : false;
-
-                src.mute = restore;
-            }
-        }
-    }
-
     void Start()
     {
         if (player == null)
@@ -175,9 +95,6 @@ public class OpeningTutorialManager : MonoBehaviour
         if (compass == null)
             compass = FindObjectOfType<Compass>();
 
-        if (audioManager == null)
-            audioManager = FindObjectOfType<AudioManager>();
-
         // Find player controllers if not assigned
         if (playerController == null || locomotionController == null)
         {
@@ -188,14 +105,18 @@ public class OpeningTutorialManager : MonoBehaviour
                 {
                     string scriptName = script.GetType().Name;
                     if (playerController == null && (scriptName.Contains("Player") || scriptName.Contains("Controller")))
+                    {
                         playerController = script;
-
+                    }
                     if (locomotionController == null && (scriptName.Contains("Locomotion") || scriptName.Contains("Movement")))
+                    {
                         locomotionController = script;
+                    }
                 }
             }
         }
 
+        // Hide Mission Box and NPC mission HUD elements initially
         if (missionBoxUI != null) missionBoxUI.SetActive(false);
 
         if (missions != null)
@@ -208,6 +129,7 @@ public class OpeningTutorialManager : MonoBehaviour
             }
         }
 
+        // Setup and play opening video
         if (openingVideoPlayer != null)
         {
             if (videoUICanvas != null)
@@ -218,6 +140,7 @@ public class OpeningTutorialManager : MonoBehaviour
         }
         else
         {
+            // No video - start tutorial immediately
             videoCompleted = true;
         }
     }
@@ -228,77 +151,91 @@ public class OpeningTutorialManager : MonoBehaviour
 
         isPlayingVideo = true;
 
-        // ✅ 1) Mute via AudioMixer MusicVolume
-        if (audioManager != null) audioManager.MuteMusicForVideo();
-        else Debug.LogWarning("⚠️ AudioManager not found - mixer mute skipped.");
-
-        // ✅ 2) Force-mute any listed BGM AudioSources (fallback)
-        ForceMuteExtraMusicSources(true);
-
-        HideUIRoots();
+        // Disable player controls
         DisablePlayerControls();
 
+        // Show cursor
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
+        // Show video UI
         if (videoUICanvas != null)
             videoUICanvas.SetActive(true);
 
+        // Set video volume
         if (openingVideoPlayer != null)
+        {
+            // Set direct volume
+            openingVideoPlayer.SetDirectAudioVolume(0, videoVolume);
+
             openingVideoPlayer.Play();
+            Debug.Log($"Opening video playing at {videoVolume * 100}% volume... Press Enter to skip.");
+        }
     }
 
     void OnVideoFinished(VideoPlayer vp)
     {
         if (!isPlayingVideo) return;
+
+        Debug.Log("Opening video finished.");
         EndVideo();
     }
 
     void SkipVideo()
     {
+        Debug.Log("Opening video skipped.");
+
         if (openingVideoPlayer != null && openingVideoPlayer.isPlaying)
+        {
             openingVideoPlayer.Stop();
+        }
 
         if (openingVideoPlayer != null)
+        {
             openingVideoPlayer.loopPointReached -= OnVideoFinished;
+        }
 
         EndVideo();
     }
 
     void EndVideo()
     {
-        // ✅ Restore
-        if (audioManager != null) audioManager.RestoreMusicAfterVideo();
-        ForceMuteExtraMusicSources(false);
-
         isPlayingVideo = false;
         videoCompleted = true;
 
-        RestoreUIRoots();
-
+        // Hide and destroy video UI
         if (videoUICanvas != null)
         {
             videoUICanvas.SetActive(false);
             Destroy(videoUICanvas);
         }
 
+        // Destroy video player
         if (openingVideoPlayer != null)
+        {
             Destroy(openingVideoPlayer.gameObject);
+        }
 
+        // Re-enable player controls
         EnablePlayerControls();
 
+        // Hide cursor
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+
+        Debug.Log("Video ended. Tutorial system ready.");
     }
 
     void Update()
     {
+        // Handle video skip
         if (isPlayingVideo && allowVideoSkip && Input.GetKeyDown(KeyCode.Return))
         {
             SkipVideo();
             return;
         }
 
+        // Wait for video to complete before starting tutorial
         if (!videoCompleted) return;
 
         if (!tutorialStarted && player != null)
@@ -316,14 +253,74 @@ public class OpeningTutorialManager : MonoBehaviour
 
     void DisablePlayerControls()
     {
-        if (playerController != null) playerController.enabled = false;
-        if (locomotionController != null) locomotionController.enabled = false;
+        if (playerController != null)
+            playerController.enabled = false;
+        if (locomotionController != null)
+            locomotionController.enabled = false;
     }
 
     void EnablePlayerControls()
     {
-        if (playerController != null) playerController.enabled = true;
-        if (locomotionController != null) locomotionController.enabled = true;
+        if (playerController != null)
+            playerController.enabled = true;
+        if (locomotionController != null)
+            locomotionController.enabled = true;
+    }
+
+    void HandleNPCMissionVisibility()
+    {
+        bool anyGenericMissionActive = false;
+        if (missionTexts != null)
+        {
+            foreach (GameObject txt in missionTexts)
+            {
+                if (txt != null && txt.activeInHierarchy)
+                {
+                    anyGenericMissionActive = true;
+                    break;
+                }
+            }
+        }
+
+        if (missions != null && missionActive)
+        {
+            bool showOverallUI = !anyGenericMissionActive;
+
+            if (missionBoxUI != null && missionBoxUI.activeSelf != showOverallUI)
+                missionBoxUI.SetActive(showOverallUI);
+
+            foreach (var mission in missions)
+            {
+                if (mission.missionText != null)
+                {
+                    if (mission.missionText.gameObject.activeSelf != showOverallUI)
+                    {
+                        mission.missionText.gameObject.SetActive(showOverallUI);
+                    }
+                }
+            }
+
+            if (compass != null && anyGenericMissionActive)
+            {
+                foreach (var mission in missions)
+                {
+                    if (!string.IsNullOrEmpty(mission.compassQuestID))
+                    {
+                        compass.HideMarker(mission.compassQuestID);
+                    }
+                }
+            }
+            else if (compass != null && !anyGenericMissionActive)
+            {
+                foreach (var mission in missions)
+                {
+                    if (!mission.isCompleted && !string.IsNullOrEmpty(mission.compassQuestID))
+                    {
+                        compass.ShowMarker(mission.compassQuestID);
+                    }
+                }
+            }
+        }
     }
 
     void DetectPlayerMovement()
@@ -340,8 +337,10 @@ public class OpeningTutorialManager : MonoBehaviour
                 StartCoroutine(StartOpeningTutorial());
             }
         }
-        else movementTimer = 0f;
-
+        else
+        {
+            movementTimer = 0f;
+        }
         lastPlayerPosition = currentPosition;
     }
 
@@ -349,6 +348,19 @@ public class OpeningTutorialManager : MonoBehaviour
     {
         yield return new WaitForSeconds(0.2f);
         Time.timeScale = 0f;
+
+        // Hide mission UI during tutorial
+        if (missionBoxUI != null)
+            missionBoxUI.SetActive(false);
+
+        if (missions != null)
+        {
+            foreach (var m in missions)
+            {
+                if (m.missionText != null)
+                    m.missionText.gameObject.SetActive(false);
+            }
+        }
 
         if (tutorialUIPanel != null)
             tutorialUIPanel.SetActive(true);
@@ -374,17 +386,22 @@ public class OpeningTutorialManager : MonoBehaviour
     void NextSlide()
     {
         currentSlideIndex++;
-        if (currentSlideIndex < tutorialTexts.Length) ShowSlide(currentSlideIndex);
-        else OnTutorialSlidesComplete();
+        if (currentSlideIndex < tutorialTexts.Length)
+            ShowSlide(currentSlideIndex);
+        else
+            OnTutorialSlidesComplete();
     }
 
     void OnTutorialSlidesComplete()
     {
         tutorialActive = false;
-        if (tutorialUIPanel != null) tutorialUIPanel.SetActive(false);
+        if (tutorialUIPanel != null)
+            tutorialUIPanel.SetActive(false);
+
         Time.timeScale = 1f;
 
         StartMissionHUD();
+
         StartCoroutine(ShowDialogueWithDelay());
     }
 
@@ -392,7 +409,9 @@ public class OpeningTutorialManager : MonoBehaviour
     {
         yield return new WaitForSeconds(0.1f);
         if (welcomeDialogue != null && dialogueManager != null)
+        {
             dialogueManager.StartDialogue(welcomeDialogue, DialogueManager.DialogueMode.Subtitle);
+        }
     }
 
     void StartMissionHUD()
@@ -416,7 +435,9 @@ public class OpeningTutorialManager : MonoBehaviour
                 }
 
                 if (compass != null && !string.IsNullOrEmpty(m.compassQuestID))
+                {
                     compass.ShowMarker(m.compassQuestID);
+                }
             }
         }
     }
@@ -439,14 +460,21 @@ public class OpeningTutorialManager : MonoBehaviour
                     mission.missionText.text = "<s>" + mission.missionDescription + "</s>";
 
                     if (missionCompleteAudio != null && audioSource != null)
+                    {
                         audioSource.PlayOneShot(missionCompleteAudio);
+                    }
                 }
 
                 if (compass != null && !string.IsNullOrEmpty(mission.compassQuestID))
+                {
                     compass.HideMarker(mission.compassQuestID);
+                }
             }
 
-            if (!mission.isCompleted) allComplete = false;
+            if (!mission.isCompleted)
+            {
+                allComplete = false;
+            }
         }
 
         if (allComplete && !allMissionsCompleted)
@@ -463,20 +491,22 @@ public class OpeningTutorialManager : MonoBehaviour
         if (missionBoxUI != null) missionBoxUI.SetActive(false);
 
         if (missions != null)
+        {
             foreach (var mission in missions)
+            {
                 if (mission.missionText != null)
+                {
                     mission.missionText.gameObject.SetActive(false);
-    }
-
-    void HandleNPCMissionVisibility()
-    {
-        // left as-is from your project (not relevant to muting)
-        // keep your existing logic if needed
+                }
+            }
+        }
     }
 
     void OnDestroy()
     {
         if (openingVideoPlayer != null)
+        {
             openingVideoPlayer.loopPointReached -= OnVideoFinished;
+        }
     }
 }
